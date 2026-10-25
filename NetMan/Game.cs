@@ -44,21 +44,31 @@ public sealed class Game
 
   private readonly List<BlockBreakEffect> _blockBreakEffects = [];
   private readonly string[] _files;
+  private readonly string[] _deathQuotes;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private double _jumpBuffer, _coyoteTime, _transition;
   private int _levelIndex;
   private bool _growthPending;
   private bool _overloadPending;
 
-  public Game(string[] files)
+  public Game(string[] files, string? deathQuotesPath = null)
   {
     this._files = files;
+    deathQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "death-quotes.txt");
+    _deathQuotes = File.Exists(deathQuotesPath)
+      ? File.ReadAllLines(deathQuotesPath).Select(line => line.Trim())
+        .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
+      : [];
+    if (_deathQuotes.Length == 0)
+      _deathQuotes = ["Gravity wins again."];
+
     LoadLevel();
   }
 
   public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
   public int Coins { get; private set; }
   public int DeathTicksRemaining { get; private set; }
+  public string DeathQuote { get; private set; } = string.Empty;
   public int DamageTicksRemaining { get; private set; }
   public List<Enemy> Enemies { get; private set; } = [];
   public bool Grounded { get; private set; }
@@ -347,6 +357,7 @@ public sealed class Game
       return;
 
     Lives--;
+    DeathQuote = _deathQuotes[Random.Shared.Next(_deathQuotes.Length)];
     Y += PlayerHeight - BodyHeight;
     IsExploding = false;
     IsLarge = false;
@@ -377,6 +388,7 @@ public sealed class Game
     Y = Level.Spawn.Y;
     VelocityY = 0;
     DeathTicksRemaining = 0;
+    DeathQuote = string.Empty;
 
     Grounded = false;
     _jumpBuffer = _coyoteTime = 0;
