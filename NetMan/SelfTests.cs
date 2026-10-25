@@ -42,17 +42,24 @@ internal static class SelfTests
       var game = Map("....................", "....................", "....................", "....................", "....................", ".S.....o.........G..", "####################");
       Tick(game, 30);
       Check(game.Grounded && Math.Abs(game.Y - 5.1) < 0.001, "Player lands precisely on floor");
+
       game.QueueJump(); Tick(game, 10, jump: true);
       Check(game.Y < 4 && game.VelocityY < 0, "Jump rises above floor");
+
       Tick(game, 100);
       Check(game.Grounded && game.Lives == 3, "Jump returns safely to floor");
+
       Tick(game, 30, 1);
       Check(game.Coins == 1 && game.Score == 100, "Coin collected once");
+
       game.Paused = true; double previousX = game.X; Tick(game, 20, 1);
+
       Check(game.X == previousX, "Pause stops simulation"); game.Paused = false;
       Tick(game, 70, 1);
+
       Check(game.Won && game.Score == 1100, "Goal completes final level");
       game.Restart();
+
       Check(!game.Won && game.Lives == 3 && game.Score == 0, "Restart resets game");
 
       game = Map("....................", "....................", "....................", "....................", ".S.#..............G.", "####################");
@@ -74,25 +81,35 @@ internal static class SelfTests
 
       Check(game.RewardPopups.Count == 1 && game.RewardPopups[0].AgeTicks == 0,
         "Reward popup appears immediately on the rewarding hit");
+
       game.Paused = true;
+
       Tick(game, 120);
       Check(game.RewardPopups.Count == 1 && game.RewardPopups[0].AgeTicks == 0,
         "Pausing freezes the reward popup timer");
+
       game.Paused = false;
+
       Tick(game, 59);
       Check(game.RewardPopups.Count == 1, "Reward popup remains visible until one second has elapsed");
       Tick(game, 1);
       Check(game.RewardPopups.Count == 0, "Reward popup disappears after exactly one second");
+
       game.QueueJump();
+
       Tick(game, 60, jump: true);
       Check(game.Coins == 1 && game.RewardPopups.Count == 0, "Used block gives no additional reward popup");
 
       game.Restart();
+
       Tick(game, 10);
       game.QueueJump();
+
       Tick(game, 10, jump: true);
       Check(game.RewardPopups.Count == 1, "A reloaded bonus block can show a new reward popup");
+
       game.Restart();
+
       Check(game.RewardPopups.Count == 0, "Restart clears old reward popups");
 
       game = Map("....................", "....................", "....................", "....................", ".So^..............G.", "####################");
@@ -102,47 +119,74 @@ internal static class SelfTests
 
       Check(game.Lives == 2 && game.DeathTicksRemaining == Game.DeathDurationTicks,
         "Hazard costs one life and immediately starts the death splatter");
+
       double deathX = game.X;
       double deathY = game.Y;
       var dyingLevel = game.Level;
+
       game.Paused = true;
       Tick(game, 120, 1, true);
       Check(game.DeathTicksRemaining == Game.DeathDurationTicks, "Pause freezes the death timer");
+
       game.Paused = false;
       game.QueueJump();
+
       Tick(game, 59, 1, true);
       Check(game.IsDying && game.DeathTicksRemaining == 1 && game.X == deathX && game.Y == deathY
         && ReferenceEquals(game.Level, dyingLevel) && game.Lives == 2,
         "Death holds position and level for a full second without repeated damage");
+
       Tick(game, 1);
       Check(!game.IsDying && game.X == game.Level.Spawn.X && game.Y == game.Level.Spawn.Y
         && !ReferenceEquals(game.Level, dyingLevel) && game.Lives == 2,
         "Level reloads exactly one second after death");
+
       Check(game.Coins == 1 && game.Score == 100, "Level respawn preserves earned coins and score");
 
       game = Map("....................", "....................", "....................", "....................", ".S.E..............G.", "####################");
       Tick(game, 15, 1);
       Check(game.Lives == 2 && game.IsDying, "Enemy side contact costs a life and starts death splatter");
+
       game.Restart();
+
       Check(!game.IsDying && game.Lives == 3, "Manual restart clears the death state");
 
       game = Map("....................", "....................", ".S..................", "....................", ".E................G.", "####################");
+
       // Keep enemy at the left boundary beneath the falling player.
       game.Enemies[0].Direction = 0;
+
       for (int i = 0; i < 60 && game.Enemies[0].Alive; i++)
         game.Update(0, false);
+
       Check(!game.Enemies[0].Alive && game.Score == 200 && game.Lives == 3, "Falling player stomps enemy");
       Check(game.Enemies[0].SquashTicksRemaining == Enemy.SquashDurationTicks,
         "Enemy death immediately starts a one-second splatter");
+
       double enemyDeathX = game.Enemies[0].X;
       double enemyDeathY = game.Enemies[0].Y;
+
+      game.Paused = true;
+      Tick(game, 120);
+
+      Check(game.Enemies[0].SquashTicksRemaining == Enemy.SquashDurationTicks,
+        "Pause freezes the squash effect timer");
+
+      game.Paused = false;
+
       Tick(game, Enemy.SquashDurationTicks - 1);
       Check(game.Enemies[0].SquashTicksRemaining == 1 && game.Enemies[0].X == enemyDeathX
         && game.Enemies[0].Y == enemyDeathY && game.Score == 200 && game.Lives == 3,
         "Enemy splatter remains in place and cannot cause damage or extra points");
+
       Tick(game, 1);
       Check(!game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining == 0,
         "Enemy splatter disappears after exactly one second");
+
+      game.Restart();
+
+      Check(game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining == 0,
+        "Restart loads a live enemy without an old squash effect");
 
       game = Map("....................", "....................", ".S.^................", "...^................", ".E.^..............G.", "####################");
       game.Enemies[0].Direction = 0;
@@ -155,16 +199,22 @@ internal static class SelfTests
 
       Check(game.IsDying && !game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining > 0,
         "Enemy splatter and player splatter coexist in the same game");
+
       int enemyTicks = game.Enemies[0].SquashTicksRemaining;
       int playerTicks = game.DeathTicksRemaining;
+
       game.Paused = true;
       Tick(game, 120);
+
       Check(game.Enemies[0].SquashTicksRemaining == enemyTicks && game.DeathTicksRemaining == playerTicks,
         "Pause freezes both splatter effects together");
+
       game.Paused = false;
+
       Tick(game, enemyTicks);
       Check(game.Enemies[0].SquashTicksRemaining == 0 && game.IsDying,
         "Enemy splatter expires independently while player splatter remains");
+
       Tick(game, game.DeathTicksRemaining);
       Check(!game.IsDying && game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining == 0,
         "Player respawn clears both death effects and reloads live enemies");
@@ -175,8 +225,9 @@ internal static class SelfTests
       for (int i = 0; i < 120 && game.Enemies[0].Alive; i++)
         game.Update(0, false);
 
-      Check(!game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining == Enemy.SquashDurationTicks
-        && game.Enemies[0].Y + Game.BodyHeight <= game.Level.Height,
+      Check(!game.Enemies[0].Alive &&
+            game.Enemies[0].SquashTicksRemaining == Enemy.SquashDurationTicks &&
+            game.Enemies[0].Y + Game.BodyHeight <= game.Level.Height,
         "Enemy pit deaths also create splatter at the bottom of the level");
 
       game = Map("....................", "....................", ".B..................", "....................", ".S................G.", "####################");
@@ -190,10 +241,14 @@ internal static class SelfTests
         for (int i = 0; i < 120 && !game.IsDying; i++)
           game.Update(0, false);
 
-        Check(game.IsDying && game.Lives == remainingLives
-          && game.DeathTicksRemaining == Game.DeathDurationTicks, "Pit fall starts a timed death");
+        Check(game.IsDying &&
+              game.Lives == remainingLives &&
+              game.DeathTicksRemaining == Game.DeathDurationTicks,
+          "Pit fall starts a timed death");
+
         Tick(game, Game.DeathDurationTicks - 1);
         Check(game.IsDying && game.Lives == remainingLives, "Pit splatter remains for the full death delay");
+
         Tick(game, 1);
         Check(!game.IsDying && game.Lives == (remainingLives == 0 ? 3 : remainingLives),
           "Death respawns the level or restarts the game after the last life");
@@ -204,9 +259,11 @@ internal static class SelfTests
 
       File.WriteAllLines(path, ["....................", "....................", ".S.G................", "####################"]);
       File.WriteAllLines(nextPath, ["....................", "....................", ".S...............G..", "####################"]);
+
       game = new Game([path, nextPath]);
       Tick(game, 15, 1);
       Check(game.LevelNumber == 2 && !game.Won && game.Score == 1000, "Goal loads the next level");
+
       Tick(game, 140, 1);
       Check(game.Won && game.Score == 2000, "Final goal wins a multiple-level game");
     }

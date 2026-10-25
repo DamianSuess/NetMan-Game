@@ -167,6 +167,34 @@ internal static class GraphicsTests
       File.Delete(combinedLevelPath);
     }
 
+    var stompLevelPath = Path.Combine(Path.GetTempPath(), $"netman-stomp-{Guid.NewGuid():N}.txt");
+
+    try
+    {
+      File.WriteAllLines(stompLevelPath,
+        ["....................", "....................", ".S..................", "....................", ".E................G.", "####################"]);
+      var stompGame = new Game([stompLevelPath]);
+      stompGame.Enemies[0].Direction = 0;
+
+      for (int i = 0; i < 60 && stompGame.Enemies[0].Alive; i++)
+        stompGame.Update(0, false);
+
+      renderer.Draw(stompGame, 0);
+      Check(renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] == gamePalette['F'],
+        "Stomp renders the blood splatter at the enemy's feet");
+
+      for (int i = 0; i < Enemy.SquashDurationTicks; i++)
+        stompGame.Update(0, false);
+
+      renderer.Draw(stompGame, 0);
+      Check(renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] != gamePalette['F'],
+        "Expired blood splatter disappears from the rendered scene");
+    }
+    finally
+    {
+      File.Delete(stompLevelPath);
+    }
+
     var rewardLevelPath = Path.Combine(Path.GetTempPath(), $"netman-reward-{Guid.NewGuid():N}.txt");
 
     try
