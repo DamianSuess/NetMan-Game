@@ -28,7 +28,19 @@ Enemy death effect: `enemy-squashed.sprite` is a 24 x 16 flattened enemy and blo
 
 Tile files: `grass.sprite`, `dirt.sprite`, `brick.sprite`, `bonus.sprite`, `used.sprite`, `pipe.sprite`, `coin.sprite`, `spike.sprite`, `goal.sprite`.
 
-Large pipes: a complete, isolated `PP` / `PP` group in a level automatically uses `pipe-top-left.sprite`, `pipe-top-right.sprite`, `pipe-bottom-left.sprite`, and `pipe-bottom-right.sprite`. These four editable 16 x 16 tiles join into one 32 x 32 pipe with a single rim and continuous stem. Existing levels need no changes. `pipe.sprite` retains the original standard artwork and is used for single pipe tiles and other pipe arrangements. To use the original artwork for a 2 x 2 pipe, copy `pipe.sprite` over each of the four large-pipe sprite files. Collision still uses the same solid `P` tiles.
+Pipes can be one or two tiles wide and any number of tiles tall. Stack `P` tiles vertically, keeping the same width on every row. A stack has one top rim, a continuous stem, and a bottom edge. The renderer automatically chooses the editable 16 x 16 pieces; collision still uses the same solid `P` tiles. Leave at least one non-pipe column between separate pipes so they do not merge into a wider group.
+
+For example, these are a small pipe three tiles tall and a large pipe four tiles tall:
+
+```text
+....PP
+P...PP
+P...PP
+P...PP
+######
+```
+
+Small stacks use `pipe-small-top.sprite`, `pipe-small-body.sprite`, and `pipe-small-bottom.sprite`. Large stacks use `pipe-top-left.sprite`, `pipe-top-right.sprite`, `pipe-body-left.sprite`, `pipe-body-right.sprite`, `pipe-bottom-left.sprite`, and `pipe-bottom-right.sprite`. Body pieces repeat for extra height; two-tile-tall pipes only need top and bottom pieces. Single-tile pipes, one-row groups, and irregular shapes retain the unchanged original `pipe.sprite` artwork. A large pipe begins at 2 x 2 tiles (32 x 32 pixels); each extra row adds 16 pixels of height. To restore the standard artwork everywhere, copy `pipe.sprite` over the stack-piece sprite files.
 
 Brick break animation: `brick-rubble.sprite` shows broken chunks for 0.25 seconds, followed by `brick-dust.sprite` showing sparse dust for 0.25 seconds. The effect disappears after 0.5 seconds of game time. Both frames are editable 16 x 16 sprites and use the shared brick colors. Pausing freezes the animation. Each broken brick animates independently, and its collision disappears as soon as it breaks. Coin blocks keep their existing reward and used-block behavior.
 

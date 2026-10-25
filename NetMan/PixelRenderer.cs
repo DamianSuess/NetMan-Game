@@ -36,8 +36,13 @@ internal sealed class PixelRenderer
       "bonus",
       "used",
       "pipe",
+      "pipe-small-top",
+      "pipe-small-body",
+      "pipe-small-bottom",
       "pipe-top-left",
       "pipe-top-right",
+      "pipe-body-left",
+      "pipe-body-right",
       "pipe-bottom-left",
       "pipe-bottom-right",
       "coin",
@@ -141,25 +146,58 @@ internal sealed class PixelRenderer
 
   private static string PipeSprite(Level level, int x, int y)
   {
-    int left = level.Tile(x - 1, y) == 'P' ? x - 1 : x;
-    int top = level.Tile(x, y - 1) == 'P' ? y - 1 : y;
+    int left = x;
+    int right = x;
 
-    // Only a complete, isolated 2 x 2 group uses the large pipe artwork.
-    for (int offset = 0; offset < 2; offset++)
+    while (level.Tile(left - 1, y) == 'P')
+      left--;
+
+    while (level.Tile(right + 1, y) == 'P')
+      right++;
+
+    int width = right - left + 1;
+
+    if (width > 2)
+      return "pipe";
+
+    int top = y;
+    int bottom = y;
+
+    while (IsPipeRow(level, left, width, top - 1))
+      top--;
+
+    while (IsPipeRow(level, left, width, bottom + 1))
+      bottom++;
+
+    // Irregular groups retain the original artwork rather than mismatched pipe pieces.
+    for (int offset = 0; offset < width; offset++)
     {
-      if (level.Tile(left + offset, top) != 'P' || level.Tile(left + offset, top + 1) != 'P'
-        || level.Tile(left - 1, top + offset) == 'P' || level.Tile(left + 2, top + offset) == 'P'
-        || level.Tile(left + offset, top - 1) == 'P' || level.Tile(left + offset, top + 2) == 'P')
+      if (level.Tile(left + offset, top - 1) == 'P' || level.Tile(left + offset, bottom + 1) == 'P')
         return "pipe";
     }
 
-    return (x == left, y == top) switch
+    if (top == bottom)
+      return "pipe";
+
+    string section = y == top ? "top" : y == bottom ? "bottom" : "body";
+
+    return width == 1
+      ? $"pipe-small-{section}"
+      : $"pipe-{section}-{(x == left ? "left" : "right")}";
+  }
+
+  private static bool IsPipeRow(Level level, int left, int width, int y)
+  {
+    if (level.Tile(left - 1, y) == 'P' || level.Tile(left + width, y) == 'P')
+      return false;
+
+    for (int offset = 0; offset < width; offset++)
     {
-      (true, true) => "pipe-top-left",
-      (false, true) => "pipe-top-right",
-      (true, false) => "pipe-bottom-left",
-      _ => "pipe-bottom-right",
-    };
+      if (level.Tile(left + offset, y) != 'P')
+        return false;
+    }
+
+    return true;
   }
 
   private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip, bool keepInView = false)
