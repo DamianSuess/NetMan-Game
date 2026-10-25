@@ -6,8 +6,8 @@ public sealed class Enemy(double x, double y)
 
   public double X = x, Y = y, VelocityY;
   public int Direction = -1;
-  public bool Alive = true;
 
+  public bool Alive { get; private set; } = true;
   public int SquashTicksRemaining { get; private set; }
 
   internal void AdvanceSquash()
@@ -18,6 +18,9 @@ public sealed class Enemy(double x, double y)
 
   internal void Squash()
   {
+    if (!Alive)
+      return;
+
     Alive = false;
     VelocityY = 0;
     SquashTicksRemaining = SquashDurationTicks;
@@ -28,6 +31,7 @@ public sealed class Game
 {
   public const double Step = 1.0 / 60;
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
+  public const int DeathDurationTicks = 60;
 
   private readonly string[] _files;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
@@ -49,6 +53,8 @@ public sealed class Game
   public string Message { get; private set; } = "Let's go!";
   public int LevelNumber => _levelIndex + 1;
   public int LevelCount => _files.Length;
+  public int DeathTicksRemaining { get; private set; }
+  public bool IsDying => DeathTicksRemaining > 0;
   public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
 
   public Game(string[] files)
@@ -65,6 +71,7 @@ public sealed class Game
     X = Level.Spawn.X;
     Y = Level.Spawn.Y;
     VelocityY = 0;
+    DeathTicksRemaining = 0;
 
     Grounded = false;
     _jumpBuffer = _coyoteTime = 0;
@@ -86,7 +93,7 @@ public sealed class Game
 
   public void QueueJump()
   {
-    if (!Paused && !Won && Lives > 0)
+    if (!Paused && !Won && !IsDying && Lives > 0)
       _jumpBuffer = 0.12;
   }
 
@@ -108,7 +115,28 @@ public sealed class Game
         _rewardPopups[i] = popup;
     }
 
-    if (Won || Lives == 0)
+    if (Won)
+      return;
+
+    if (IsDying)
+    {
+      DeathTicksRemaining--;
+
+      if (!IsDying)
+      {
+        if (Lives > 0)
+        {
+          LoadLevel();
+          Message = "Try again!";
+        }
+        else
+          Restart();
+      }
+
+      return;
+    }
+
+    if (Lives == 0)
       return;
 
     if (_transition > 0)
@@ -192,7 +220,11 @@ public sealed class Game
       Move(ref ex, ref ey, enemy.VelocityY * Step, false, false, out bool floor);
       if (floor) enemy.VelocityY = 0;
       enemy.X = ex; enemy.Y = ey;
-      if (ey > Level.Height + 2) enemy.Alive = false;
+      if (ey > Level.Height + 2)
+      {
+        enemy.Y = Level.Height - BodyHeight;
+        enemy.Squash();
+      }
       if (!enemy.Alive || !Overlaps(X, Y, ex, ey)) continue;
       if (vertical > 0 && Y + BodyHeight - vertical <= ey + 0.25)
       {
@@ -207,9 +239,15 @@ public sealed class Game
 
   private void Die()
   {
+    if (IsDying || Lives == 0)
+      return;
+
     Lives--;
-    Message = Lives == 0 ? "GAME OVER - R to restart" : "Try again!";
-    if (Lives > 0) { LoadLevel(); _transition = 0.7; }
+    DeathTicksRemaining = DeathDurationTicks;
+    VelocityY = 0;
+    Grounded = false;
+    _jumpBuffer = _coyoteTime = 0;
+    Message = Lives == 0 ? "Ouch! Restarting game..." : "Ouch!";
   }
 
   private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit)

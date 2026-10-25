@@ -60,6 +60,7 @@ internal static class GraphicsTests
       var asset = Sprite.Load(file, gamePalette);
       bool validSize = Path.GetFileName(file) switch
       {
+        "player-splatter.sprite" => asset.Width == 24 && asset.Height == 16,
         "enemy-squashed.sprite" => asset.Width == 24 && asset.Height == 16,
         "reward-plus-one.sprite" => true,
         _ => asset.Width == 16 && asset.Height == 16,
@@ -79,6 +80,92 @@ internal static class GraphicsTests
     uint[] paused = (uint[])renderer.Frame.Pixels.Clone();
     renderer.Draw(game, 0, 1);
     Check(renderer.Frame.Pixels.SequenceEqual(paused), "Animation freezes while paused");
+
+    var deathLevelPath = Path.Combine(Path.GetTempPath(), $"netman-death-{Guid.NewGuid():N}.txt");
+
+    try
+    {
+      File.WriteAllLines(deathLevelPath,
+        ["....................", "....................", "....................", "....................", ".S.^..............G.", "####################"]);
+      var deathGame = new Game([deathLevelPath]);
+
+      for (int i = 0; i < 60 && !deathGame.IsDying; i++)
+        deathGame.Update(1, false);
+
+      renderer.Draw(deathGame, 0);
+      Check(renderer.Frame.Pixels.Contains(gamePalette['E']) && renderer.Frame.Pixels.Contains(gamePalette['F']),
+        "Dead player renders bright and dark blood from the editable splatter sprite");
+      Check(renderer.Frame.Pixels.Contains(gamePalette['T']) && renderer.Frame.Pixels.Contains(gamePalette['B']),
+        "Player splatter retains teal and blue clothing colors");
+
+      for (int i = 0; i < Game.DeathDurationTicks; i++)
+        deathGame.Update(0, false);
+
+      renderer.Draw(deathGame, 0);
+      Check(!renderer.Frame.Pixels.Contains(gamePalette['E']) && !renderer.Frame.Pixels.Contains(gamePalette['F']),
+        "Player splatter disappears when the level respawns");
+
+      File.WriteAllLines(deathLevelPath,
+        ["....................", "....................", "....................", ".S................G.", "...................."]);
+      deathGame = new Game([deathLevelPath]);
+
+      for (int life = 0; life < 3; life++)
+      {
+        for (int i = 0; i < 120 && !deathGame.IsDying; i++)
+          deathGame.Update(0, false);
+
+        renderer.Draw(deathGame, 0);
+        Check(renderer.Frame.Pixels.Contains(gamePalette['E']),
+          "Pit death splatter stays visible, including on the last life");
+
+        for (int i = 0; i < Game.DeathDurationTicks; i++)
+          deathGame.Update(0, false);
+      }
+    }
+    finally
+    {
+      File.Delete(deathLevelPath);
+    }
+
+    var combinedLevelPath = Path.Combine(Path.GetTempPath(), $"netman-both-splatters-{Guid.NewGuid():N}.txt");
+
+    try
+    {
+      File.WriteAllLines(combinedLevelPath,
+        ["....................", "....................", ".S.^................", "...^................", ".E.^..............G.", "####################"]);
+      var combinedGame = new Game([combinedLevelPath]);
+      combinedGame.Enemies[0].Direction = 0;
+
+      for (int i = 0; i < 60 && combinedGame.Enemies[0].Alive; i++)
+        combinedGame.Update(0, false);
+
+      renderer.Draw(combinedGame, 0);
+      Check(renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] == gamePalette['F'],
+        "Enemy splatter sprite renders at the stomp location");
+
+      for (int i = 0; i < 60 && !combinedGame.IsDying; i++)
+        combinedGame.Update(1, false);
+
+      renderer.Draw(combinedGame, 0);
+      Check(combinedGame.IsDying && combinedGame.Enemies[0].SquashTicksRemaining > 0
+        && renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] == gamePalette['F']
+        && renderer.Frame.Pixels.Contains(gamePalette['T']) && renderer.Frame.Pixels.Contains(gamePalette['B']),
+        "Enemy and player splatter sprites render together");
+
+      int enemyTicks = combinedGame.Enemies[0].SquashTicksRemaining;
+
+      for (int i = 0; i < enemyTicks; i++)
+        combinedGame.Update(0, false);
+
+      renderer.Draw(combinedGame, 0);
+      Check(combinedGame.IsDying && renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] != gamePalette['F']
+        && renderer.Frame.Pixels.Contains(gamePalette['T']),
+        "Expired enemy splatter is removed without removing player splatter");
+    }
+    finally
+    {
+      File.Delete(combinedLevelPath);
+    }
 
     var stompLevelPath = Path.Combine(Path.GetTempPath(), $"netman-stomp-{Guid.NewGuid():N}.txt");
 

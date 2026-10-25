@@ -22,7 +22,7 @@ This version runs on Windows. The gameplay, text-level loader, sprite loader, pi
 | R | Restart the entire game |
 | Esc | Quit |
 
-You have three lives. Enemy side contact, spikes, and falling into a pit cost a life and reload the current level. Land on an enemy from above to stomp it. Stomped enemies flatten into a blood splatter mixed with their original colors, visible for one second of game time before disappearing. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through deaths; the current map resets. Reach the goal in every level to win.
+You have three lives. Enemy side contact, spikes, and falling into a pit cost a life. The player becomes a blood-and-clothing splatter for one second of game time while gameplay freezes, then the current level reloads. After the last life, the game automatically restarts from level one with three lives and cleared rewards. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 
 ## Make levels
 
@@ -73,7 +73,7 @@ Ship the entire `publish` folder, including its `Assets` and editable `Levels` d
 
 ## Pixel art
 
-Character artwork lives in separate files under `Assets`: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`, `enemy-idle.sprite`, and `enemy-walk.sprite`. Tiles and objects also have their own sprite files. Characters and tiles are 16 x 16 pixels; the editable `enemy-squashed.sprite` effect is 24 x 16, and the coin-block reward popup uses the editable 8 x 6 `reward-plus-one.sprite`. Sprites share an 18-color palette for a retro look; the framebuffer uses 32-bit color.
+Character artwork lives in separate files under `Assets`: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`, `enemy-idle.sprite`, and `enemy-walk.sprite`. Tiles and objects also have their own sprite files. Characters and tiles are 16 x 16 pixels; `player-splatter.sprite` and `enemy-squashed.sprite` are wider 24 x 16 death effects, and the coin-block reward popup uses the editable 8 x 6 `reward-plus-one.sprite`. Sprites share an 18-color palette for a retro look; the framebuffer uses 32-bit color.
 
 The `.sprite` files are editable pixel grids. Each symbol represents one pixel, `.` is transparent, and colors are defined in `Assets/palette.txt`. Edit the source files and restart the game to see changes. See [Assets/README.md](Assets/README.md) for the format.
 
