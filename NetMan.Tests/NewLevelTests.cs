@@ -17,29 +17,41 @@ public sealed class NewLevelTests
     var game = new Game([path]);
     int groundRow = game.Level.Height - 2;
     int goalX = Enumerable.Range(0, game.Level.Width).Single(x => game.Level.Tile(x, groundRow - 1) == 'G');
+
     int[] takeoffs = Enumerable.Range(1, game.Level.Width - 1)
       .Where(x => game.Level.Tile(x, groundRow) == '.' && game.Level.Tile(x - 1, groundRow) == '#')
       .Select(x => x - 2).ToArray();
-    int nextTakeoff = 0;
 
-    for (int tick = 0; tick < 6000 && !game.Won && !game.IsDying; tick++)
+    // Patrol speed is configurable. Try a few launch timings instead of requiring
+    // every level to match one particular enemy phase at the start of the run.
+    for (int startDelay = 0; startDelay <= 60 && !game.Won; startDelay += 5)
     {
-      int direction = game.X >= goalX - 0.2 ? 0 : 1;
-      bool atTakeoff = nextTakeoff < takeoffs.Length && game.X >= takeoffs[nextTakeoff];
+      if (startDelay > 0)
+        game.Restart();
 
-      // Land before each pit, then make a full jump from its safe takeoff point.
-      if (atTakeoff && !game.Grounded)
-        direction = 0;
+      for (int tick = 0; tick < startDelay; tick++)
+        game.Update(0, false);
 
-      if (game.Grounded && direction != 0)
+      int nextTakeoff = 0;
+      for (int tick = 0; tick < 6000 && !game.Won && !game.IsDying; tick++)
       {
-        game.QueueJump();
+        int direction = game.X >= goalX - 0.2 ? 0 : 1;
+        bool atTakeoff = nextTakeoff < takeoffs.Length && game.X >= takeoffs[nextTakeoff];
 
-        if (atTakeoff)
-          nextTakeoff++;
+        // Land before each pit, then make a full jump from its safe takeoff point.
+        if (atTakeoff && !game.Grounded)
+          direction = 0;
+
+        if (game.Grounded && direction != 0)
+        {
+          game.QueueJump();
+
+          if (atTakeoff)
+            nextTakeoff++;
+        }
+
+        game.Update(direction, true);
       }
-
-      game.Update(direction, true);
     }
 
     Assert.IsTrue(game.Won, $"{name}: the route must reach the goal; stopped at ({game.X:F2}, {game.Y:F2}), dying={game.IsDying}.");

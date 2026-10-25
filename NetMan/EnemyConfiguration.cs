@@ -5,7 +5,7 @@ namespace NetMan;
 internal sealed class EnemyConfiguration
 {
   public static EnemySettings DefaultWalker { get; } = new(3, 1, 0);
-  public static EnemySettings DefaultToasterCat { get; } = new(4, 2, 7);
+  public static EnemySettings DefaultToasterCat { get; } = new(6, 2, 7);
   public static PlayerSettings DefaultPlayerPowerLevel1 { get; } = new(12, 1, 15);
   public static PlayerSettings DefaultPlayerPowerLevel2 { get; } = new(12, 2, 15);
 
