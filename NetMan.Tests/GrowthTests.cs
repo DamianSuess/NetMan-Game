@@ -127,6 +127,7 @@ public sealed class GrowthTests : GameTestBase
     Assert.AreEqual(2, game.Lives);
     Assert.IsFalse(game.IsLarge);
     Tick(game, Game.DeathDurationTicks);
+    Assert.IsTrue(game.ContinueAfterDeath());
     Assert.IsFalse(game.IsLarge);
     Assert.IsFalse(game.IsDying);
   }

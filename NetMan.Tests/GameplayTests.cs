@@ -207,9 +207,11 @@ public sealed class GameplayTests : GameTestBase
         "Death holds position and level for two seconds without repeated damage");
 
     Tick(game, 1);
+    Assert.IsTrue(game.AwaitingRestart);
+    Assert.IsTrue(game.ContinueAfterDeath());
     Assert.IsTrue(!game.IsDying && game.X == game.Level.Spawn.X && game.Y == game.Level.Spawn.Y
       && !ReferenceEquals(game.Level, dyingLevel) && game.Lives == 2,
-      "Level reloads exactly two seconds after death");
+      "Level reloads on confirmation after the two-second death delay");
 
     Assert.IsTrue(game.Coins == 1 && game.Score == 100, "Level respawn preserves earned coins and score");
   }
@@ -298,6 +300,7 @@ public sealed class GameplayTests : GameTestBase
       "Enemy splatter expires independently while player splatter remains");
 
     Tick(game, game.DeathTicksRemaining);
+    Assert.IsTrue(game.ContinueAfterDeath());
     Assert.IsTrue(!game.IsDying && game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining == 0,
       "Player respawn clears both death effects and reloads live enemies");
   }
@@ -395,12 +398,13 @@ public sealed class GameplayTests : GameTestBase
       Assert.IsTrue(game.IsDying && game.Lives == remainingLives, "Pit splatter remains for the full death delay");
 
       Tick(game, 1);
+      Assert.IsTrue(game.ContinueAfterDeath());
       Assert.IsTrue(!game.IsDying && game.Lives == (remainingLives == 0 ? 3 : remainingLives),
         "Death respawns the level or restarts the game after the last life");
     }
 
     Assert.IsTrue(game.LevelNumber == 1 && game.Score == 0 && game.Coins == 0,
-      "Automatic game restart resets progress and rewards");
+      "Confirmed game restart resets progress and rewards");
   }
 
   [TestMethod]

@@ -151,7 +151,16 @@ internal sealed class PixelRenderer
     DrawHud(game);
 
     if (game.IsDying)
+    {
       DrawDeathMessage(game.DeathQuote);
+      if (game.AwaitingRestart)
+      {
+        const string Prompt = "PRESS ANY KEY TO CONTINUE";
+        int promptX = (Width - (((Prompt.Length * 4) - 1) * 2)) / 2;
+        PixelFont.Draw(Frame, Prompt, promptX + 1, 113, Ink, 2);
+        PixelFont.Draw(Frame, Prompt, promptX, 112, Gold, 2);
+      }
+    }
     else if (game.Paused || game.Won || game.Lives == 0)
     {
       string title = game.Won ? "LEVELS COMPLETE!" : game.Lives == 0 ? "GAME OVER" : "PAUSED";

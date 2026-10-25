@@ -25,6 +25,8 @@ public sealed class DeathMessageTests : GameTestBase
       Tick(game, Game.DeathDurationTicks - 1);
       Assert.AreEqual(selected, game.DeathQuote, "The quote must not change between frames.");
       Tick(game, 1);
+      Assert.AreEqual(selected, game.DeathQuote);
+      Assert.IsTrue(game.ContinueAfterDeath());
       Assert.AreEqual(string.Empty, game.DeathQuote);
     }
   }
@@ -75,6 +77,13 @@ public sealed class DeathMessageTests : GameTestBase
     AssertTextPixels(expected, renderer.Frame);
 
     Tick(game, Game.DeathDurationTicks);
+    Assert.IsTrue(game.AwaitingRestart);
+    renderer.Draw(game, 0, 0);
+    const string Prompt = "PRESS ANY KEY TO CONTINUE";
+    int promptX = (PixelRenderer.Width - (((Prompt.Length * 4) - 1) * 2)) / 2;
+    PixelFont.Draw(expected, Prompt, promptX, 112, 0xFFFFD56B, 2);
+    AssertTextPixels(expected, renderer.Frame);
+    Assert.IsTrue(game.ContinueAfterDeath());
     renderer.Draw(game, 0, 0);
     Assert.IsFalse(renderer.Frame.Pixels.Contains(0xFFFF6B6B), "The death title must disappear after respawning.");
   }
