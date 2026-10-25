@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="NetMan/NetMan.csproj" />
+  <Project Path="NetMan.Tests/NetMan.Tests.csproj" />
+</Solution>
