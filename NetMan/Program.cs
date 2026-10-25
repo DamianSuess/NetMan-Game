@@ -1,20 +1,29 @@
 using System.Diagnostics;
 using NetBro;
 
-if (args.Contains("--self-test"))
-{
-  SelfTests.Run();
-  return;
-}
-
-if (!OperatingSystem.IsWindows() || Console.IsInputRedirected || Console.IsOutputRedirected)
-{
-  Console.Error.WriteLine("NetBro requires an interactive Windows console. Run dotnet run in Windows Terminal.");
-  return;
-}
-
 try
 {
+  if (args.Contains("--self-test"))
+  {
+    SelfTests.Run();
+    GraphicsTests.Run();
+    return;
+  }
+
+  int exportOption = Array.IndexOf(args, "--export-art");
+
+  if (exportOption >= 0)
+  {
+    if (exportOption + 1 >= args.Length)
+      throw new ArgumentException("Usage: --export-art <output-directory>");
+
+    ArtExporter.Export(Path.Combine(AppContext.BaseDirectory, "Assets"), Path.GetFullPath(args[exportOption + 1]));
+    return;
+  }
+
+  if (!OperatingSystem.IsWindows())
+    throw new PlatformNotSupportedException("NetMan currently has a Windows backend. Its game and pixel renderer are portable; other window backends can be added later.");
+
   var levelsPath = Path.Combine(AppContext.BaseDirectory, "Levels");
   var option = Array.IndexOf(args, "--levels");
 
@@ -26,59 +35,73 @@ try
     levelsPath = Path.GetFullPath(args[option + 1]);
   }
 
-  var files = Directory.GetFiles(levelsPath, "*.txt").OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase).ToArray();
+  var files = Directory.GetFiles(levelsPath, "*.txt")
+    .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase).ToArray();
 
   if (files.Length == 0)
     throw new InvalidDataException($"No .txt levels found in {levelsPath}");
 
-  // Validate every map up front, including levels reached later in the game.
   foreach (var file in files)
     Level.Load(file);
 
-  using var screen = new ConsoleScreen();
+  var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
   var game = new Game(files);
+  using IGameWindow window = new WindowsGameWindow(PixelRenderer.Width, PixelRenderer.Height);
   var clock = Stopwatch.StartNew();
-  double previous = clock.Elapsed.TotalSeconds, accumulator = 0;
-  bool wasJump = false, wasRestart = false, wasPause = false;
+  double previous = clock.Elapsed.TotalSeconds;
+  double accumulator = 0;
 
-  while (!Keyboard.Down(Keyboard.Escape))
+  while (!window.Closed)
   {
+    window.PumpEvents();
+
+    if (window.Closed || window.Pressed(GameKey.Escape))
+      break;
+
     var now = clock.Elapsed.TotalSeconds;
-    accumulator += Math.Min(now - previous, 0.1);
+    double elapsed = Math.Min(now - previous, 0.1);
+    accumulator += elapsed;
     previous = now;
 
-    var jump = Keyboard.Down(Keyboard.Space) || Keyboard.Down(Keyboard.Up) || Keyboard.Down(Keyboard.W);
-    var restart = Keyboard.Down(Keyboard.R);
-    var pause = Keyboard.Down(Keyboard.P);
+    if (!window.Active)
+    {
+      game.Paused = true;
+      accumulator = 0;
+      renderer.Draw(game, 0, 0);
+      window.Present(renderer.Frame);
+      Thread.Sleep(20);
+      continue;
+    }
 
-    if (restart && !wasRestart)
+    if (window.Pressed(GameKey.Restart))
       game.Restart();
 
-    if (pause && !wasPause)
+    if (window.Pressed(GameKey.Pause))
       game.Paused = !game.Paused;
 
-    if (jump && !wasJump)
+    if (window.Pressed(GameKey.Jump))
       game.QueueJump();
 
-    wasJump = jump;
-    wasRestart = restart;
-    wasPause = pause;
-
-    var direction = (Keyboard.Down(Keyboard.Right) || Keyboard.Down(Keyboard.D) ? 1 : 0)
-                  - (Keyboard.Down(Keyboard.Left) || Keyboard.Down(Keyboard.A) ? 1 : 0);
+    int direction = (window.Down(GameKey.Right) ? 1 : 0) - (window.Down(GameKey.Left) ? 1 : 0);
 
     while (accumulator >= Game.Step)
     {
-      game.Update(direction, jump);
+      game.Update(direction, window.Down(GameKey.Jump));
       accumulator -= Game.Step;
     }
 
-    screen.Draw(game);
+    renderer.Draw(game, direction, elapsed);
+    window.Present(renderer.Frame);
     Thread.Sleep(16);
   }
 }
-catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException)
+catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException
+  or PlatformNotSupportedException or System.ComponentModel.Win32Exception)
 {
-  Console.Error.WriteLine($"NetBro: {exception.Message}");
+  Console.Error.WriteLine($"NetMan: {exception.Message}");
+
+  if (OperatingSystem.IsWindows() && !args.Contains("--self-test") && !args.Contains("--export-art"))
+    WindowsGameWindow.ShowError(exception.Message);
+
   Environment.ExitCode = 1;
 }

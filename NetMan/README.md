@@ -1,6 +1,6 @@
-# NetBro
+# NetMan
 
-A small C# / .NET 10 console platformer inspired by classic side scrollers, with original ASCII visuals. Collect coins, stomp enemies, cross gaps, and reach the green `F` at the end of each level.
+A C# / .NET 10 pixel-art platformer with its own software renderer and native Windows game window. No third-party engine, graphics library, or NuGet packages are required. Collect coins, stomp enemies, cross gaps, and reach the green flag at the end of each level.
 
 ## Play
 
@@ -10,7 +10,9 @@ Install the .NET 10 SDK, open Windows Terminal in this folder, and run:
 dotnet run
 ```
 
-Use a console at least 46 columns by 16 rows; about 100 by 28 works well. Windows Terminal is recommended for ANSI colors and smooth redraws.
+The game opens a separate resizable window. It renders at 384 x 240 pixels and starts at 3x scale (1152 x 720 client area). Resizing uses whole-number scaling and letterboxing to keep the pixel art crisp. Keyboard input is received only by the game window. Switching to another app automatically pauses the game; press P to resume after returning.
+
+This version runs on Windows. The gameplay, text-level loader, sprite loader, pixel renderer, and PNG exporter use portable .NET code. `IGameWindow` separates those components from the Win32 backend; Linux and macOS would need their own window/input/presentation implementations and testing.
 
 | Key | Action |
 | --- | --- |
@@ -35,11 +37,11 @@ Each character is one tile. Rows run from top to bottom; columns run left to rig
 | `#` | Solid ground / wall |
 | `B` | Breakable brick |
 | `?` | One-coin bonus block |
-| `P` | Solid pipe (displayed as `H`) |
+| `P` | Solid pipe |
 | `o` | Coin |
-| `E` | Walking enemy (displayed as `m`) |
+| `E` | Walking enemy |
 | `^` | Deadly spike |
-| `G` | Goal (displayed as `F`); at least one per map |
+| `G` | Green goal flag; at least one per map |
 
 Example:
 
@@ -67,11 +69,23 @@ To distribute a Windows x64 executable with its own runtime:
 dotnet publish -c Release -r win-x64 --self-contained true -o publish
 ```
 
-Ship the entire `publish` folder, including its editable `Levels` directory. When running the published game, edit the maps beside `NetBro.exe` and relaunch it.
+Ship the entire `publish` folder, including its `Assets` and editable `Levels` directories. When running the published game, edit the maps beside `NetMan.exe` and relaunch it. The project file is still named `NetBro.csproj` for compatibility with the existing solution, but its output executable is `NetMan.exe`.
+
+## Pixel art
+
+Character artwork lives in separate files under `Assets`: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`, `enemy-idle.sprite`, and `enemy-walk.sprite`. Tiles and objects also have their own sprite files. All bundled sprites are 16 x 16 pixels with a shared 16-color palette for a retro look; the framebuffer uses 32-bit color.
+
+The `.sprite` files are editable pixel grids. Each symbol represents one pixel, `.` is transparent, and colors are defined in `Assets/palette.txt`. Edit the source files and restart the game to see changes. See [Assets/README.md](Assets/README.md) for the format.
+
+`Assets/Previews` contains transparent PNG copies of every sprite, a contact sheet, and a scene preview. These are exported previews; the game reads `.sprite` files. Regenerate the PNGs after editing artwork:
+
+```powershell
+dotnet run -- --export-art Assets/Previews
+```
 
 ## Development
 
-There are no NuGet package dependencies. `Game.cs` contains fixed-step physics and game rules, `Level.cs` parses text maps, `ConsoleScreen.cs` draws the scrolling view, and `Keyboard.cs` polls held Windows keys. Physics uses fractional positions and small collision steps to prevent movement through walls.
+There are no NuGet package dependencies. `Game.cs` contains fixed-step physics and game rules, `Level.cs` parses text maps, `PixelRenderer.cs` composes the scrolling scene, and `PixelBuffer.cs` draws sprites and exports PNGs. `WindowsGameWindow.cs` owns the Win32 window, event-driven keyboard input, and integer-scaled GDI presentation. All native declarations live in `NativeMethods.cs`. Physics uses fractional positions and small collision steps to prevent movement through walls.
 
 Run the headless checks (no interactive console required):
 
@@ -79,4 +93,8 @@ Run the headless checks (no interactive console required):
 dotnet run -- --self-test
 ```
 
-This first version covers the core platformer loop. It does not include Mario artwork, music, power-up transformations, bosses, or a graphical level editor.
+The checks cover gameplay, sprite validation, transparency, flipping, clipping, scene composition, and paused animation. They run without creating a window.
+
+This version includes animated walking, a jumping pose, shaded tiles, a pixel HUD, parallax scenery, and pause/win/game-over overlays. It does not include sound, power-up transformations, bosses, or a graphical level editor.
+
+Native backend references: [CreateWindowExW](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw), [StretchDIBits](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-stretchdibits).

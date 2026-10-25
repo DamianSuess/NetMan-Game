@@ -1,0 +1,38 @@
+namespace NetBro;
+
+internal static class ArtExporter
+{
+  public static void Export(string assetsPath, string outputPath)
+  {
+    Directory.CreateDirectory(outputPath);
+    var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
+    string[] files = Directory.GetFiles(assetsPath, "*.sprite").Order().ToArray();
+    var sheet = new PixelBuffer(256, 144);
+    sheet.Clear(0xFF17263F);
+    PixelFont.Draw(sheet, "NETMAN - PIXEL ART", 8, 7, 0xFFFFD56B);
+
+    for (int i = 0; i < files.Length; i++)
+    {
+      var sprite = Sprite.Load(files[i], palette);
+      var image = new PixelBuffer(sprite.Width, sprite.Height);
+      image.Draw(sprite, 0, 0);
+      image.SavePng(Path.Combine(outputPath, Path.GetFileNameWithoutExtension(files[i]) + ".png"));
+      int x = 8 + ((i % 8) * 31);
+      int y = 29 + ((i / 8) * 50);
+      sheet.Fill(x - 1, y - 1, 18, 18, 0xFF355575);
+      sheet.Draw(sprite, x, y);
+      PixelFont.Draw(sheet, (i + 1).ToString(), x, y + 21, 0xFFF6F4DF);
+    }
+
+    sheet.SavePng(Path.Combine(outputPath, "sprite-sheet.png"));
+    var renderer = new PixelRenderer(assetsPath);
+    var levels = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
+    var game = new Game(levels);
+
+    for (int i = 0; i < 10; i++)
+      game.Update(0, false);
+
+    renderer.Draw(game, 0);
+    renderer.Frame.SavePng(Path.Combine(outputPath, "game-preview.png"));
+  }
+}
