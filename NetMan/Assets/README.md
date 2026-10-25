@@ -34,6 +34,10 @@ Player death effect: `player-splatter.sprite` uses bright/dark blood reds (`E`/`
 
 Enemy files: `enemy-idle.sprite`, `enemy-walk.sprite`.
 
+Toaster Cat files: `toaster-cat-run-1.sprite`, `toaster-cat-run-2.sprite`, and `toaster-cat-jump.sprite` are editable 24 x 16 sprites. The cat faces left by default and flips when moving right. The artwork combines orange cat features, toast, and a shaded metal toaster body. `toaster-cat-squashed.sprite` is a 32 x 16 splatter mixing blood, fur, bread, and steel fragments; it remains visible for one second after death. `C` in a level spawns this enemy. Toaster Cats also join the running characters during the end credits.
+
+Enemy balancing lives in `enemies.txt`: `[Walker]` and `[ToasterCat]` each have `Speed`, `PowerLevel`, and `HopVelocity` settings. Speeds use tiles per second (0-30), power levels use integers from 1 to 10 and determine how many stomps defeat the enemy, and hop strength ranges from 0 to 20 (zero means no hopping). Defaults preserve ordinary enemies and make Toaster Cats faster, tougher, and bouncy. Use whole-line `;` comments. Relaunch after editing. Missing settings use defaults, while invalid values report the file and line instead of silently changing difficulty.
+
 Enemy death effect: `enemy-squashed.sprite` is a 24 x 16 flattened enemy and blood splatter, using the enemy's original yellow, orange, brown, and blue colors (`Y`/`O`/`R`/`D`/`N`/`W`) mixed with blood reds (`E`/`F`). It remains anchored at the enemy's feet for one second after a stomp or pit death. Enemy and player death effects run independently and can appear together; pausing freezes both timers. Edit either death sprite and restart the game to customize its appearance.
 
 Tile files: `grass.sprite`, `dirt.sprite`, `brick.sprite`, `bonus.sprite`, `used.sprite`, `pipe.sprite`, `coin.sprite`, `spike.sprite`, `goal.sprite`.

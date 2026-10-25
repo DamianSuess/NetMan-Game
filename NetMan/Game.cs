@@ -1,31 +1,5 @@
 namespace NetMan;
 
-public sealed class Enemy(double x, double y)
-{
-  public const int SquashDurationTicks = 60;
-
-  public int Direction = -1;
-  public double X = x, Y = y, VelocityY;
-  public bool Alive { get; private set; } = true;
-  public int SquashTicksRemaining { get; private set; }
-
-  internal void AdvanceSquash()
-  {
-    if (SquashTicksRemaining > 0)
-      SquashTicksRemaining--;
-  }
-
-  internal void Squash()
-  {
-    if (!Alive)
-      return;
-
-    Alive = false;
-    VelocityY = 0;
-    SquashTicksRemaining = SquashDurationTicks;
-  }
-}
-
 public sealed class Game
 {
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
@@ -50,14 +24,16 @@ public sealed class Game
   private readonly HashSet<(int Level, int X, int Y)> _collectedItems = [];
   private readonly HashSet<(int X, int Y)> _levelItems = [];
   private readonly string _creditsAssetsPath;
+  private readonly EnemyConfiguration _enemyConfiguration;
   private double _jumpBuffer, _coyoteTime, _transition;
   private int _levelIndex;
   private bool _growthPending;
   private int _facingDirection = 1;
 
-  public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null)
+  public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null)
   {
     this._files = files;
+    _enemyConfiguration = EnemyConfiguration.Load(enemySettingsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets", "enemies.txt"));
     _creditsAssetsPath = creditsAssetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     deathQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "death-quotes.txt");
     _deathQuotes = File.Exists(deathQuotesPath)
@@ -294,16 +270,32 @@ public sealed class Game
     foreach (var enemy in Enemies.Where(enemy => enemy.Alive))
     {
       double ex = enemy.X, ey = enemy.Y;
-      Move(ref ex, ref ey, enemy.Direction * 3 * Step, true, false, out bool wall);
+      bool stunned = enemy.StunTicksRemaining > 0;
+      if (stunned)
+        enemy.StunTicksRemaining--;
+      Move(ref ex, ref ey, stunned ? 0 : enemy.Direction * enemy.Settings.Speed * Step, true, false, out bool wall);
 
       if (wall)
         enemy.Direction *= -1;
 
       enemy.VelocityY = Math.Min(enemy.VelocityY + 40 * Step, 28);
-      Move(ref ex, ref ey, enemy.VelocityY * Step, false, false, out bool floor);
+      double enemyVertical = enemy.VelocityY * Step;
+      Move(ref ex, ref ey, enemyVertical, false, false, out bool floor);
 
       if (floor)
+      {
         enemy.VelocityY = 0;
+        if (!stunned && enemy.Settings.HopVelocity > 0 && enemyVertical > 0)
+        {
+          if (enemy.HopTicksRemaining > 0)
+            enemy.HopTicksRemaining--;
+          else
+          {
+            enemy.VelocityY = -enemy.Settings.HopVelocity;
+            enemy.HopTicksRemaining = Enemy.HopIntervalTicks;
+          }
+        }
+      }
 
       enemy.X = ex; enemy.Y = ey;
 
@@ -318,10 +310,12 @@ public sealed class Game
 
       if (vertical > 0 && Y + PlayerHeight - vertical <= ey + 0.25)
       {
-        enemy.Squash();
+        bool defeated = enemy.Stomp();
+        Y = ey - PlayerHeight;
         VelocityY = -10;
-        Score += 200;
-        Message = "Stomp!";
+        if (defeated)
+          Score += 200 * enemy.Settings.PowerLevel;
+        Message = defeated ? "Stomp!" : $"Still kicking! {enemy.Health} hits left";
       }
       else
       {
@@ -491,7 +485,9 @@ public sealed class Game
     Grounded = false;
     _jumpBuffer = _coyoteTime = 0;
 
-    Enemies = Level.EnemySpawns.Select(spawn => new Enemy(spawn.X, spawn.Y)).ToList();
+    Enemies = Level.EnemySpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Walker, _enemyConfiguration.Walker))
+      .Concat(Level.ToasterCatSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.ToasterCat, _enemyConfiguration.ToasterCat)))
+      .ToList();
     TryGrow();
   }
 

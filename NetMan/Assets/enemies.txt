@@ -1,0 +1,12 @@
+; Speed is tiles/second (0-30). PowerLevel is stomps required (1-10).
+; HopVelocity controls hop strength (0-20); zero disables hopping.
+; Changes take effect when the game is relaunched.
+[Walker]
+Speed=3
+PowerLevel=1
+HopVelocity=0
+
+[ToasterCat]
+Speed=4
+PowerLevel=2
+HopVelocity=7

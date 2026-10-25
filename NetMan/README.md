@@ -42,8 +42,11 @@ Each character is one tile. Rows run from top to bottom; columns run left to rig
 | `p` | Skinny solid pipe; stacks vertically and stays separate beside `PP` pipes |
 | `o` | Coin |
 | `E` | Walking enemy |
+| `C` | Toaster Cat; runs faster and hops |
 | `^` | Spike; blocks sideways movement and is deadly only when landing on its tip from above |
 | `G` | Green goal flag; at least one per map |
+
+Toaster Cats appear from Level 2 onward. Their metal toaster bodies have toast, cat faces, paws, and tails. They run a little faster than ordinary enemies and hop between short ground runs. Edit `Assets/enemies.txt` and relaunch to balance both types independently: `Speed` is tiles per second (0-30), `PowerLevel` is the number of stomps needed to defeat an enemy (1-10), and `HopVelocity` is hop strength (0-20; zero disables hopping). Defaults are speed 3 / power 1 / no hopping for walkers and speed 4 / power 2 / hop strength 7 for Toaster Cats. A nonfatal stomp briefly stuns the enemy and bounces the player safely away. Defeating an enemy by stomping awards 200 points per power level; pit falls defeat enemies regardless of power. Enemies regain full health when a level reloads. Side contact keeps the existing shrink-or-die behavior.
 
 Use `M` for selected question blocks that release growth hearts and `?` for coin blocks. Hit an `M` from below to release a beating human heart above it. Chase the heart and touch it to earn 100 points and grow; opening the block alone awards neither growth nor points. Hearts move in the direction the player was facing, hop along the ground, and reverse at solid walls and pipes. They can fall into pits, and uncollected hearts are cleared when the level reloads. Movement and heartbeat freeze while paused or dead. Growth makes the player two tiles tall with a matching collision body. If there is not enough headroom after collecting a heart, growth waits until the player reaches open space. An enemy hit or spike landing shrinks the enlarged player and gives 1.5 seconds of flashing protection; another hit after protection expires costs a life. Stomping enemies remains safe. Falling into a pit still costs a life. Growth carries into the next level, while death or restarting returns the player to normal size.
 
