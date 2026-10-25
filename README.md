@@ -4,7 +4,7 @@ Active development lives in [NetMan](NetMan/README.md), a .NET pixel-art platfor
 
 ![](screen-shot.png)
 
-![](Docs/Death-Banner.png)
+![Player collecting an extra heart and exploding](Docs/Player-Explosion.gif)
 
 From this repository folder, run:
 
