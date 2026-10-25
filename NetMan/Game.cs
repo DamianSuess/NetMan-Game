@@ -29,12 +29,14 @@ public sealed class Enemy(double x, double y)
 public sealed class Game
 {
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
-  public const int DeathDurationTicks = 60;
+  public const int DeathDurationTicks = 120;
   public const int DamageProtectionTicks = 90;
   public const double LargeBodyHeight = 1.8;
   public const double OverloadedBodyHeight = 2.7;
-  public const int ExplosionFrameTicks = 15;
+  // 100 ms is exactly six simulation ticks at 60 Hz.
+  public const int ExplosionFrameTicks = 6;
   public const int ExplosionFrameCount = 4;
+  public const int ExplosionDurationTicks = ExplosionFrameTicks * ExplosionFrameCount;
   public const double Step = 1.0 / 60;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
@@ -64,7 +66,7 @@ public sealed class Game
   public bool IsLarge { get; private set; }
   public bool IsExploding { get; private set; }
   public int ExplosionFrameIndex => IsExploding
-    ? (ExplosionFrameTicks * ExplosionFrameCount - DeathTicksRemaining) / ExplosionFrameTicks : 0;
+    ? Math.Min(ExplosionFrameCount - 1, (DeathDurationTicks - DeathTicksRemaining) / ExplosionFrameTicks) : 0;
   public double PlayerHeight => IsExploding ? OverloadedBodyHeight : IsLarge ? LargeBodyHeight : BodyHeight;
   public Level Level { get; private set; } = null!;
   public int LevelCount => _files.Length;
@@ -335,7 +337,6 @@ public sealed class Game
     Die();
     IsExploding = true;
     Y = feet - OverloadedBodyHeight;
-    DeathTicksRemaining = ExplosionFrameTicks * ExplosionFrameCount;
     Message = "Power overload!";
   }
 

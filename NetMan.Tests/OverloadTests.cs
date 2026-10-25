@@ -18,27 +18,40 @@ public sealed class OverloadTests : GameTestBase
     Assert.AreEqual('X', game.Level.Tile(7, 4));
     Assert.AreEqual(200, game.Score);
     Assert.AreEqual(0, game.Coins);
-    Assert.AreEqual(60, game.DeathTicksRemaining);
+    Assert.AreEqual(120, game.DeathTicksRemaining);
 
     double x = game.X, y = game.Y;
     var level = game.Level;
     game.Paused = true;
     Tick(game, 120, 1, true);
-    Assert.AreEqual(60, game.DeathTicksRemaining);
+    Assert.AreEqual(120, game.DeathTicksRemaining);
     Assert.AreEqual(0, game.ExplosionFrameIndex);
     game.Paused = false;
 
+    int[] frameEndTicks = [6, 12, 18, 24];
+    int elapsedTicks = 0;
     for (int frame = 0; frame < 4; frame++)
     {
       Assert.AreEqual(frame, game.ExplosionFrameIndex);
-      Tick(game, 14, 1, true);
-      Assert.AreEqual(frame, game.ExplosionFrameIndex, "Each frame must last a full 0.25 seconds.");
+      Tick(game, frameEndTicks[frame] - elapsedTicks - 1, 1, true);
+      Assert.AreEqual(frame, game.ExplosionFrameIndex, "Each frame must last exactly 100 ms at 60 Hz.");
       Assert.AreEqual(x, game.X);
       Assert.AreEqual(y, game.Y);
       Assert.AreSame(level, game.Level);
       Assert.AreEqual(2, game.Lives, "The explosion must only consume one life.");
       Tick(game, 1);
+      elapsedTicks = frameEndTicks[frame];
     }
+
+    Assert.IsTrue(game.IsExploding, "The 400 ms animation should leave its final splatter visible during the respawn delay.");
+    Assert.AreEqual(3, game.ExplosionFrameIndex);
+    Tick(game, 95, 1, true);
+    Assert.AreEqual(1, game.DeathTicksRemaining);
+    Assert.AreEqual(3, game.ExplosionFrameIndex);
+    Assert.AreEqual(x, game.X);
+    Assert.AreEqual(y, game.Y);
+    Assert.AreSame(level, game.Level);
+    Tick(game, 1);
 
     Assert.IsFalse(game.IsExploding);
     Assert.IsFalse(game.IsDying);
@@ -75,7 +88,7 @@ public sealed class OverloadTests : GameTestBase
     {
       Overload(game);
       Assert.AreEqual(remaining, game.Lives);
-      Tick(game, 59);
+      Tick(game, 119);
       Assert.IsTrue(game.IsExploding);
       Assert.AreEqual(3, game.ExplosionFrameIndex);
       Tick(game, 1);
@@ -102,15 +115,17 @@ public sealed class OverloadTests : GameTestBase
   }
 
   [TestMethod]
-  [DataRow(0)]
-  [DataRow(1)]
-  [DataRow(2)]
-  [DataRow(3)]
-  public void EachExplosionFrameRendersItsEditableBloodAndGutsSprite(int index)
+  [DataRow(0, 0)]
+  [DataRow(1, 6)]
+  [DataRow(2, 12)]
+  [DataRow(3, 18)]
+  [DataRow(3, 24)]
+  [DataRow(3, 119)]
+  public void EachExplosionFrameRendersItsEditableBloodAndGutsSprite(int index, int elapsedTicks)
   {
     var game = CreateGame();
     Overload(game);
-    Tick(game, index * Game.ExplosionFrameTicks);
+    Tick(game, elapsedTicks);
     var assets = Path.Combine(AppContext.BaseDirectory, "Assets");
     var palette = Sprite.LoadPalette(Path.Combine(assets, "palette.txt"));
     var sprite = Sprite.Load(Path.Combine(assets, $"player-explosion-{index + 1}.sprite"), palette);
