@@ -71,13 +71,18 @@ internal static class GraphicsTests
     var renderer = new PixelRenderer(assets);
     var files = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     var game = new Game(files);
+
     renderer.Draw(game, 0);
     Check(renderer.Frame.Pixels.Distinct().Count() > 16, "Complete scene renders with sprites and background");
+
     uint[] beforePause = (uint[])renderer.Frame.Pixels.Clone();
+
     game.Paused = true;
     renderer.Draw(game, 0);
     Check(!renderer.Frame.Pixels.SequenceEqual(beforePause), "Pause overlay renders over the game");
+
     uint[] paused = (uint[])renderer.Frame.Pixels.Clone();
+
     renderer.Draw(game, 0, 1);
     Check(renderer.Frame.Pixels.SequenceEqual(paused), "Animation freezes while paused");
 
@@ -86,11 +91,12 @@ internal static class GraphicsTests
     try
     {
       File.WriteAllLines(deathLevelPath,
-        ["....................", "....................", "....................", "....................", ".S.^..............G.", "####################"]);
+        ["....................", "...S................", "....................", "....................", "...^..............G.", "####################"]);
+
       var deathGame = new Game([deathLevelPath]);
 
       for (int i = 0; i < 60 && !deathGame.IsDying; i++)
-        deathGame.Update(1, false);
+        deathGame.Update(0, false);
 
       renderer.Draw(deathGame, 0);
       Check(renderer.Frame.Pixels.Contains(gamePalette['E']) && renderer.Frame.Pixels.Contains(gamePalette['F']),
@@ -132,7 +138,7 @@ internal static class GraphicsTests
     try
     {
       File.WriteAllLines(combinedLevelPath,
-        ["....................", "....................", ".S.^................", "...^................", ".E.^..............G.", "####################"]);
+        ["....................", "....................", ".S..................", "...^^^^^^^^.........", ".E................G.", "####################"]);
       var combinedGame = new Game([combinedLevelPath]);
       combinedGame.Enemies[0].Direction = 0;
 
@@ -144,7 +150,7 @@ internal static class GraphicsTests
         "Enemy splatter sprite renders at the stomp location");
 
       for (int i = 0; i < 60 && !combinedGame.IsDying; i++)
-        combinedGame.Update(1, false);
+        combinedGame.Update(1, true);
 
       renderer.Draw(combinedGame, 0);
       Check(combinedGame.IsDying && combinedGame.Enemies[0].SquashTicksRemaining > 0
