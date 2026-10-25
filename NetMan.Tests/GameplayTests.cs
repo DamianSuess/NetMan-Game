@@ -201,15 +201,15 @@ public sealed class GameplayTests : GameTestBase
     game.Paused = false;
     game.QueueJump();
 
-    Tick(game, 59, 1, true);
+    Tick(game, 119, 1, true);
     Assert.IsTrue(game.IsDying && game.DeathTicksRemaining == 1 && game.X == deathX && game.Y == deathY
       && ReferenceEquals(game.Level, dyingLevel) && game.Lives == 2,
-      "Death holds position and level for a full second without repeated damage");
+        "Death holds position and level for two seconds without repeated damage");
 
     Tick(game, 1);
     Assert.IsTrue(!game.IsDying && game.X == game.Level.Spawn.X && game.Y == game.Level.Spawn.Y
       && !ReferenceEquals(game.Level, dyingLevel) && game.Lives == 2,
-      "Level reloads exactly one second after death");
+      "Level reloads exactly two seconds after death");
 
     Assert.IsTrue(game.Coins == 1 && game.Score == 100, "Level respawn preserves earned coins and score");
   }

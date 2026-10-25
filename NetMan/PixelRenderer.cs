@@ -25,6 +25,10 @@ internal sealed class PixelRenderer
       "player-run-2",
       "player-jump",
       "player-splatter",
+      "player-explosion-1",
+      "player-explosion-2",
+      "player-explosion-3",
+      "player-explosion-4",
       "player-large-idle",
       "player-large-run-1",
       "player-large-run-2",
@@ -120,7 +124,13 @@ internal sealed class PixelRenderer
     if (game.IsLarge)
       playerFrame = playerFrame.Replace("player-", "player-large-", StringComparison.Ordinal);
 
-    if (game.IsDying)
+    if (game.IsExploding)
+    {
+      if (game.IsExplosionVisible)
+        DrawActor(_sprites[$"player-explosion-{game.ExplosionFrameIndex + 1}"], game.X, game.Y,
+          cameraX, cameraY, _facingLeft, true, game.PlayerHeight);
+    }
+    else if (game.IsDying)
       DrawActor(_sprites["player-splatter"], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
       DrawActor(_sprites[playerFrame], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);

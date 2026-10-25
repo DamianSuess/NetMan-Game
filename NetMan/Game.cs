@@ -29,9 +29,14 @@ public sealed class Enemy(double x, double y)
 public sealed class Game
 {
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
-  public const int DeathDurationTicks = 60;
+  public const int DeathDurationTicks = 120;
   public const int DamageProtectionTicks = 90;
   public const double LargeBodyHeight = 1.8;
+  public const double OverloadedBodyHeight = 2.7;
+  // 100 ms is exactly six simulation ticks at 60 Hz.
+  public const int ExplosionFrameTicks = 6;
+  public const int ExplosionFrameCount = 4;
+  public const int ExplosionDurationTicks = ExplosionFrameTicks * ExplosionFrameCount;
   public const double Step = 1.0 / 60;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
@@ -43,6 +48,7 @@ public sealed class Game
   private double _jumpBuffer, _coyoteTime, _transition;
   private int _levelIndex;
   private bool _growthPending;
+  private bool _overloadPending;
 
   public Game(string[] files)
   {
@@ -58,7 +64,11 @@ public sealed class Game
   public bool Grounded { get; private set; }
   public bool IsDying => DeathTicksRemaining > 0;
   public bool IsLarge { get; private set; }
-  public double PlayerHeight => IsLarge ? LargeBodyHeight : BodyHeight;
+  public bool IsExploding { get; private set; }
+  public bool IsExplosionVisible => IsExploding && DeathDurationTicks - DeathTicksRemaining < ExplosionDurationTicks;
+  public int ExplosionFrameIndex => IsExploding
+    ? Math.Min(ExplosionFrameCount - 1, (DeathDurationTicks - DeathTicksRemaining) / ExplosionFrameTicks) : 0;
+  public double PlayerHeight => IsExploding ? OverloadedBodyHeight : IsLarge ? LargeBodyHeight : BodyHeight;
   public Level Level { get; private set; } = null!;
   public int LevelCount => _files.Length;
   public int LevelNumber => _levelIndex + 1;
@@ -178,6 +188,12 @@ public sealed class Game
 
     X = x;
     Y = y;
+
+    if (_overloadPending)
+    {
+      Explode();
+      return;
+    }
 
     if (vertical > 0 && TryFindSpikeLanding(previousFeet, out double spikeTop))
     {
@@ -316,6 +332,15 @@ public sealed class Game
     Message = "Shrunk! Keep moving!";
   }
 
+  private void Explode()
+  {
+    double feet = Y + PlayerHeight;
+    Die();
+    IsExploding = true;
+    Y = feet - OverloadedBodyHeight;
+    Message = "Power overload!";
+  }
+
   private void Die()
   {
     if (IsDying || Lives == 0)
@@ -323,8 +348,10 @@ public sealed class Game
 
     Lives--;
     Y += PlayerHeight - BodyHeight;
+    IsExploding = false;
     IsLarge = false;
     _growthPending = false;
+    _overloadPending = false;
     DamageTicksRemaining = 0;
     DeathTicksRemaining = DeathDurationTicks;
     VelocityY = 0;
@@ -337,8 +364,10 @@ public sealed class Game
   private void LoadLevel(bool preserveGrowth = false)
   {
     bool keepGrowth = preserveGrowth && (IsLarge || _growthPending);
+    IsExploding = false;
     IsLarge = false;
     _growthPending = keepGrowth;
+    _overloadPending = false;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
     _rewardPopups.Clear();
@@ -394,8 +423,12 @@ public sealed class Game
           {
             Level.UseBlock(cell.X, cell.Y);
             Score += 100;
-            _growthPending = !IsLarge;
-            Message = IsLarge ? "Already powered up!" : "Growth power!";
+            if (IsLarge || _growthPending)
+              _overloadPending = true;
+            else
+              _growthPending = true;
+
+            Message = "Growth power!";
           }
           else if (Level.Tile(cell.X, cell.Y) == '?')
           {

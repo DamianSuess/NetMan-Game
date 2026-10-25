@@ -22,7 +22,7 @@ This version runs on Windows. The gameplay, text-level loader, sprite loader, pi
 | R | Restart the entire game |
 | Esc | Quit |
 
-You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter for one second of game time while gameplay freezes, then the current level reloads. After the last life, the game automatically restarts from level one with three lives and cleared rewards. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
+You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter while gameplay freezes for two seconds of game time, then the current level reloads. After the last life, the game automatically restarts from level one with three lives and cleared rewards. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 
 ## Make levels
 
@@ -46,6 +46,8 @@ Each character is one tile. Rows run from top to bottom; columns run left to rig
 | `G` | Green goal flag; at least one per map |
 
 Use `M` for selected question blocks that reward growth and `?` for coin blocks. Growth makes the player two tiles tall with a matching collision body. If there is not enough headroom, growth waits until the player reaches open space. An enemy hit or spike landing shrinks the enlarged player and gives 1.5 seconds of flashing protection; another hit after protection expires costs a life. Stomping enemies remains safe. Falling into a pit still costs a life. Growth carries into the next level, while death or restarting returns the player to normal size.
+
+The power-up limit is one growth reward at a time. Collecting another `M` while enlarged (or while growth is waiting for headroom) causes an overload: the player grows one extra size and explodes, losing one life. Four editable animation frames show the oversized rupture, body fragments, spreading blood and guts, and final splatter. Each frame lasts 100 ms, for a 0.4-second animation. After the final explosion frame, the player disappears for the remainder of the two-second death delay, then the level restarts. Pausing freezes the animation. Coin blocks (`?`) do not count toward this limit, and shrinking frees the growth slot again.
 
 Example:
 
