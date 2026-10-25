@@ -31,12 +31,15 @@ public sealed class Enemy
       SquashTicksRemaining--;
   }
 
-  internal bool Stomp()
+  internal bool Stomp(int damage = 1)
   {
+    if (damage is < 1 or > 10)
+      throw new ArgumentOutOfRangeException(nameof(damage));
+
     if (!Alive)
       return false;
 
-    Health--;
+    Health = Math.Max(0, Health - damage);
     if (Health == 0)
     {
       Squash();

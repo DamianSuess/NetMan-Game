@@ -68,6 +68,8 @@ public sealed class Game
   public int ExplosionFrameIndex => IsExploding
     ? Math.Min(ExplosionFrameCount - 1, (DeathDurationTicks - DeathTicksRemaining) / ExplosionFrameTicks) : 0;
   public double PlayerHeight => IsExploding ? OverloadedBodyHeight : IsLarge ? LargeBodyHeight : BodyHeight;
+  public PlayerSettings PlayerSettings => IsLarge ? _enemyConfiguration.PlayerPowerLevel2 : _enemyConfiguration.PlayerPowerLevel1;
+  public int PlayerPowerLevel => PlayerSettings.PowerLevel;
   public Level Level { get; private set; } = null!;
   public int LevelCount => _files.Length;
   public int LevelNumber => _levelIndex + 1;
@@ -189,7 +191,7 @@ public sealed class Game
 
     if (_jumpBuffer > 0 && _coyoteTime > 0)
     {
-      VelocityY = -15;
+      VelocityY = -PlayerSettings.HopVelocity;
       Grounded = false;
       _jumpBuffer = _coyoteTime = 0;
     }
@@ -199,7 +201,7 @@ public sealed class Game
 
     double x = X, y = Y;
     double previousFeet = Y + PlayerHeight;
-    Move(ref x, ref y, Math.Clamp(direction, -1, 1) * 12 * Step, true, false, out _, PlayerHeight);
+    Move(ref x, ref y, Math.Clamp(direction, -1, 1) * PlayerSettings.Speed * Step, true, false, out _, PlayerHeight);
 
     var vertical = VelocityY * Step;
     Move(ref x, ref y, vertical, false, true, out bool hitY, PlayerHeight);
@@ -310,7 +312,7 @@ public sealed class Game
 
       if (vertical > 0 && Y + PlayerHeight - vertical <= ey + 0.25)
       {
-        bool defeated = enemy.Stomp();
+        bool defeated = enemy.Stomp(PlayerPowerLevel);
         Y = ey - PlayerHeight;
         VelocityY = -10;
         if (defeated)

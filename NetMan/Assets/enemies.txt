@@ -1,5 +1,5 @@
-; Speed is tiles/second (0-30). PowerLevel is stomps required (1-10).
-; HopVelocity controls hop strength (0-20); zero disables hopping.
+; Speed is tiles/second (0-30). PowerLevel is enemy health or player stomp damage (1-10).
+; HopVelocity controls enemy hopping or player jumping (0-20); zero disables it.
 ; Changes take effect when the game is relaunched.
 [Walker]
 Speed=3
@@ -7,6 +7,18 @@ PowerLevel=1
 HopVelocity=0
 
 [ToasterCat]
-Speed=4
+Speed=6
 PowerLevel=2
 HopVelocity=7
+
+; Small form. These values apply before growth and after shrinking.
+[Player.PowerLevel1]
+Speed=12
+PowerLevel=1
+HopVelocity=15
+
+; Large form. Default power 2 defeats a default Toaster Cat in one stomp.
+[Player.PowerLevel2]
+Speed=12
+PowerLevel=2
+HopVelocity=15
