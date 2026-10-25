@@ -28,6 +28,8 @@ Enemy death effect: `enemy-squashed.sprite` is a 24 x 16 flattened enemy and blo
 
 Tile files: `grass.sprite`, `dirt.sprite`, `brick.sprite`, `bonus.sprite`, `used.sprite`, `pipe.sprite`, `coin.sprite`, `spike.sprite`, `goal.sprite`.
 
+Large pipes: a complete, isolated `PP` / `PP` group in a level automatically uses `pipe-top-left.sprite`, `pipe-top-right.sprite`, `pipe-bottom-left.sprite`, and `pipe-bottom-right.sprite`. These four editable 16 x 16 tiles join into one 32 x 32 pipe with a single rim and continuous stem. Existing levels need no changes. `pipe.sprite` retains the original standard artwork and is used for single pipe tiles and other pipe arrangements. To use the original artwork for a 2 x 2 pipe, copy `pipe.sprite` over each of the four large-pipe sprite files. Collision still uses the same solid `P` tiles.
+
 Brick break animation: `brick-rubble.sprite` shows broken chunks for 0.25 seconds, followed by `brick-dust.sprite` showing sparse dust for 0.25 seconds. The effect disappears after 0.5 seconds of game time. Both frames are editable 16 x 16 sprites and use the shared brick colors. Pausing freezes the animation. Each broken brick animates independently, and its collision disappears as soon as it breaks. Coin blocks keep their existing reward and used-block behavior.
 
 Reward popup: `reward-plus-one.sprite` is an 8 x 6 pixel image containing the gold `+1` and its shadow. Edit its pixel grid to customize the reward artwork. You can also change its width and height; it stays centered above the rewarded block and floats upward for one second of game time. The popup uses the shared palette, including `Y` for gold and `K` for its shadow. Its dimensions are independent of the 16 x 16 map tiles.

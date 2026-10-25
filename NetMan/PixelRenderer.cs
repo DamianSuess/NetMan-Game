@@ -36,6 +36,10 @@ internal sealed class PixelRenderer
       "bonus",
       "used",
       "pipe",
+      "pipe-top-left",
+      "pipe-top-right",
+      "pipe-bottom-left",
+      "pipe-bottom-right",
       "coin",
       "spike",
       "goal",
@@ -74,7 +78,7 @@ internal sealed class PixelRenderer
           'B' => "brick",
           '?' => "bonus",
           'X' => "used",
-          'P' => "pipe",
+          'P' => PipeSprite(game.Level, x, y),
           'o' => "coin",
           '^' => "spike",
           'G' => "goal",
@@ -133,6 +137,29 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
       PixelFont.Draw(Frame, hint, (Width - (hint.Length * 4)) / 2, 130, White);
     }
+  }
+
+  private static string PipeSprite(Level level, int x, int y)
+  {
+    int left = level.Tile(x - 1, y) == 'P' ? x - 1 : x;
+    int top = level.Tile(x, y - 1) == 'P' ? y - 1 : y;
+
+    // Only a complete, isolated 2 x 2 group uses the large pipe artwork.
+    for (int offset = 0; offset < 2; offset++)
+    {
+      if (level.Tile(left + offset, top) != 'P' || level.Tile(left + offset, top + 1) != 'P'
+        || level.Tile(left - 1, top + offset) == 'P' || level.Tile(left + 2, top + offset) == 'P'
+        || level.Tile(left + offset, top - 1) == 'P' || level.Tile(left + offset, top + 2) == 'P')
+        return "pipe";
+    }
+
+    return (x == left, y == top) switch
+    {
+      (true, true) => "pipe-top-left",
+      (false, true) => "pipe-top-right",
+      (true, false) => "pipe-bottom-left",
+      _ => "pipe-bottom-right",
+    };
   }
 
   private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip, bool keepInView = false)
