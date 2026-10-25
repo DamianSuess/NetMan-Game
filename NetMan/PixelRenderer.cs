@@ -21,7 +21,7 @@ internal sealed class PixelRenderer
     var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
 
     foreach (string name in new[] { "player-idle", "player-run-1", "player-run-2", "player-jump",
-      "enemy-idle", "enemy-walk", "grass", "dirt", "brick", "bonus", "used", "pipe", "coin", "spike", "goal" })
+      "enemy-idle", "enemy-walk", "grass", "dirt", "brick", "bonus", "used", "pipe", "coin", "spike", "goal", "reward-plus-one" })
       _sprites.Add(name, Sprite.Load(Path.Combine(assetsPath, name + ".sprite"), palette));
   }
 
@@ -77,11 +77,11 @@ internal sealed class PixelRenderer
 
     foreach (var popup in game.RewardPopups)
     {
-      int x = (popup.X * TileSize) - cameraX + 4;
-      int y = HeaderHeight + (popup.Y * TileSize) - cameraY - 8
+      var rewardSprite = _sprites["reward-plus-one"];
+      int x = (popup.X * TileSize) - cameraX + ((TileSize - rewardSprite.Width) / 2);
+      int y = HeaderHeight + (popup.Y * TileSize) - cameraY - rewardSprite.Height - 2
         - ((popup.AgeTicks * 8) / CoinRewardPopup.DurationTicks);
-      PixelFont.Draw(Frame, "+1", x + 1, y + 1, Ink);
-      PixelFont.Draw(Frame, "+1", x, y, Gold);
+      Frame.Draw(rewardSprite, x, y);
     }
 
     DrawHud(game);

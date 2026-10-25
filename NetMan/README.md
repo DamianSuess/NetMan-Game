@@ -73,7 +73,7 @@ Ship the entire `publish` folder, including its `Assets` and editable `Levels` d
 
 ## Pixel art
 
-Character artwork lives in separate files under `Assets`: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`, `enemy-idle.sprite`, and `enemy-walk.sprite`. Tiles and objects also have their own sprite files. All bundled sprites are 16 x 16 pixels with a shared 16-color palette for a retro look; the framebuffer uses 32-bit color.
+Character artwork lives in separate files under `Assets`: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`, `enemy-idle.sprite`, and `enemy-walk.sprite`. Tiles and objects also have their own sprite files. Characters and tiles are 16 x 16 pixels; the coin-block reward popup uses the editable 8 x 6 `reward-plus-one.sprite`. Sprites share a 16-color palette for a retro look; the framebuffer uses 32-bit color.
 
 The `.sprite` files are editable pixel grids. Each symbol represents one pixel, `.` is transparent, and colors are defined in `Assets/palette.txt`. Edit the source files and restart the game to see changes. See [Assets/README.md](Assets/README.md) for the format.
 
