@@ -28,6 +28,29 @@ Enemy death effect: `enemy-squashed.sprite` is a 24 x 16 flattened enemy and blo
 
 Tile files: `grass.sprite`, `dirt.sprite`, `brick.sprite`, `bonus.sprite`, `used.sprite`, `pipe.sprite`, `coin.sprite`, `spike.sprite`, `goal.sprite`.
 
+Pipes can be one or two tiles wide and any number of tiles tall. Stack `P` tiles vertically, keeping the same width on every row. A stack has one top rim, a continuous stem, and a bottom edge. The renderer automatically chooses the editable 16 x 16 pieces. Use lowercase `p` for an explicitly skinny pipe: its vertical stack stays separate even when touching a wide `PP` pipe. Both `p` and `P` are solid, so a shorter skinny pipe can act as a step beside a tall wide pipe. Keep uppercase-only pipe groups separated if they should not join.
+
+This one-tile skinny step touches a three-tile-tall wide pipe. Jump onto the step, then jump again to clear the wide pipe:
+
+```text
+.PP
+.PP
+pPP
+###
+```
+
+For example, these are a small pipe three tiles tall and a large pipe four tiles tall:
+
+```text
+....PP
+P...PP
+P...PP
+P...PP
+######
+```
+
+Small stacks use `pipe-small-top.sprite`, `pipe-small-body.sprite`, and `pipe-small-bottom.sprite`. Large stacks use `pipe-top-left.sprite`, `pipe-top-right.sprite`, `pipe-body-left.sprite`, `pipe-body-right.sprite`, `pipe-bottom-left.sprite`, and `pipe-bottom-right.sprite`. Body pieces repeat for extra height; two-tile-tall pipes only need top and bottom pieces. Single-tile pipes, one-row groups, and irregular shapes retain the unchanged original `pipe.sprite` artwork. A large pipe begins at 2 x 2 tiles (32 x 32 pixels); each extra row adds 16 pixels of height. To restore the standard artwork everywhere, copy `pipe.sprite` over the stack-piece sprite files.
+
 Brick break animation: `brick-rubble.sprite` shows broken chunks for 0.25 seconds, followed by `brick-dust.sprite` showing sparse dust for 0.25 seconds. The effect disappears after 0.5 seconds of game time. Both frames are editable 16 x 16 sprites and use the shared brick colors. Pausing freezes the animation. Each broken brick animates independently, and its collision disappears as soon as it breaks. Coin blocks keep their existing reward and used-block behavior.
 
 Reward popup: `reward-plus-one.sprite` is an 8 x 6 pixel image containing the gold `+1` and its shadow. Edit its pixel grid to customize the reward artwork. You can also change its width and height; it stays centered above the rewarded block and floats upward for one second of game time. The popup uses the shared palette, including `Y` for gold and `K` for its shadow. Its dimensions are independent of the 16 x 16 map tiles.

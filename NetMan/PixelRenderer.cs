@@ -36,6 +36,15 @@ internal sealed class PixelRenderer
       "bonus",
       "used",
       "pipe",
+      "pipe-small-top",
+      "pipe-small-body",
+      "pipe-small-bottom",
+      "pipe-top-left",
+      "pipe-top-right",
+      "pipe-body-left",
+      "pipe-body-right",
+      "pipe-bottom-left",
+      "pipe-bottom-right",
       "coin",
       "spike",
       "goal",
@@ -74,7 +83,8 @@ internal sealed class PixelRenderer
           'B' => "brick",
           '?' => "bonus",
           'X' => "used",
-          'P' => "pipe",
+          'P' => PipeSprite(game.Level, x, y),
+          'p' => SkinnyPipeSprite(game.Level, x, y),
           'o' => "coin",
           '^' => "spike",
           'G' => "goal",
@@ -133,6 +143,76 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
       PixelFont.Draw(Frame, hint, (Width - (hint.Length * 4)) / 2, 130, White);
     }
+  }
+
+  private static string SkinnyPipeSprite(Level level, int x, int y)
+  {
+    bool above = level.Tile(x, y - 1) == 'p';
+    bool below = level.Tile(x, y + 1) == 'p';
+
+    return (above, below) switch
+    {
+      (false, false) => "pipe",
+      (false, true) => "pipe-small-top",
+      (true, false) => "pipe-small-bottom",
+      _ => "pipe-small-body",
+    };
+  }
+
+  private static string PipeSprite(Level level, int x, int y)
+  {
+    int left = x;
+    int right = x;
+
+    while (level.Tile(left - 1, y) == 'P')
+      left--;
+
+    while (level.Tile(right + 1, y) == 'P')
+      right++;
+
+    int width = right - left + 1;
+
+    if (width > 2)
+      return "pipe";
+
+    int top = y;
+    int bottom = y;
+
+    while (IsPipeRow(level, left, width, top - 1))
+      top--;
+
+    while (IsPipeRow(level, left, width, bottom + 1))
+      bottom++;
+
+    // Irregular groups retain the original artwork rather than mismatched pipe pieces.
+    for (int offset = 0; offset < width; offset++)
+    {
+      if (level.Tile(left + offset, top - 1) == 'P' || level.Tile(left + offset, bottom + 1) == 'P')
+        return "pipe";
+    }
+
+    if (top == bottom)
+      return "pipe";
+
+    string section = y == top ? "top" : y == bottom ? "bottom" : "body";
+
+    return width == 1
+      ? $"pipe-small-{section}"
+      : $"pipe-{section}-{(x == left ? "left" : "right")}";
+  }
+
+  private static bool IsPipeRow(Level level, int left, int width, int y)
+  {
+    if (level.Tile(left - 1, y) == 'P' || level.Tile(left + width, y) == 'P')
+      return false;
+
+    for (int offset = 0; offset < width; offset++)
+    {
+      if (level.Tile(left + offset, y) != 'P')
+        return false;
+    }
+
+    return true;
   }
 
   private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip, bool keepInView = false)
