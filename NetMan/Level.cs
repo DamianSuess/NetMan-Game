@@ -35,7 +35,7 @@ public sealed class Level
       for (int x = 0; x < map.Width; x++)
       {
         char tile = x < lines[y].Length ? lines[y][x] : '.';
-        if (!". #B?o^PSGE".Contains(tile))
+        if (!". #B?o^PpSGE".Contains(tile))
           throw new InvalidDataException($"{name}: unknown tile '{tile}' at column {x + 1}, row {y + 1}.");
 
         if (tile == 'S')
@@ -66,7 +66,7 @@ public sealed class Level
 
   public char Tile(int x, int y) => x < 0 || x >= Width || y < 0 || y >= Height ? '.' : _tiles[x, y];
 
-  public bool Solid(int x, int y) => x < 0 || x >= Width || y < 0 || "#B?PX".Contains(Tile(x, y));
+  public bool Solid(int x, int y) => x < 0 || x >= Width || y < 0 || "#B?PpX".Contains(Tile(x, y));
 
   public void Clear(int x, int y)
   {

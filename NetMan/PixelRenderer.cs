@@ -84,6 +84,7 @@ internal sealed class PixelRenderer
           '?' => "bonus",
           'X' => "used",
           'P' => PipeSprite(game.Level, x, y),
+          'p' => SkinnyPipeSprite(game.Level, x, y),
           'o' => "coin",
           '^' => "spike",
           'G' => "goal",
@@ -142,6 +143,20 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
       PixelFont.Draw(Frame, hint, (Width - (hint.Length * 4)) / 2, 130, White);
     }
+  }
+
+  private static string SkinnyPipeSprite(Level level, int x, int y)
+  {
+    bool above = level.Tile(x, y - 1) == 'p';
+    bool below = level.Tile(x, y + 1) == 'p';
+
+    return (above, below) switch
+    {
+      (false, false) => "pipe",
+      (false, true) => "pipe-small-top",
+      (true, false) => "pipe-small-bottom",
+      _ => "pipe-small-body",
+    };
   }
 
   private static string PipeSprite(Level level, int x, int y)

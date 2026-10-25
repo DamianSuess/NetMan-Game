@@ -28,7 +28,16 @@ Enemy death effect: `enemy-squashed.sprite` is a 24 x 16 flattened enemy and blo
 
 Tile files: `grass.sprite`, `dirt.sprite`, `brick.sprite`, `bonus.sprite`, `used.sprite`, `pipe.sprite`, `coin.sprite`, `spike.sprite`, `goal.sprite`.
 
-Pipes can be one or two tiles wide and any number of tiles tall. Stack `P` tiles vertically, keeping the same width on every row. A stack has one top rim, a continuous stem, and a bottom edge. The renderer automatically chooses the editable 16 x 16 pieces; collision still uses the same solid `P` tiles. Leave at least one non-pipe column between separate pipes so they do not merge into a wider group.
+Pipes can be one or two tiles wide and any number of tiles tall. Stack `P` tiles vertically, keeping the same width on every row. A stack has one top rim, a continuous stem, and a bottom edge. The renderer automatically chooses the editable 16 x 16 pieces. Use lowercase `p` for an explicitly skinny pipe: its vertical stack stays separate even when touching a wide `PP` pipe. Both `p` and `P` are solid, so a shorter skinny pipe can act as a step beside a tall wide pipe. Keep uppercase-only pipe groups separated if they should not join.
+
+This one-tile skinny step touches a three-tile-tall wide pipe. Jump onto the step, then jump again to clear the wide pipe:
+
+```text
+.PP
+.PP
+pPP
+###
+```
 
 For example, these are a small pipe three tiles tall and a large pipe four tiles tall:
 

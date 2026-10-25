@@ -38,6 +38,7 @@ Each character is one tile. Rows run from top to bottom; columns run left to rig
 | `B` | Breakable brick; animates into rubble and dust over 0.5 seconds |
 | `?` | One-coin bonus block |
 | `P` | Solid pipe |
+| `p` | Skinny solid pipe; stacks vertically and stays separate beside `PP` pipes |
 | `o` | Coin |
 | `E` | Walking enemy |
 | `^` | Spike; blocks sideways movement and is deadly only when landing on its tip from above |
