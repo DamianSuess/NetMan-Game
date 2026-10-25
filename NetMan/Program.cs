@@ -4,13 +4,6 @@ using NetMan;
 try
 {
 #if !NETMAN_DISTRIBUTION
-  if (args.Contains("--self-test"))
-  {
-    SelfTests.Run();
-    GraphicsTests.Run();
-    return;
-  }
-
   int exportOption = Array.IndexOf(args, "--export-art");
 
   if (exportOption >= 0)
@@ -105,7 +98,7 @@ catch (Exception exception) when (exception is IOException or ArgumentException 
   Console.Error.WriteLine($"NetMan: {exception.Message}");
 #endif
 
-  if (OperatingSystem.IsWindows() && !args.Contains("--self-test") && !args.Contains("--export-art"))
+  if (OperatingSystem.IsWindows() && !args.Contains("--export-art"))
     WindowsGameWindow.ShowError(exception.Message);
 
   Environment.ExitCode = 1;

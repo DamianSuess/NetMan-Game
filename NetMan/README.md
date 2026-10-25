@@ -1,6 +1,6 @@
 # NetMan
 
-A C# / .NET 10 pixel-art platformer with its own software renderer and native Windows game window. No third-party engine, graphics library, or NuGet packages are required. Collect coins, stomp enemies, cross gaps, and reach the green flag at the end of each level.
+A C# / .NET 10 pixel-art platformer with its own software renderer and native Windows game window. The game requires no third-party engine, graphics library, or NuGet packages. The separate MSTest project restores Microsoft test packages during development. Collect coins, stomp enemies, cross gaps, and reach the green flag at the end of each level.
 
 ## Play
 
@@ -85,15 +85,15 @@ dotnet run -- --export-art Assets/Previews
 
 ## Development
 
-There are no NuGet package dependencies. `Game.cs` contains fixed-step physics and game rules, `Level.cs` parses text maps, `PixelRenderer.cs` composes the scrolling scene, and `PixelBuffer.cs` draws sprites and exports PNGs. `WindowsGameWindow.cs` owns the Win32 window, event-driven keyboard input, and integer-scaled GDI presentation. All native declarations live in `NativeMethods.cs`. Physics uses fractional positions and small collision steps to prevent movement through walls.
+The game project has no NuGet package dependencies. `Game.cs` contains fixed-step physics and game rules, `Level.cs` parses text maps, `PixelRenderer.cs` composes the scrolling scene, and `PixelBuffer.cs` draws sprites and exports PNGs. `WindowsGameWindow.cs` owns the Win32 window, event-driven keyboard input, and integer-scaled GDI presentation. All native declarations live in `NativeMethods.cs`. Physics uses fractional positions and small collision steps to prevent movement through walls.
 
-Run the headless checks (no interactive console required):
+Run the MSTest suite from this directory (no game window required):
 
 ```powershell
-dotnet run -- --self-test
+dotnet test --solution .\NetMan.slnx
 ```
 
-The checks cover gameplay, sprite validation, transparency, flipping, clipping, scene composition, and paused animation. They run without creating a window.
+The tests live in `../NetMan.Tests`, use MSTest with Microsoft.Testing.Platform, and can also run in Visual Studio Test Explorer. They cover gameplay, sprite validation, transparency, flipping, clipping, scene composition, and paused animation. They run without creating a window.
 
 This version includes animated walking, a jumping pose, shaded tiles, a pixel HUD, parallax scenery, and pause/win/game-over overlays. It does not include sound, power-up transformations, bosses, or a graphical level editor.
 

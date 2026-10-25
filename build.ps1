@@ -79,6 +79,7 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue))
 }
 
 $projectPath = Join-Path $PSScriptRoot 'NetMan/NetMan.csproj'
+$testProjectPath = Join-Path $PSScriptRoot 'NetMan.Tests/NetMan.Tests.csproj'
 $publishRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'Publish'))
 
 if (-not (Test-Path -LiteralPath $projectPath -PathType Leaf))
@@ -119,7 +120,15 @@ Invoke-DotNet -Arguments @('build', $projectPath, '--configuration', 'Release', 
 
 if (-not $SkipTests)
 {
-  Invoke-DotNet -Arguments @('run', '--project', $projectPath, '--configuration', 'Release', '--no-build', '--', '--self-test')
+  Push-Location $PSScriptRoot
+  try
+  {
+    Invoke-DotNet -Arguments @('test', '--project', $testProjectPath, '--configuration', 'Release')
+  }
+  finally
+  {
+    Pop-Location
+  }
 }
 
 New-Item -ItemType Directory -Path $payloadPath -Force | Out-Null
