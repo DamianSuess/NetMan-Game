@@ -43,10 +43,12 @@ public sealed class OverloadTests : GameTestBase
       elapsedTicks = frameEndTicks[frame];
     }
 
-    Assert.IsTrue(game.IsExploding, "The 400 ms animation should leave its final splatter visible during the respawn delay.");
+    Assert.IsTrue(game.IsExploding, "The explosion death state should remain active until respawn.");
+    Assert.IsFalse(game.IsExplosionVisible, "The player must disappear after the 400 ms animation.");
     Assert.AreEqual(3, game.ExplosionFrameIndex);
     Tick(game, 95, 1, true);
     Assert.AreEqual(1, game.DeathTicksRemaining);
+    Assert.IsFalse(game.IsExplosionVisible);
     Assert.AreEqual(3, game.ExplosionFrameIndex);
     Assert.AreEqual(x, game.X);
     Assert.AreEqual(y, game.Y);
@@ -119,8 +121,7 @@ public sealed class OverloadTests : GameTestBase
   [DataRow(1, 6)]
   [DataRow(2, 12)]
   [DataRow(3, 18)]
-  [DataRow(3, 24)]
-  [DataRow(3, 119)]
+  [DataRow(3, 23)]
   public void EachExplosionFrameRendersItsEditableBloodAndGutsSprite(int index, int elapsedTicks)
   {
     var game = CreateGame();
@@ -146,6 +147,30 @@ public sealed class OverloadTests : GameTestBase
     Assert.IsTrue(renderer.Frame.Pixels.Contains(palette['E']), "The frame must include blood.");
     Assert.IsTrue(renderer.Frame.Pixels.Contains(palette['H']), "The frame must include organ fragments.");
     Assert.IsTrue(renderer.Frame.Pixels.Contains(palette['T']), "The frame must retain clothing fragments.");
+  }
+
+  [TestMethod]
+  [DataRow(24)]
+  [DataRow(119)]
+  public void PlayerDisappearsAfterLastExplosionFrameUntilRespawn(int elapsedTicks)
+  {
+    var game = CreateGame();
+    Overload(game);
+    Tick(game, elapsedTicks);
+
+    Assert.IsTrue(game.IsDying);
+    Assert.IsFalse(game.IsExplosionVisible);
+    var assets = Path.Combine(AppContext.BaseDirectory, "Assets");
+    var palette = Sprite.LoadPalette(Path.Combine(assets, "palette.txt"));
+    var renderer = new PixelRenderer(assets);
+    renderer.Draw(game, 0, 0);
+    foreach (char color in new[] { 'E', 'F', 'H', 'T' })
+      Assert.IsFalse(renderer.Frame.Pixels.Contains(palette[color]), "No explosion, regular player, or death splatter should remain visible.");
+
+    Tick(game, Game.DeathDurationTicks - elapsedTicks);
+    Assert.IsFalse(game.IsDying);
+    renderer.Draw(game, 0, 0);
+    Assert.IsTrue(renderer.Frame.Pixels.Contains(palette['T']), "The player must become visible again upon respawn.");
   }
 
   private Game CreateGame() => Map(

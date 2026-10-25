@@ -65,6 +65,7 @@ public sealed class Game
   public bool IsDying => DeathTicksRemaining > 0;
   public bool IsLarge { get; private set; }
   public bool IsExploding { get; private set; }
+  public bool IsExplosionVisible => IsExploding && DeathDurationTicks - DeathTicksRemaining < ExplosionDurationTicks;
   public int ExplosionFrameIndex => IsExploding
     ? Math.Min(ExplosionFrameCount - 1, (DeathDurationTicks - DeathTicksRemaining) / ExplosionFrameTicks) : 0;
   public double PlayerHeight => IsExploding ? OverloadedBodyHeight : IsLarge ? LargeBodyHeight : BodyHeight;
