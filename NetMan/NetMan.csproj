@@ -9,6 +9,9 @@
     <Copyright>Copyright 2026 Xeno Innovations, Inc.</Copyright>
     <PackageProjectUrl>https://github.com/DamianSuess/NetMan-Game</PackageProjectUrl>
     <Description>Side scrolling game (engine) written in .NET</Description>
+    <BaseOutputPath>../output</BaseOutputPath>
+    <FileVersion>0.2.0</FileVersion>
+    <AssemblyVersion>0.2.0</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Levels\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
