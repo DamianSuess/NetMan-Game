@@ -47,6 +47,8 @@ Each character is one tile. Rows run from top to bottom; columns run left to rig
 
 Use `M` for selected question blocks that reward growth and `?` for coin blocks. Growth makes the player two tiles tall with a matching collision body. If there is not enough headroom, growth waits until the player reaches open space. An enemy hit or spike landing shrinks the enlarged player and gives 1.5 seconds of flashing protection; another hit after protection expires costs a life. Stomping enemies remains safe. Falling into a pit still costs a life. Growth carries into the next level, while death or restarting returns the player to normal size.
 
+The power-up limit is one growth reward at a time. Collecting another `M` while enlarged (or while growth is waiting for headroom) causes an overload: the player grows one extra size and explodes, losing one life. Four editable animation frames show the oversized rupture, body fragments, spreading blood and guts, and final splatter. Each frame lasts 0.25 seconds, for one second total before respawning. Pausing freezes the animation. Coin blocks (`?`) do not count toward this limit, and shrinking frees the growth slot again.
+
 Example:
 
 ```text

@@ -16,11 +16,13 @@ KTTK
 .KK.
 ```
 
-Colors use six hexadecimal RGB digits, such as `A=57C4B0`. The shared palette has 18 colors. Editing it changes every sprite that uses that symbol. The loader reports invalid dimensions, missing rows, and unknown colors at startup. Sprites may be up to 128 x 128, although tiles should remain 16 x 16 to match the map grid. Normal character and tile checks expect 16 x 16, enlarged player frames expect 16 x 32, both player and enemy death effects are 24 x 16, and the reward popup can use other dimensions.
+Colors use six hexadecimal RGB digits, such as `A=57C4B0`. The shared palette has 18 colors. Editing it changes every sprite that uses that symbol. The loader reports invalid dimensions, missing rows, and unknown colors at startup. Sprites may be up to 128 x 128, although tiles should remain 16 x 16 to match the map grid. Normal character and tile checks expect 16 x 16, enlarged player frames expect 16 x 32, overload explosion frames expect 64 x 64, both player and enemy death effects are 24 x 16, and the reward popup can use other dimensions.
 
 Player files: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`.
 
 Enlarged player files: `player-large-idle.sprite`, `player-large-run-1.sprite`, `player-large-run-2.sprite`, and `player-large-jump.sprite` are editable 16 x 32 sprites. The renderer anchors both sizes at the player's feet. Put `M` in a level to give a question block a growth reward; it uses the same `bonus.sprite` artwork as coin blocks (`?`). Enlarged players shrink when damaged and flash during their brief protection period. Their collision body grows along with the artwork, and growth waits for sufficient headroom.
+
+Power overload: `player-explosion-1.sprite` through `player-explosion-4.sprite` are editable 64 x 64 frames, displayed in order for 0.25 seconds each. The first frame shows the player swelling to a 24 x 48 body and rupturing; the remaining frames scatter blood, guts, and clothing, then leave a final splatter. Use `E`/`F` for blood, `H`/`S` for organ fragments, and `A`/`T`/`B`/`N` for clothing. All frames share the same canvas and foot anchor and remain inside the visible play area. An extra growth reward beyond the enlarged form triggers this fatal one-second animation; pausing freezes it. The usual player-death and enemy-death splatter sprites remain separate.
 
 Player death effect: `player-splatter.sprite` uses bright/dark blood reds (`E`/`F`), teal clothing (`A`/`T`), blue clothing (`B`/`N`), and gold trim (`Y`). Edit this file to customize the splatter, then restart the game. The effect replaces the living player for one second before a level respawn or automatic game restart. Pit deaths keep the splatter within the visible play area so it does not disappear below the screen.
 
