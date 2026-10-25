@@ -2,9 +2,26 @@ namespace NetMan;
 
 public sealed class Enemy(double x, double y)
 {
+  public const int SquashDurationTicks = 60;
+
   public double X = x, Y = y, VelocityY;
   public int Direction = -1;
   public bool Alive = true;
+
+  public int SquashTicksRemaining { get; private set; }
+
+  internal void AdvanceSquash()
+  {
+    if (SquashTicksRemaining > 0)
+      SquashTicksRemaining--;
+  }
+
+  internal void Squash()
+  {
+    Alive = false;
+    VelocityY = 0;
+    SquashTicksRemaining = SquashDurationTicks;
+  }
 }
 
 public sealed class Game
@@ -72,7 +89,13 @@ public sealed class Game
 
   public void Update(int direction, bool jumpHeld)
   {
-    if (Paused || Won || Lives == 0)
+    if (Paused)
+      return;
+
+    foreach (var enemy in Enemies)
+      enemy.AdvanceSquash();
+
+    if (Won || Lives == 0)
       return;
 
     if (_transition > 0)
@@ -160,7 +183,10 @@ public sealed class Game
       if (!enemy.Alive || !Overlaps(X, Y, ex, ey)) continue;
       if (vertical > 0 && Y + BodyHeight - vertical <= ey + 0.25)
       {
-        enemy.Alive = false; VelocityY = -10; Score += 200; Message = "Stomp!";
+        enemy.Squash();
+        VelocityY = -10;
+        Score += 200;
+        Message = "Stomp!";
       }
       else { Die(); return; }
     }

@@ -19,7 +19,7 @@ internal static class ArtExporter
       image.SavePng(Path.Combine(outputPath, Path.GetFileNameWithoutExtension(files[i]) + ".png"));
       int x = 8 + ((i % 8) * 31);
       int y = 29 + ((i / 8) * 50);
-      sheet.Fill(x - 1, y - 1, 18, 18, 0xFF355575);
+      sheet.Fill(x - 1, y - 1, sprite.Width + 2, sprite.Height + 2, 0xFF355575);
       sheet.Draw(sprite, x, y);
       PixelFont.Draw(sheet, (i + 1).ToString(), x, y + 21, 0xFFF6F4DF);
     }

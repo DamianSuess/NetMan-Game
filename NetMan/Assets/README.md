@@ -16,11 +16,13 @@ KTTK
 .KK.
 ```
 
-Colors use six hexadecimal RGB digits, such as `A=57C4B0`. The shared palette has 16 colors. Editing it changes every sprite that uses that symbol. The loader reports invalid dimensions, missing rows, and unknown colors at startup. Sprites may be up to 128 x 128, although tiles should remain 16 x 16 to match the map grid and bundled asset checks expect 16 x 16.
+Colors use six hexadecimal RGB digits, such as `A=57C4B0`. The shared palette has 18 colors. Editing it changes every sprite that uses that symbol. The loader reports invalid dimensions, missing rows, and unknown colors at startup. Sprites may be up to 128 x 128, although tiles should remain 16 x 16 to match the map grid. The bundled squash effect uses a wider 24 x 16 canvas.
 
 Player files: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`.
 
 Enemy files: `enemy-idle.sprite`, `enemy-walk.sprite`.
+
+Stomp effect: `enemy-squashed.sprite` combines a flattened enemy with blood splatter. `E` and `F` are bright and dark red; `Y`, `O`, `R`, `D`, `N`, and `W` preserve the enemy's original colors. It stays anchored at the enemy's feet for one second of game time, freezes while paused, and disappears afterward. Edit its pixel grid or palette and restart the game to change its appearance.
 
 Tile files: `grass.sprite`, `dirt.sprite`, `brick.sprite`, `bonus.sprite`, `used.sprite`, `pipe.sprite`, `coin.sprite`, `spike.sprite`, `goal.sprite`.
 

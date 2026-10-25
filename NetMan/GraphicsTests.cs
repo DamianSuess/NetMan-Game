@@ -58,7 +58,10 @@ internal static class GraphicsTests
     foreach (string file in Directory.GetFiles(assets, "*.sprite"))
     {
       var asset = Sprite.Load(file, gamePalette);
-      Check(asset.Width == 16 && asset.Height == 16, $"Bundled pixel art validates: {Path.GetFileName(file)}");
+      bool validSize = Path.GetFileName(file) == "enemy-squashed.sprite"
+        ? asset.Width == 24 && asset.Height == 16
+        : asset.Width == 16 && asset.Height == 16;
+      Check(validSize, $"Bundled pixel art validates: {Path.GetFileName(file)}");
     }
 
     var renderer = new PixelRenderer(assets);
@@ -73,6 +76,35 @@ internal static class GraphicsTests
     uint[] paused = (uint[])renderer.Frame.Pixels.Clone();
     renderer.Draw(game, 0, 1);
     Check(renderer.Frame.Pixels.SequenceEqual(paused), "Animation freezes while paused");
+
+    var stompLevelPath = Path.Combine(Path.GetTempPath(), $"netman-stomp-{Guid.NewGuid():N}.txt");
+
+    try
+    {
+      File.WriteAllLines(stompLevelPath,
+        ["....................", "....................", ".S..................", "....................", ".E................G.", "####################"]);
+      var stompGame = new Game([stompLevelPath]);
+      stompGame.Enemies[0].Direction = 0;
+
+      for (int i = 0; i < 60 && stompGame.Enemies[0].Alive; i++)
+        stompGame.Update(0, false);
+
+      renderer.Draw(stompGame, 0);
+      Check(renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] == gamePalette['F'],
+        "Stomp renders the blood splatter at the enemy's feet");
+
+      for (int i = 0; i < Enemy.SquashDurationTicks; i++)
+        stompGame.Update(0, false);
+
+      renderer.Draw(stompGame, 0);
+      Check(renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] != gamePalette['F'],
+        "Expired blood splatter disappears from the rendered scene");
+    }
+    finally
+    {
+      File.Delete(stompLevelPath);
+    }
+
     Console.WriteLine($"All {passed} graphics checks passed.");
   }
 }

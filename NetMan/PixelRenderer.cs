@@ -21,7 +21,7 @@ internal sealed class PixelRenderer
     var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
 
     foreach (string name in new[] { "player-idle", "player-run-1", "player-run-2", "player-jump",
-      "enemy-idle", "enemy-walk", "grass", "dirt", "brick", "bonus", "used", "pipe", "coin", "spike", "goal" })
+      "enemy-idle", "enemy-walk", "enemy-squashed", "grass", "dirt", "brick", "bonus", "used", "pipe", "coin", "spike", "goal" })
       _sprites.Add(name, Sprite.Load(Path.Combine(assetsPath, name + ".sprite"), palette));
   }
 
@@ -70,6 +70,9 @@ internal sealed class PixelRenderer
 
     foreach (var enemy in game.Enemies.Where(enemy => enemy.Alive))
       DrawActor(_sprites[animationFrame == 0 ? "enemy-idle" : "enemy-walk"], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
+
+    foreach (var enemy in game.Enemies.Where(enemy => enemy.SquashTicksRemaining > 0))
+      DrawActor(_sprites["enemy-squashed"], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
 
     string playerFrame = !game.Grounded ? "player-jump"
       : moving && direction != 0 ? $"player-run-{animationFrame + 1}" : "player-idle";

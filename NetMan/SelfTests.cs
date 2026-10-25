@@ -74,8 +74,30 @@ internal static class SelfTests
       game = Map("....................", "....................", ".S..................", "....................", ".E................G.", "####################");
       // Keep enemy at the left boundary beneath the falling player.
       game.Enemies[0].Direction = 0;
-      Tick(game, 30);
+      for (int i = 0; i < 60 && game.Enemies[0].Alive; i++)
+        game.Update(0, false);
       Check(!game.Enemies[0].Alive && game.Score == 200 && game.Lives == 3, "Falling player stomps enemy");
+      Check(game.Enemies[0].SquashTicksRemaining == Enemy.SquashDurationTicks,
+        "Stomp immediately starts a one-second squash effect");
+      double squashX = game.Enemies[0].X;
+      double squashY = game.Enemies[0].Y;
+      game.Paused = true;
+      Tick(game, 120);
+      Check(game.Enemies[0].SquashTicksRemaining == Enemy.SquashDurationTicks,
+        "Pause freezes the squash effect timer");
+      game.Paused = false;
+      Tick(game, 59);
+      Check(game.Enemies[0].SquashTicksRemaining == 1,
+        "Squashed enemy remains visible until one second elapses");
+      Check(game.Enemies[0].X == squashX && game.Enemies[0].Y == squashY
+        && game.Lives == 3 && game.Score == 200,
+        "Squashed enemy stays in place without damage or duplicate points");
+      Tick(game, 1);
+      Check(game.Enemies[0].SquashTicksRemaining == 0 && !game.Enemies[0].Alive,
+        "Squash effect disappears after exactly one second without reviving enemy");
+      game.Restart();
+      Check(game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining == 0,
+        "Restart loads a live enemy without an old squash effect");
 
       game = Map("....................", "....................", ".B..................", "....................", ".S................G.", "####################");
       Tick(game, 10); game.QueueJump(); Tick(game, 20, jump: true);
