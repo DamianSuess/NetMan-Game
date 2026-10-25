@@ -37,12 +37,15 @@ Each character is one tile. Rows run from top to bottom; columns run left to rig
 | `#` | Solid ground / wall |
 | `B` | Breakable brick; animates into rubble and dust over 0.5 seconds |
 | `?` | One-coin bonus block |
+| `M` | Growth bonus block; looks like `?`, makes the player taller, then becomes a used block |
 | `P` | Solid pipe |
 | `p` | Skinny solid pipe; stacks vertically and stays separate beside `PP` pipes |
 | `o` | Coin |
 | `E` | Walking enemy |
 | `^` | Spike; blocks sideways movement and is deadly only when landing on its tip from above |
 | `G` | Green goal flag; at least one per map |
+
+Use `M` for selected question blocks that reward growth and `?` for coin blocks. Growth makes the player two tiles tall with a matching collision body. If there is not enough headroom, growth waits until the player reaches open space. An enemy hit or spike landing shrinks the enlarged player and gives 1.5 seconds of flashing protection; another hit after protection expires costs a life. Stomping enemies remains safe. Falling into a pit still costs a life. Growth carries into the next level, while death or restarting returns the player to normal size.
 
 Example:
 
@@ -96,6 +99,6 @@ dotnet test --solution .\NetMan.slnx
 
 The tests live in `../NetMan.Tests`, use MSTest with Microsoft.Testing.Platform, and can also run in Visual Studio Test Explorer. They cover gameplay, sprite validation, transparency, flipping, clipping, scene composition, and paused animation. They run without creating a window.
 
-This version includes animated walking, a jumping pose, shaded tiles, a pixel HUD, parallax scenery, and pause/win/game-over overlays. It does not include sound, power-up transformations, bosses, or a graphical level editor.
+This version includes animated walking, a jumping pose, growth power-ups, shaded tiles, a pixel HUD, parallax scenery, and pause/win/game-over overlays. It does not include sound, bosses, or a graphical level editor.
 
 Native backend references: [CreateWindowExW](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw), [StretchDIBits](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-stretchdibits).

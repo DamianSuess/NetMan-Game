@@ -68,6 +68,8 @@ public sealed class RenderingTests
         "player-splatter.sprite" => asset.Width == 24 && asset.Height == 16,
         "enemy-squashed.sprite" => asset.Width == 24 && asset.Height == 16,
         "reward-plus-one.sprite" => true,
+        "player-large-idle.sprite" or "player-large-run-1.sprite" or "player-large-run-2.sprite" or "player-large-jump.sprite"
+          => asset.Width == 16 && asset.Height == 32,
         _ => asset.Width == 16 && asset.Height == 16,
       };
       Assert.IsTrue(validSize, $"Bundled pixel art validates: {Path.GetFileName(file)}");

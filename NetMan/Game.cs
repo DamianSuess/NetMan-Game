@@ -30,6 +30,8 @@ public sealed class Game
 {
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
   public const int DeathDurationTicks = 60;
+  public const int DamageProtectionTicks = 90;
+  public const double LargeBodyHeight = 1.8;
   public const double Step = 1.0 / 60;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
@@ -40,6 +42,7 @@ public sealed class Game
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private double _jumpBuffer, _coyoteTime, _transition;
   private int _levelIndex;
+  private bool _growthPending;
 
   public Game(string[] files)
   {
@@ -50,9 +53,12 @@ public sealed class Game
   public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
   public int Coins { get; private set; }
   public int DeathTicksRemaining { get; private set; }
+  public int DamageTicksRemaining { get; private set; }
   public List<Enemy> Enemies { get; private set; } = [];
   public bool Grounded { get; private set; }
   public bool IsDying => DeathTicksRemaining > 0;
+  public bool IsLarge { get; private set; }
+  public double PlayerHeight => IsLarge ? LargeBodyHeight : BodyHeight;
   public Level Level { get; private set; } = null!;
   public int LevelCount => _files.Length;
   public int LevelNumber => _levelIndex + 1;
@@ -143,6 +149,9 @@ public sealed class Game
     }
 
     _jumpBuffer -= Step;
+    if (DamageTicksRemaining > 0)
+      DamageTicksRemaining--;
+
     _coyoteTime = Grounded ? 0.1 : _coyoteTime - Step;
 
     if (_jumpBuffer > 0 && _coyoteTime > 0)
@@ -156,11 +165,11 @@ public sealed class Game
     VelocityY = Math.Min(VelocityY + (VelocityY < 0 && !jumpHeld ? 75 : 40) * Step, 28);
 
     double x = X, y = Y;
-    double previousFeet = Y + BodyHeight;
-    Move(ref x, ref y, Math.Clamp(direction, -1, 1) * 12 * Step, true, false, out _);
+    double previousFeet = Y + PlayerHeight;
+    Move(ref x, ref y, Math.Clamp(direction, -1, 1) * 12 * Step, true, false, out _, PlayerHeight);
 
     var vertical = VelocityY * Step;
-    Move(ref x, ref y, vertical, false, true, out bool hitY);
+    Move(ref x, ref y, vertical, false, true, out bool hitY, PlayerHeight);
 
     Grounded = hitY && vertical > 0;
 
@@ -172,12 +181,18 @@ public sealed class Game
 
     if (vertical > 0 && TryFindSpikeLanding(previousFeet, out double spikeTop))
     {
-      Y = spikeTop - BodyHeight;
-      Die();
-      return;
+      Y = spikeTop - PlayerHeight;
+      TakeDamage();
+      if (IsDying)
+        return;
+
+      Grounded = true;
+      VelocityY = 0;
     }
 
-    foreach (var (tx, ty) in Cells(X, Y))
+    TryGrow();
+
+    foreach (var (tx, ty) in Cells(X, Y, PlayerHeight))
     {
       switch (Level.Tile(tx, ty))
       {
@@ -197,7 +212,7 @@ public sealed class Game
           else
           {
             _levelIndex++;
-            LoadLevel();
+            LoadLevel(preserveGrowth: true);
             _transition = 0.6;
             Message = "Next level!";
           }
@@ -234,10 +249,10 @@ public sealed class Game
         enemy.Squash();
       }
 
-      if (!enemy.Alive || !Overlaps(X, Y, ex, ey))
+      if (!enemy.Alive || !Overlaps(X, Y, PlayerHeight, ex, ey))
         continue;
 
-      if (vertical > 0 && Y + BodyHeight - vertical <= ey + 0.25)
+      if (vertical > 0 && Y + PlayerHeight - vertical <= ey + 0.25)
       {
         enemy.Squash();
         VelocityY = -10;
@@ -246,24 +261,60 @@ public sealed class Game
       }
       else
       {
-        Die();
-        return;
+        TakeDamage();
+        if (IsDying)
+          return;
       }
     }
   }
 
-  private static IEnumerable<(int X, int Y)> Cells(double x, double y)
+  private static IEnumerable<(int X, int Y)> Cells(double x, double y, double height = BodyHeight)
   {
     for (int ty = (int)Math.Floor(y + 0.00001);
-      ty <= (int)Math.Floor(y + BodyHeight - 0.00001); ty++)
+      ty <= (int)Math.Floor(y + height - 0.00001); ty++)
     {
       for (int tx = (int)Math.Floor(x + 0.00001); tx <= (int)Math.Floor(x + BodyWidth - 0.00001); tx++)
         yield return (tx, ty);
     }
   }
 
-  private static bool Overlaps(double ax, double ay, double bx, double by) =>
-    ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + BodyHeight && ay + BodyHeight > by;
+  private static bool Overlaps(double ax, double ay, double height, double bx, double by) =>
+    ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + BodyHeight && ay + height > by;
+
+  private void TryGrow()
+  {
+    if (!_growthPending || IsLarge)
+      return;
+
+    double grownY = Y + BodyHeight - LargeBodyHeight;
+
+    // Wait for headroom instead of growing into the block that awarded the power.
+    if (grownY < 0 || Cells(X, grownY, LargeBodyHeight).Any(cell => Level.Solid(cell.X, cell.Y)))
+      return;
+
+    Y = grownY;
+    IsLarge = true;
+    _growthPending = false;
+    Message = "Powered up!";
+  }
+
+  private void TakeDamage()
+  {
+    if (DamageTicksRemaining > 0)
+      return;
+
+    if (!IsLarge)
+    {
+      Die();
+      return;
+    }
+
+    Y += LargeBodyHeight - BodyHeight;
+    IsLarge = false;
+    _growthPending = false;
+    DamageTicksRemaining = DamageProtectionTicks;
+    Message = "Shrunk! Keep moving!";
+  }
 
   private void Die()
   {
@@ -271,6 +322,10 @@ public sealed class Game
       return;
 
     Lives--;
+    Y += PlayerHeight - BodyHeight;
+    IsLarge = false;
+    _growthPending = false;
+    DamageTicksRemaining = 0;
     DeathTicksRemaining = DeathDurationTicks;
     VelocityY = 0;
     Grounded = false;
@@ -279,8 +334,12 @@ public sealed class Game
     Message = Lives == 0 ? "Ouch! Restarting game..." : "Ouch!";
   }
 
-  private void LoadLevel()
+  private void LoadLevel(bool preserveGrowth = false)
   {
+    bool keepGrowth = preserveGrowth && (IsLarge || _growthPending);
+    IsLarge = false;
+    _growthPending = keepGrowth;
+    DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
     _rewardPopups.Clear();
     _blockBreakEffects.Clear();
@@ -294,9 +353,10 @@ public sealed class Game
     _jumpBuffer = _coyoteTime = 0;
 
     Enemies = Level.EnemySpawns.Select(spawn => new Enemy(spawn.X, spawn.Y)).ToList();
+    TryGrow();
   }
 
-  private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit)
+  private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit, double height = BodyHeight)
   {
     hit = false;
     int steps = Math.Max(1, (int)Math.Ceiling(Math.Abs(distance) / 0.15));
@@ -306,10 +366,10 @@ public sealed class Game
       double nx = x + (horizontal ? distance / steps : 0);
       double ny = y + (horizontal ? 0 : distance / steps);
       double previousX = x;
-      double bodyBottom = y + BodyHeight;
+      double bodyBottom = y + height;
 
       // Spike sides block entry like a pipe. Vertical contact is handled separately at the tip.
-      var collisions = Cells(nx, ny).Where(
+      var collisions = Cells(nx, ny, height).Where(
         cell => Level.Solid(cell.X, cell.Y) ||
         (horizontal
         && Level.Tile(cell.X, cell.Y) == '^'
@@ -330,7 +390,14 @@ public sealed class Game
       {
         if (bump && distance < 0)
         {
-          if (Level.Tile(cell.X, cell.Y) == '?')
+          if (Level.Tile(cell.X, cell.Y) == 'M')
+          {
+            Level.UseBlock(cell.X, cell.Y);
+            Score += 100;
+            _growthPending = !IsLarge;
+            Message = IsLarge ? "Already powered up!" : "Growth power!";
+          }
+          else if (Level.Tile(cell.X, cell.Y) == '?')
           {
             Level.UseBlock(cell.X, cell.Y);
             Coins++;
@@ -351,14 +418,14 @@ public sealed class Game
       if (horizontal)
         x = distance > 0 ? collisions.Min(c => c.X) - BodyWidth : collisions.Max(c => c.X) + 1;
       else
-        y = distance > 0 ? collisions.Min(c => c.Y) - BodyHeight : collisions.Max(c => c.Y) + 1;
+        y = distance > 0 ? collisions.Min(c => c.Y) - height : collisions.Max(c => c.Y) + 1;
       break;
     }
   }
 
   private bool TryFindSpikeLanding(double previousFeet, out double spikeTop)
   {
-    double currentFeet = Y + BodyHeight;
+    double currentFeet = Y + PlayerHeight;
     spikeTop = 0;
 
     if (currentFeet <= previousFeet + 0.00001)

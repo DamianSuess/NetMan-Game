@@ -22,7 +22,7 @@ internal static class ArtExporter
       int y = 29 + ((i / 8) * 50);
       sheet.Fill(x - 1, y - 1, sprite.Width + 2, sprite.Height + 2, 0xFF355575);
       sheet.Draw(sprite, x, y);
-      PixelFont.Draw(sheet, (i + 1).ToString(), x, y + 21, 0xFFF6F4DF);
+      PixelFont.Draw(sheet, (i + 1).ToString(), x, y + Math.Max(21, sprite.Height + 3), 0xFFF6F4DF);
     }
 
     sheet.SavePng(Path.Combine(outputPath, "sprite-sheet.png"));
