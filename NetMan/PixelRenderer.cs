@@ -25,6 +25,10 @@ internal sealed class PixelRenderer
       "player-run-2",
       "player-jump",
       "player-splatter",
+      "player-large-idle",
+      "player-large-run-1",
+      "player-large-run-2",
+      "player-large-jump",
       "enemy-idle",
       "enemy-walk",
       "enemy-squashed",
@@ -81,7 +85,7 @@ internal sealed class PixelRenderer
         {
           '#' => game.Level.Tile(x, y - 1) == '#' ? "dirt" : "grass",
           'B' => "brick",
-          '?' => "bonus",
+          '?' or 'M' => "bonus",
           'X' => "used",
           'P' => PipeSprite(game.Level, x, y),
           'p' => SkinnyPipeSprite(game.Level, x, y),
@@ -113,10 +117,13 @@ internal sealed class PixelRenderer
     string playerFrame = !game.Grounded ? "player-jump"
       : moving && direction != 0 ? $"player-run-{animationFrame + 1}" : "player-idle";
 
+    if (game.IsLarge)
+      playerFrame = playerFrame.Replace("player-", "player-large-", StringComparison.Ordinal);
+
     if (game.IsDying)
       DrawActor(_sprites["player-splatter"], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
-    else
-      DrawActor(_sprites[playerFrame], game.X, game.Y, cameraX, cameraY, _facingLeft);
+    else if ((game.DamageTicksRemaining / 5) % 2 == 0)
+      DrawActor(_sprites[playerFrame], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
 
     foreach (var popup in game.RewardPopups)
     {
@@ -215,10 +222,10 @@ internal sealed class PixelRenderer
     return true;
   }
 
-  private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip, bool keepInView = false)
+  private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip, bool keepInView = false, double bodyHeight = Game.BodyHeight)
   {
     int px = (int)Math.Round((x + (Game.BodyWidth / 2)) * TileSize) - (sprite.Width / 2) - cameraX;
-    int py = HeaderHeight + (int)Math.Round((y + Game.BodyHeight) * TileSize) - sprite.Height - cameraY;
+    int py = HeaderHeight + (int)Math.Round((y + bodyHeight) * TileSize) - sprite.Height - cameraY;
 
     if (keepInView)
     {

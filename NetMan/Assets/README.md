@@ -1,6 +1,6 @@
 # NetMan pixel art
 
-Each `.sprite` file is a separate image used by the game. The bundled characters and tiles are 16 x 16 pixels. Player frames face right; the renderer flips them when moving left. Character sprites are anchored at their feet and centered over their collision body.
+Each `.sprite` file is a separate image used by the game. Normal characters and tiles are 16 x 16 pixels; enlarged player frames are 16 x 32. Player frames face right; the renderer flips them when moving left. Character sprites are anchored at their feet and centered over their collision body.
 
 ## Editing a sprite
 
@@ -16,9 +16,11 @@ KTTK
 .KK.
 ```
 
-Colors use six hexadecimal RGB digits, such as `A=57C4B0`. The shared palette has 18 colors. Editing it changes every sprite that uses that symbol. The loader reports invalid dimensions, missing rows, and unknown colors at startup. Sprites may be up to 128 x 128, although tiles should remain 16 x 16 to match the map grid. Bundled character and tile checks expect 16 x 16; both player and enemy death effects are 24 x 16, and the reward popup can use other dimensions.
+Colors use six hexadecimal RGB digits, such as `A=57C4B0`. The shared palette has 18 colors. Editing it changes every sprite that uses that symbol. The loader reports invalid dimensions, missing rows, and unknown colors at startup. Sprites may be up to 128 x 128, although tiles should remain 16 x 16 to match the map grid. Normal character and tile checks expect 16 x 16, enlarged player frames expect 16 x 32, both player and enemy death effects are 24 x 16, and the reward popup can use other dimensions.
 
 Player files: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`.
+
+Enlarged player files: `player-large-idle.sprite`, `player-large-run-1.sprite`, `player-large-run-2.sprite`, and `player-large-jump.sprite` are editable 16 x 32 sprites. The renderer anchors both sizes at the player's feet. Put `M` in a level to give a question block a growth reward; it uses the same `bonus.sprite` artwork as coin blocks (`?`). Enlarged players shrink when damaged and flash during their brief protection period. Their collision body grows along with the artwork, and growth waits for sufficient headroom.
 
 Player death effect: `player-splatter.sprite` uses bright/dark blood reds (`E`/`F`), teal clothing (`A`/`T`), blue clothing (`B`/`N`), and gold trim (`Y`). Edit this file to customize the splatter, then restart the game. The effect replaces the living player for one second before a level respawn or automatic game restart. Pit deaths keep the splatter within the visible play area so it does not disappear below the screen.
 
