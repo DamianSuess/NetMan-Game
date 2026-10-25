@@ -13,8 +13,15 @@
     <FileVersion>0.2.1</FileVersion>
     <AssemblyVersion>0.2.1</AssemblyVersion>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(NetManDistribution)' == 'true'">
+    <DefineConstants>$(DefineConstants);NETMAN_DISTRIBUTION</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Content Include="Levels\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(NetManDistribution)' == 'true'">
+    <Compile Remove="SelfTests.cs;GraphicsTests.cs;ArtExporter.cs" />
+    <Content Update="Assets\Previews\**\*;Assets\README.md" CopyToPublishDirectory="Never" />
   </ItemGroup>
 </Project>

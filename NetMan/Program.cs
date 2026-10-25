@@ -3,6 +3,7 @@ using NetMan;
 
 try
 {
+#if !NETMAN_DISTRIBUTION
   if (args.Contains("--self-test"))
   {
     SelfTests.Run();
@@ -20,6 +21,8 @@ try
     ArtExporter.Export(Path.Combine(AppContext.BaseDirectory, "Assets"), Path.GetFullPath(args[exportOption + 1]));
     return;
   }
+
+#endif
 
   if (!OperatingSystem.IsWindows())
     throw new PlatformNotSupportedException("NetMan currently has a Windows backend. Its game and pixel renderer are portable; other window backends can be added later.");
@@ -98,7 +101,9 @@ try
 catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException
   or PlatformNotSupportedException or System.ComponentModel.Win32Exception)
 {
+#if !NETMAN_DISTRIBUTION
   Console.Error.WriteLine($"NetMan: {exception.Message}");
+#endif
 
   if (OperatingSystem.IsWindows() && !args.Contains("--self-test") && !args.Contains("--export-art"))
     WindowsGameWindow.ShowError(exception.Message);

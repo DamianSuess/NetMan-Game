@@ -90,3 +90,6 @@ TestResult.xml
 /[Dd]ocs/*.csv
 /[Dd]ocs/backup
 /[Tt]ools
+
+# Packaged Native AOT releases
+/Publish/
