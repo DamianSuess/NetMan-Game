@@ -1,0 +1,109 @@
+namespace NetBro;
+
+internal static class SelfTests
+{
+  public static void Run()
+  {
+    int passed = 0;
+    void Check(bool condition, string name)
+    {
+      if (!condition) throw new InvalidOperationException($"FAIL: {name}");
+      Console.WriteLine($"PASS: {name}"); passed++;
+    }
+
+    bool Rejects(string[] rows)
+    {
+      try { Level.Parse("test", rows); return false; }
+      catch (InvalidDataException) { return true; }
+    }
+
+    Check(Rejects(["..........", ".........G", "##########"]), "Missing spawn rejected");
+    Check(Rejects(["S.........", "........ZG", "##########"]), "Unknown tile rejected");
+    Check(Rejects(["SS........", ".........G", "##########"]), "Duplicate spawn rejected");
+    Check(Level.Parse("ragged", ["S.........G", ".", "###########"]).Tile(5, 1) == '.', "Short rows padded");
+
+    var path = Path.Combine(Path.GetTempPath(), $"netbro-test-{Guid.NewGuid():N}.txt");
+    var nextPath = Path.Combine(Path.GetTempPath(), $"netbro-test-{Guid.NewGuid():N}.txt");
+
+    try
+    {
+      Game Map(params string[] rows)
+      {
+        File.WriteAllLines(path, rows);
+        return new Game([path]);
+      }
+
+      void Tick(Game game, int count, int direction = 0, bool jump = false)
+      {
+        for (int i = 0; i < count; i++)
+          game.Update(direction, jump);
+      }
+
+      var game = Map("....................", "....................", "....................", "....................", "....................", ".S.....o.........G..", "####################");
+      Tick(game, 30);
+      Check(game.Grounded && Math.Abs(game.Y - 5.1) < 0.001, "Player lands precisely on floor");
+      game.QueueJump(); Tick(game, 10, jump: true);
+      Check(game.Y < 4 && game.VelocityY < 0, "Jump rises above floor");
+      Tick(game, 100);
+      Check(game.Grounded && game.Lives == 3, "Jump returns safely to floor");
+      Tick(game, 30, 1);
+      Check(game.Coins == 1 && game.Score == 100, "Coin collected once");
+      game.Paused = true; double previousX = game.X; Tick(game, 20, 1);
+      Check(game.X == previousX, "Pause stops simulation"); game.Paused = false;
+      Tick(game, 70, 1);
+      Check(game.Won && game.Score == 1100, "Goal completes final level");
+      game.Restart();
+      Check(!game.Won && game.Lives == 3 && game.Score == 0, "Restart resets game");
+
+      game = Map("....................", "....................", "....................", "....................", ".S.#..............G.", "####################");
+      Tick(game, 50, 1);
+      Check(game.X + Game.BodyWidth <= 3.00001, "Wall blocks horizontal movement");
+
+      game = Map("....................", "....................", ".?..................", "....................", ".S................G.", "####################");
+      Tick(game, 10); game.QueueJump(); Tick(game, 20, jump: true);
+      Check(game.Coins == 1 && game.Level.Tile(1, 2) == 'X', "Head bump dispenses bonus coin");
+
+      game = Map("....................", "....................", "....................", "....................", ".S.^..............G.", "####################");
+      Tick(game, 11, 1);
+      Check(game.Lives == 2, "Hazard costs one life and respawns");
+
+      game = Map("....................", "....................", "....................", "....................", ".S.E..............G.", "####################");
+      Tick(game, 15, 1);
+      Check(game.Lives == 2, "Enemy side contact costs a life");
+
+      game = Map("....................", "....................", ".S..................", "....................", ".E................G.", "####################");
+      // Keep enemy at the left boundary beneath the falling player.
+      game.Enemies[0].Direction = 0;
+      Tick(game, 30);
+      Check(!game.Enemies[0].Alive && game.Score == 200 && game.Lives == 3, "Falling player stomps enemy");
+
+      game = Map("....................", "....................", ".B..................", "....................", ".S................G.", "####################");
+      Tick(game, 10); game.QueueJump(); Tick(game, 20, jump: true);
+      Check(game.Level.Tile(1, 2) == '.' && game.Score == 50, "Head bump breaks a brick");
+
+      game = Map("....................", "....................", "....................", ".S................G.", "....................");
+      Tick(game, 400);
+      Check(game.Lives == 0, "Repeated pit falls reach game over");
+      double deadY = game.Y; Tick(game, 30, 1);
+      Check(game.Y == deadY, "Game over stops simulation");
+
+      File.WriteAllLines(path, ["....................", "....................", ".S.G................", "####################"]);
+      File.WriteAllLines(nextPath, ["....................", "....................", ".S...............G..", "####################"]);
+      game = new Game([path, nextPath]);
+      Tick(game, 15, 1);
+      Check(game.LevelNumber == 2 && !game.Won && game.Score == 1000, "Goal loads the next level");
+      Tick(game, 140, 1);
+      Check(game.Won && game.Score == 2000, "Final goal wins a multiple-level game");
+    }
+    finally
+    {
+      File.Delete(path);
+      File.Delete(nextPath);
+    }
+
+    foreach (var file in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt"))
+      Check(Level.Load(file).Width > 0, $"Bundled level validates: {Path.GetFileName(file)}");
+
+    Console.WriteLine($"All {passed} checks passed.");
+  }
+}

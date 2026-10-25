@@ -1,0 +1,85 @@
+namespace NetBro;
+
+public sealed class Level
+{
+  private readonly char[,] _tiles;
+
+  public string Name { get; }
+
+  public int Width => _tiles.GetLength(0);
+
+  public int Height => _tiles.GetLength(1);
+
+  public (int X, int Y) Spawn { get; private set; }
+
+  public List<(int X, int Y)> EnemySpawns { get; } = [];
+
+  private Level(string name, char[,] tiles)
+  {
+    Name = name;
+    this._tiles = tiles;
+  }
+
+  public static Level Load(string path) => Parse(Path.GetFileNameWithoutExtension(path), File.ReadAllLines(path));
+
+  public static Level Parse(string name, string[] lines)
+  {
+    if (lines.Length < 3 || lines.Length > 100 || lines.Max(line => line.Length) is < 10 or > 10000)
+      throw new InvalidDataException($"{name}: maps must be 10–10000 columns wide and 3–100 rows tall.");
+
+    var map = new Level(name, new char[lines.Max(line => line.Length), lines.Length]);
+    int starts = 0, goals = 0;
+
+    for (int y = 0; y < map.Height; y++)
+    {
+      for (int x = 0; x < map.Width; x++)
+      {
+        char tile = x < lines[y].Length ? lines[y][x] : '.';
+        if (!". #B?o^PSGE".Contains(tile))
+          throw new InvalidDataException($"{name}: unknown tile '{tile}' at column {x + 1}, row {y + 1}.");
+
+        if (tile == 'S')
+        {
+          map.Spawn = (x, y);
+          starts++;
+          tile = '.';
+        }
+
+        if (tile == 'E')
+        {
+          map.EnemySpawns.Add((x, y));
+          tile = '.';
+        }
+
+        if (tile == 'G')
+          goals++;
+
+        map._tiles[x, y] = tile;
+      }
+    }
+
+    if (starts != 1 || goals == 0)
+      throw new InvalidDataException($"{name}: use exactly one S (start) and at least one G (goal).");
+
+    return map;
+  }
+
+  public char Tile(int x, int y) => x < 0 || x >= Width || y < 0 || y >= Height ? '.' : _tiles[x, y];
+
+  public bool Solid(int x, int y) => x < 0 || x >= Width || y < 0 || "#B?PX".Contains(Tile(x, y));
+
+  public void Clear(int x, int y)
+  {
+    if (Inside(x, y))
+      _tiles[x, y] = '.';
+  }
+
+  public void UseBlock(int x, int y)
+  {
+    if (Inside(x, y))
+      _tiles[x, y] = 'X';
+  }
+
+  private bool Inside(int x, int y) =>
+    x >= 0 && x < Width && y >= 0 && y < Height;
+}
