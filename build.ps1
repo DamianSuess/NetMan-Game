@@ -161,6 +161,8 @@ try
   if (-not (Test-Path -LiteralPath (Join-Path $payloadPath 'Assets/palette.txt') -PathType Leaf) -or
     -not (Test-Path -LiteralPath (Join-Path $payloadPath 'Assets/player-splatter.sprite') -PathType Leaf) -or
     -not (Test-Path -LiteralPath (Join-Path $payloadPath 'Assets/enemy-squashed.sprite') -PathType Leaf) -or
+    -not (Test-Path -LiteralPath (Join-Path $payloadPath 'Assets/brick-rubble.sprite') -PathType Leaf) -or
+    -not (Test-Path -LiteralPath (Join-Path $payloadPath 'Assets/brick-dust.sprite') -PathType Leaf) -or
     -not (Test-Path -LiteralPath (Join-Path $payloadPath 'Levels') -PathType Container))
   {
     throw 'Publish is missing required game assets or levels.'

@@ -235,6 +235,46 @@ internal static class GraphicsTests
       File.Delete(rewardLevelPath);
     }
 
+    var brickLevelPath = Path.Combine(Path.GetTempPath(), $"netman-brick-{Guid.NewGuid():N}.txt");
+
+    try
+    {
+      File.WriteAllLines(brickLevelPath,
+        ["....................", "....................", ".B..................", "....................", ".S................G.", "####################"]);
+      var brickGame = new Game([brickLevelPath]);
+
+      for (int i = 0; i < 10; i++)
+        brickGame.Update(0, false);
+
+      brickGame.QueueJump();
+
+      for (int i = 0; i < 30 && brickGame.BlockBreakEffects.Count == 0; i++)
+        brickGame.Update(0, true);
+
+      renderer.Draw(brickGame, 0);
+      Check(renderer.Frame.Pixels[(61 * PixelRenderer.Width) + 17] == gamePalette['K'],
+        "Broken brick renders the editable rubble sprite");
+
+      for (int i = 0; i < BlockBreakEffect.FrameDurationTicks; i++)
+        brickGame.Update(0, false);
+
+      renderer.Draw(brickGame, 0);
+      Check(renderer.Frame.Pixels[(61 * PixelRenderer.Width) + 17] != gamePalette['K']
+        && renderer.Frame.Pixels[(61 * PixelRenderer.Width) + 18] == gamePalette['O'],
+        "Brick animation replaces rubble with the editable dust sprite");
+
+      for (int i = 0; i < BlockBreakEffect.FrameDurationTicks; i++)
+        brickGame.Update(0, false);
+
+      renderer.Draw(brickGame, 0);
+      Check(renderer.Frame.Pixels[(61 * PixelRenderer.Width) + 18] != gamePalette['O'],
+        "Finished brick animation leaves no rubble or dust on screen");
+    }
+    finally
+    {
+      File.Delete(brickLevelPath);
+    }
+
     Console.WriteLine($"All {passed} graphics checks passed.");
   }
 }

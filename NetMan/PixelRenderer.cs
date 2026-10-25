@@ -2,16 +2,14 @@ namespace NetMan;
 
 internal sealed class PixelRenderer
 {
-  public const int Width = 384;
   public const int Height = 240;
   public const int TileSize = 16;
-
-  private const int HeaderHeight = 28;
+  public const int Width = 384;
   private const int FooterHeight = 14;
-  private const uint White = 0xFFF6F4DF;
   private const uint Gold = 0xFFFFD56B;
+  private const int HeaderHeight = 28;
   private const uint Ink = 0xFF17263F;
-
+  private const uint White = 0xFFF6F4DF;
   private readonly Dictionary<string, Sprite> _sprites = [];
   private double _animationTime;
   private bool _facingLeft;
@@ -20,8 +18,29 @@ internal sealed class PixelRenderer
   {
     var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
 
-    foreach (string name in new[] { "player-idle", "player-run-1", "player-run-2", "player-jump", "player-splatter",
-      "enemy-idle", "enemy-walk", "enemy-squashed", "grass", "dirt", "brick", "bonus", "used", "pipe", "coin", "spike", "goal", "reward-plus-one" })
+    foreach (string name in new[]
+    {
+      "player-idle",
+      "player-run-1",
+      "player-run-2",
+      "player-jump",
+      "player-splatter",
+      "enemy-idle",
+      "enemy-walk",
+      "enemy-squashed",
+      "grass",
+      "dirt",
+      "brick",
+      "brick-rubble",
+      "brick-dust",
+      "bonus",
+      "used",
+      "pipe",
+      "coin",
+      "spike",
+      "goal",
+      "reward-plus-one",
+    })
       _sprites.Add(name, Sprite.Load(Path.Combine(assetsPath, name + ".sprite"), palette));
   }
 
@@ -42,6 +61,7 @@ internal sealed class PixelRenderer
     int viewHeight = Height - HeaderHeight - FooterHeight;
     int cameraX = Math.Clamp((int)(game.X * TileSize) - (Width / 3), 0, Math.Max(0, (game.Level.Width * TileSize) - Width));
     int cameraY = Math.Clamp((int)(game.Y * TileSize) - ((viewHeight * 2) / 3), 0, Math.Max(0, (game.Level.Height * TileSize) - viewHeight));
+
     DrawBackground(cameraX);
 
     for (int y = cameraY / TileSize; y <= (cameraY + viewHeight) / TileSize; y++)
@@ -66,6 +86,12 @@ internal sealed class PixelRenderer
       }
     }
 
+    foreach (var effect in game.BlockBreakEffects)
+    {
+      var sprite = _sprites[effect.FrameIndex == 0 ? "brick-rubble" : "brick-dust"];
+      Frame.Draw(sprite, (effect.X * TileSize) - cameraX, HeaderHeight + (effect.Y * TileSize) - cameraY);
+    }
+
     int animationFrame = (int)(_animationTime * 9) % 2;
 
     foreach (var enemy in game.Enemies.Where(enemy => enemy.Alive))
@@ -76,6 +102,7 @@ internal sealed class PixelRenderer
 
     string playerFrame = !game.Grounded ? "player-jump"
       : moving && direction != 0 ? $"player-run-{animationFrame + 1}" : "player-idle";
+
     if (game.IsDying)
       DrawActor(_sprites["player-splatter"], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
     else
@@ -85,8 +112,12 @@ internal sealed class PixelRenderer
     {
       var rewardSprite = _sprites["reward-plus-one"];
       int x = (popup.X * TileSize) - cameraX + ((TileSize - rewardSprite.Width) / 2);
-      int y = HeaderHeight + (popup.Y * TileSize) - cameraY - rewardSprite.Height - 2
+      int y = HeaderHeight
+        + (popup.Y * TileSize)
+        - cameraY
+        - rewardSprite.Height - 2
         - ((popup.AgeTicks * 8) / CoinRewardPopup.DurationTicks);
+
       Frame.Draw(rewardSprite, x, y);
     }
 
@@ -96,6 +127,7 @@ internal sealed class PixelRenderer
     {
       string title = game.Won ? "LEVELS COMPLETE!" : game.Lives == 0 ? "GAME OVER" : "PAUSED";
       string hint = game.Won || game.Lives == 0 ? "R TO PLAY AGAIN" : "P TO RESUME";
+
       Frame.Fill(70, 90, 244, 60, Ink);
       Frame.Fill(72, 92, 240, 1, Gold);
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
@@ -155,6 +187,7 @@ internal sealed class PixelRenderer
     PixelFont.Draw(Frame, "NETMAN", 8, 5, Gold, 2);
     PixelFont.Draw(Frame, $"SCORE {game.Score:000000}   COINS {game.Coins:00}   LIVES {game.Lives}   {game.LevelNumber}/{game.LevelCount}", 76, 8, White);
     PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
+
     Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
     PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  P PAUSE  R RESTART  ESC QUIT", 8, Height - 9, White);
   }

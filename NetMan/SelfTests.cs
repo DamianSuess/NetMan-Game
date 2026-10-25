@@ -69,6 +69,7 @@ internal static class SelfTests
       game = Map("....................", "....................", ".?..................", "....................", ".S................G.", "####################");
       Tick(game, 10); game.QueueJump(); Tick(game, 20, jump: true);
       Check(game.Coins == 1 && game.Level.Tile(1, 2) == 'X', "Head bump dispenses bonus coin");
+      Check(game.BlockBreakEffects.Count == 0, "Coin blocks remain used blocks rather than breaking apart");
       Check(game.RewardPopups.Count == 1 && game.RewardPopups[0].X == 1 && game.RewardPopups[0].Y == 2,
         "Coin block creates a reward popup at the block");
 
@@ -285,8 +286,55 @@ internal static class SelfTests
         "Enemy pit deaths also create splatter at the bottom of the level");
 
       game = Map("....................", "....................", ".B..................", "....................", ".S................G.", "####################");
-      Tick(game, 10); game.QueueJump(); Tick(game, 20, jump: true);
+      Tick(game, 10);
+      game.QueueJump();
+
+      for (int i = 0; i < 30 && game.BlockBreakEffects.Count == 0; i++)
+        game.Update(0, true);
+
       Check(game.Level.Tile(1, 2) == '.' && game.Score == 50, "Head bump breaks a brick");
+      Check(game.BlockBreakEffects.Count == 1 && game.BlockBreakEffects[0].AgeTicks == 0
+        && game.BlockBreakEffects[0].FrameIndex == 0 && !game.Level.Solid(1, 2),
+        "Broken brick immediately becomes non-solid rubble at its location");
+      game.Paused = true;
+      Tick(game, 60);
+      Check(game.BlockBreakEffects[0].AgeTicks == 0, "Pause freezes the brick break animation");
+      game.Paused = false;
+      Tick(game, 14);
+      Check(game.BlockBreakEffects.Count == 1 && game.BlockBreakEffects[0].FrameIndex == 0,
+        "Rubble frame remains visible for the first 0.25 seconds");
+      Tick(game, 1);
+      Check(game.BlockBreakEffects.Count == 1 && game.BlockBreakEffects[0].FrameIndex == 1,
+        "Brick changes to dust after exactly 0.25 seconds");
+      Tick(game, 14);
+      Check(game.BlockBreakEffects.Count == 1 && game.BlockBreakEffects[0].FrameIndex == 1,
+        "Dust frame remains until 0.5 seconds has elapsed");
+      Tick(game, 1);
+      Check(game.BlockBreakEffects.Count == 0, "Brick break animation disappears after exactly 0.5 seconds");
+      game.QueueJump();
+      Tick(game, 60, jump: true);
+      Check(game.Score == 50 && game.BlockBreakEffects.Count == 0,
+        "Broken bricks cannot award points or animate again");
+      game.Restart();
+      Tick(game, 10);
+      game.QueueJump();
+
+      for (int i = 0; i < 30 && game.BlockBreakEffects.Count == 0; i++)
+        game.Update(0, true);
+
+      game.Restart();
+      Check(game.BlockBreakEffects.Count == 0, "Restart clears brick break effects");
+
+      game = Map("....................", "....................", ".BB.................", "....................", ".S................G.", "####################");
+      Tick(game, 10);
+      Tick(game, 2, 1);
+      game.QueueJump();
+
+      for (int i = 0; i < 30 && game.BlockBreakEffects.Count == 0; i++)
+        game.Update(0, true);
+
+      Check(game.BlockBreakEffects.Count == 2 && game.Level.Tile(1, 2) == '.' && game.Level.Tile(2, 2) == '.'
+        && game.Score == 100, "Simultaneously broken bricks each get their own animation");
 
       game = Map("....................", "....................", "....................", ".S................G.", "....................");
 
