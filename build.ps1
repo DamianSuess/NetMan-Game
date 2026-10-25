@@ -12,6 +12,8 @@ Output: Publish/NetMan-vX.Y.Z/ and Publish/NetMan-vX.Y.Z.zip.
 .\build.ps1
 .EXAMPLE
 .\build.ps1 -Runtime win-arm64 -SkipTests
+.EXAMPLE
+.\build.ps1 -Run
 #>
 
 [CmdletBinding()]
@@ -19,7 +21,9 @@ param(
   [ValidateSet('win-x64', 'win-arm64')]
   [string]$Runtime = 'win-x64',
 
-  [switch]$SkipTests
+  [switch]$SkipTests,
+
+  [switch]$Run
 )
 
 Set-StrictMode -Version Latest
@@ -222,4 +226,10 @@ finally
     Assert-PublishChild $stagingRoot
     Remove-Item -LiteralPath $stagingRoot -Recurse -Force
   }
+}
+
+if ($Run)
+{
+  Write-Host "Launching $releaseName..."
+  Start-Process -FilePath (Join-Path $releasePath $executableName) -WorkingDirectory $releasePath
 }
