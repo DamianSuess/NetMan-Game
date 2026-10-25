@@ -49,6 +49,8 @@ Use `M` for selected question blocks that reward growth and `?` for coin blocks.
 
 The power-up limit is one growth reward at a time. Collecting another `M` while enlarged (or while growth is waiting for headroom) causes an overload: the player grows one extra size and explodes, losing one life. Four editable animation frames show the oversized rupture, body fragments, spreading blood and guts, and final splatter. Each frame lasts 100 ms, for a 0.4-second animation. After the final explosion frame, the player disappears for the remainder of the two-second death delay, then the level restarts. Pausing freezes the animation. Coin blocks (`?`) do not count toward this limit, and shrinking frees the growth slot again.
 
+Every death displays a large `YOU DIED!` title with a randomly chosen quote underneath during the two-second respawn delay. Edit `Assets/death-quotes.txt` to customize the messages: one quote per line, without surrounding quotation marks. Blank lines and lines starting with `;` are ignored. The file includes twelve quotes; add, remove, or replace lines as desired, then relaunch the game. Longer messages wrap to three lines and are shortened with an ellipsis if needed. A missing or empty file uses a fallback quote.
+
 Example:
 
 ```text

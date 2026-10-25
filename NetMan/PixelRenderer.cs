@@ -150,7 +150,9 @@ internal sealed class PixelRenderer
 
     DrawHud(game);
 
-    if (game.Paused || game.Won || (game.Lives == 0 && !game.IsDying))
+    if (game.IsDying)
+      DrawDeathMessage(game.DeathQuote);
+    else if (game.Paused || game.Won || game.Lives == 0)
     {
       string title = game.Won ? "LEVELS COMPLETE!" : game.Lives == 0 ? "GAME OVER" : "PAUSED";
       string hint = game.Won || game.Lives == 0 ? "R TO PLAY AGAIN" : "P TO RESUME";
@@ -159,6 +161,41 @@ internal sealed class PixelRenderer
       Frame.Fill(72, 92, 240, 1, Gold);
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
       PixelFont.Draw(Frame, hint, (Width - (hint.Length * 4)) / 2, 130, White);
+    }
+  }
+
+  private void DrawDeathMessage(string quote)
+  {
+    const string Title = "YOU DIED!";
+    const int TitleScale = 4;
+    const int QuoteScale = 2;
+    const int MaxQuoteCharacters = 42;
+    const int MaxQuoteLines = 3;
+    const uint TitleColor = 0xFFFF6B6B;
+    int titleX = (Width - (((Title.Length * 4) - 1) * TitleScale)) / 2;
+    PixelFont.Draw(Frame, Title, titleX + 2, 40, Ink, TitleScale);
+    PixelFont.Draw(Frame, Title, titleX, 38, TitleColor, TitleScale);
+
+    string remaining = quote.Trim();
+    for (int lineIndex = 0; lineIndex < MaxQuoteLines && remaining.Length > 0; lineIndex++)
+    {
+      int length = Math.Min(MaxQuoteCharacters, remaining.Length);
+      if (length < remaining.Length)
+      {
+        int space = remaining.LastIndexOf(' ', length - 1, length);
+        if (space > 0)
+          length = space;
+      }
+
+      string line = remaining[..length].Trim();
+      remaining = remaining[length..].TrimStart();
+      if (lineIndex == MaxQuoteLines - 1 && remaining.Length > 0)
+        line = line[..Math.Min(line.Length, MaxQuoteCharacters - 3)] + "...";
+
+      int x = (Width - (((line.Length * 4) - 1) * QuoteScale)) / 2;
+      int y = 66 + (lineIndex * 12);
+      PixelFont.Draw(Frame, line, x + 1, y + 1, Ink, QuoteScale);
+      PixelFont.Draw(Frame, line, x, y, White, QuoteScale);
     }
   }
 
