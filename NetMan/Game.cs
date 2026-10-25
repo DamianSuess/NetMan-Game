@@ -96,7 +96,7 @@ public sealed class Game
   public int LevelCount => _files.Length;
   public int LevelNumber => _levelIndex + 1;
   public int Lives { get; private set; } = 3;
-  public string Message { get; private set; } = "Let's go!";
+  public string Message { get; private set; } = "Let's effn' go!";
   public bool Paused { get; set; }
   public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
   public int Score { get; private set; }
