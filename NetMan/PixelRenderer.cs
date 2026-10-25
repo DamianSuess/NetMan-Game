@@ -74,6 +74,16 @@ internal sealed class PixelRenderer
     string playerFrame = !game.Grounded ? "player-jump"
       : moving && direction != 0 ? $"player-run-{animationFrame + 1}" : "player-idle";
     DrawActor(_sprites[playerFrame], game.X, game.Y, cameraX, cameraY, _facingLeft);
+
+    foreach (var popup in game.RewardPopups)
+    {
+      int x = (popup.X * TileSize) - cameraX + 4;
+      int y = HeaderHeight + (popup.Y * TileSize) - cameraY - 8
+        - ((popup.AgeTicks * 8) / CoinRewardPopup.DurationTicks);
+      PixelFont.Draw(Frame, "+1", x + 1, y + 1, Ink);
+      PixelFont.Draw(Frame, "+1", x, y, Gold);
+    }
+
     DrawHud(game);
 
     if (game.Paused || game.Won || game.Lives == 0)

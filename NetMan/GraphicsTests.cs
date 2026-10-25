@@ -73,6 +73,41 @@ internal static class GraphicsTests
     uint[] paused = (uint[])renderer.Frame.Pixels.Clone();
     renderer.Draw(game, 0, 1);
     Check(renderer.Frame.Pixels.SequenceEqual(paused), "Animation freezes while paused");
+
+    var rewardLevelPath = Path.Combine(Path.GetTempPath(), $"netman-reward-{Guid.NewGuid():N}.txt");
+
+    try
+    {
+      File.WriteAllLines(rewardLevelPath,
+        ["....................", "....................", ".?..................", "....................", ".S................G.", "####################"]);
+      var rewardGame = new Game([rewardLevelPath]);
+
+      for (int i = 0; i < 10; i++)
+        rewardGame.Update(0, false);
+
+      rewardGame.QueueJump();
+
+      for (int i = 0; i < 30 && rewardGame.RewardPopups.Count == 0; i++)
+        rewardGame.Update(0, true);
+
+      renderer.Draw(rewardGame, 0);
+      Check(renderer.Frame.Pixels[(53 * PixelRenderer.Width) + 21] == 0xFFFFD56B
+        && renderer.Frame.Pixels[(52 * PixelRenderer.Width) + 25] == 0xFFFFD56B,
+        "Coin reward renders a gold +1 above the rewarded block");
+
+      for (int i = 0; i < 60; i++)
+        rewardGame.Update(0, false);
+
+      renderer.Draw(rewardGame, 0);
+      Check(renderer.Frame.Pixels[(53 * PixelRenderer.Width) + 21] != 0xFFFFD56B
+        && renderer.Frame.Pixels[(52 * PixelRenderer.Width) + 25] != 0xFFFFD56B,
+        "Expired reward text is removed from the rendered scene");
+    }
+    finally
+    {
+      File.Delete(rewardLevelPath);
+    }
+
     Console.WriteLine($"All {passed} graphics checks passed.");
   }
 }
