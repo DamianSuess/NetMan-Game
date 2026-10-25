@@ -47,14 +47,18 @@ public sealed class Game
   private readonly string[] _deathQuotes;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private readonly List<GrowthHeart> _growthHearts = [];
+  private readonly HashSet<(int Level, int X, int Y)> _collectedItems = [];
+  private readonly HashSet<(int X, int Y)> _levelItems = [];
+  private readonly string _creditsAssetsPath;
   private double _jumpBuffer, _coyoteTime, _transition;
   private int _levelIndex;
   private bool _growthPending;
   private int _facingDirection = 1;
 
-  public Game(string[] files, string? deathQuotesPath = null)
+  public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null)
   {
     this._files = files;
+    _creditsAssetsPath = creditsAssetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     deathQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "death-quotes.txt");
     _deathQuotes = File.Exists(deathQuotesPath)
       ? File.ReadAllLines(deathQuotesPath).Select(line => line.Trim())
@@ -69,6 +73,12 @@ public sealed class Game
   public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
   public IReadOnlyList<GrowthHeart> GrowthHearts => _growthHearts;
   public int Coins { get; private set; }
+  public long RunTicks { get; private set; }
+  public TimeSpan CompletionTime => TimeSpan.FromTicks(RunTicks * TimeSpan.TicksPerSecond / 60);
+  public int TotalDeaths { get; private set; }
+  public int ItemsMissed { get; private set; }
+  public long CreditsTicks { get; private set; }
+  internal EndCredits? Credits { get; private set; }
   public int DeathTicksRemaining { get; private set; }
   public string DeathQuote { get; private set; } = string.Empty;
   public int DamageTicksRemaining { get; private set; }
@@ -86,7 +96,7 @@ public sealed class Game
   public int LevelCount => _files.Length;
   public int LevelNumber => _levelIndex + 1;
   public int Lives { get; private set; } = 3;
-  public string Message { get; private set; } = "Let's go!";
+  public string Message { get; private set; } = "Let's effn' go!";
   public bool Paused { get; set; }
   public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
   public int Score { get; private set; }
@@ -106,6 +116,10 @@ public sealed class Game
     _levelIndex = 0;
     Lives = 3;
     Coins = Score = 0;
+    RunTicks = CreditsTicks = 0;
+    TotalDeaths = ItemsMissed = 0;
+    Credits = null;
+    _collectedItems.Clear();
     Won = Paused = false;
     _transition = 0;
 
@@ -135,6 +149,15 @@ public sealed class Game
     if (Paused)
       return;
 
+    if (Won)
+    {
+      CreditsTicks++;
+      return;
+    }
+
+    if (!AwaitingRestart)
+      RunTicks++;
+
     for (int i = _blockBreakEffects.Count - 1; i >= 0; i--)
     {
       var effect = _blockBreakEffects[i] with { AgeTicks = _blockBreakEffects[i].AgeTicks + 1 };
@@ -157,9 +180,6 @@ public sealed class Game
       else
         _rewardPopups[i] = popup;
     }
-
-    if (Won)
-      return;
 
     if (IsDying)
     {
@@ -238,15 +258,19 @@ public sealed class Game
       {
         case 'o':
           Level.Clear(tx, ty);
+          _collectedItems.Add((_levelIndex, tx, ty));
           Coins++;
           Score += 100;
           break;
 
         case 'G':
           Score += 1000;
+          ItemsMissed += _levelItems.Count(item => !_collectedItems.Contains((_levelIndex, item.X, item.Y)));
           if (_levelIndex + 1 == _files.Length)
           {
             Won = true;
+            CreditsTicks = 0;
+            Credits = new EndCredits(_creditsAssetsPath, CompletionTime, TotalDeaths, Score, ItemsMissed);
             Message = "YOU WIN! R to play again";
           }
           else
@@ -353,6 +377,8 @@ public sealed class Game
         continue;
 
       _growthHearts.RemoveAt(i);
+      if (heart.SourceX >= 0 && heart.SourceY >= 0)
+        _collectedItems.Add((_levelIndex, heart.SourceX, heart.SourceY));
       Score += 100;
       if (IsLarge || _growthPending)
       {
@@ -417,6 +443,7 @@ public sealed class Game
       return;
 
     Lives--;
+    TotalDeaths++;
     AwaitingRestart = false;
     DeathQuote = _deathQuotes[Random.Shared.Next(_deathQuotes.Length)];
     Y += PlayerHeight - BodyHeight;
@@ -442,6 +469,15 @@ public sealed class Game
     _facingDirection = 1;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
+    _levelItems.Clear();
+    for (int y = 0; y < Level.Height; y++)
+    {
+      for (int x = 0; x < Level.Width; x++)
+      {
+        if (Level.Tile(x, y) is 'o' or '?' or 'M')
+          _levelItems.Add((x, y));
+      }
+    }
     _rewardPopups.Clear();
     _blockBreakEffects.Clear();
 
@@ -496,12 +532,13 @@ public sealed class Game
           if (Level.Tile(cell.X, cell.Y) == 'M')
           {
             Level.UseBlock(cell.X, cell.Y);
-            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection));
+            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection, cell.X, cell.Y));
             Message = "Catch the heart!";
           }
           else if (Level.Tile(cell.X, cell.Y) == '?')
           {
             Level.UseBlock(cell.X, cell.Y);
+            _collectedItems.Add((_levelIndex, cell.X, cell.Y));
             Coins++;
             Score += 100;
             Message = "Bonus coin!";

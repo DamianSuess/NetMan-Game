@@ -61,6 +61,7 @@ public sealed class GrowthTests : GameTestBase
     Assert.AreEqual(3, game.Lives);
     Assert.AreEqual(5, game.Y + game.PlayerHeight, 0.00001);
     Assert.AreEqual(Game.DamageProtectionTicks, game.DamageTicksRemaining);
+    Assert.AreEqual(0, game.TotalDeaths, "Shrinking should not count as a death.");
     Assert.IsTrue(enemy.Alive);
 
     // Keep the enemy touching the smaller player to exercise repeated contact.
@@ -75,6 +76,7 @@ public sealed class GrowthTests : GameTestBase
     Tick(game, 1);
     Assert.IsTrue(game.IsDying);
     Assert.AreEqual(2, game.Lives);
+    Assert.AreEqual(1, game.TotalDeaths);
   }
 
   [TestMethod]

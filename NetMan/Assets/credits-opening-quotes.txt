@@ -1,0 +1,10 @@
+; One completion quote per line. Blank lines and ; comments are ignored.
+You survived. The paperwork did not.
+You reached the end. The reaper hates overtime.
+Your pulse outlasted our expectations.
+The grave can wait. You earned this.
+Not even death could cancel your plans.
+Your organs filed a complaint. You still won.
+You made it out with most of your dignity.
+The morgue lost a customer. Keep it up.
+You beat every level. The trauma is free.

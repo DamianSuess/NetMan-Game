@@ -51,6 +51,10 @@ The power-up limit is one growth reward at a time. Collecting another heart whil
 
 Every death displays a large `YOU DIED!` title with a randomly chosen quote underneath during the two-second death delay and while waiting for a keypress to continue. Edit `Assets/death-quotes.txt` to customize the messages: one quote per line, without surrounding quotation marks. Blank lines and lines starting with `;` are ignored. The file includes 42 quotes; add, remove, or replace lines as desired, then relaunch the game. Longer messages wrap to three lines and are shortened with an ellipsis if needed. A missing or empty file uses a fallback quote.
 
+Completing the final level starts scrolling end credits over a translucent black overlay, with characters running across the bottom. The credits open with a random dark-humored victory quote, credit Damian Suess, Suess Labs, and Xeno Innovations, and give special thanks to Little Stinker. Your run statistics show completion time, deaths, points, and items missed. Completion time includes active gameplay, level transitions, and death animations, while excluding pauses, waiting for a respawn key, and the credits themselves. Missed items are coins and reward-block contents never collected during the run; hearts only count as collected when touched, and items found before a death are remembered across retries. Brick obstacles and enemies are not counted as missed items.
+
+The credits end on another random play-again quote. Edit `Assets/credits-opening-quotes.txt` and `Assets/credits-closing-quotes.txt` to customize these lines, using the same one-quote-per-line format as death quotes. Press `P` to pause the credits, `R` to start a new run, or `Esc` to quit. Starting a new run resets the statistics.
+
 Example:
 
 ```text
