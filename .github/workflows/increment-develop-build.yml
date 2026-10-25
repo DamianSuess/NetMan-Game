@@ -1,0 +1,50 @@
+name: Increment develop build version
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [closed]
+  # Fork and Dependabot PRs need the trusted target event's write token.
+  # GitHub loads this event's workflow from the repository's default branch.
+  pull_request_target:
+    branches: [develop]
+    types: [closed]
+
+permissions:
+  contents: read
+
+# Do not use a concurrency group: GitHub can discard older pending runs,
+# and every merged PR needs its own increment. The script retries push races.
+jobs:
+  increment:
+    if: >-
+      github.event.pull_request.merged == true &&
+      ((github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.login != 'dependabot[bot]') ||
+       (github.event_name == 'pull_request_target' &&
+        (github.event.pull_request.head.repo.full_name != github.repository ||
+         github.event.pull_request.user.login == 'dependabot[bot]')))
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out develop and its history
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: refs/heads/develop
+          fetch-depth: 0
+          persist-credentials: true
+          token: ${{ secrets.VERSION_BUMP_TOKEN || github.token }}
+
+      - name: Increment the fourth version component
+        shell: pwsh
+        env:
+          MERGED_PR_NUMBER: ${{ github.event.pull_request.number }}
+          MERGE_COMMIT: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          & ./.github/scripts/Update-BuildVersion.ps1 `
+            -RepositoryPath $env:GITHUB_WORKSPACE `
+            -PullRequestNumber ([int]$env:MERGED_PR_NUMBER) `
+            -MergeCommit $env:MERGE_COMMIT

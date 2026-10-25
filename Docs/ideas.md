@@ -7,8 +7,9 @@
   * Some enemies are stronger than others
 * Must pick up item from block
 * Different enemies
-  * Larger ones
-  * Faster ones
+  * Larger ones (grump cat; zombies) 
+  * Faster ones (toaster cat, gnomes)
+  * Slower ones (zombies crawling out of ground)
   * Different strengths (multiple jumps/hits)
 * Warps
   * To sludge, _it is a dirty pipe after all_
