@@ -62,6 +62,38 @@ internal static class SelfTests
       game = Map("....................", "....................", ".?..................", "....................", ".S................G.", "####################");
       Tick(game, 10); game.QueueJump(); Tick(game, 20, jump: true);
       Check(game.Coins == 1 && game.Level.Tile(1, 2) == 'X', "Head bump dispenses bonus coin");
+      Check(game.RewardPopups.Count == 1 && game.RewardPopups[0].X == 1 && game.RewardPopups[0].Y == 2,
+        "Coin block creates a reward popup at the block");
+
+      game = Map("....................", "....................", ".?..................", "....................", ".S................G.", "####################");
+      Tick(game, 10);
+      game.QueueJump();
+
+      for (int i = 0; i < 30 && game.RewardPopups.Count == 0; i++)
+        game.Update(0, true);
+
+      Check(game.RewardPopups.Count == 1 && game.RewardPopups[0].AgeTicks == 0,
+        "Reward popup appears immediately on the rewarding hit");
+      game.Paused = true;
+      Tick(game, 120);
+      Check(game.RewardPopups.Count == 1 && game.RewardPopups[0].AgeTicks == 0,
+        "Pausing freezes the reward popup timer");
+      game.Paused = false;
+      Tick(game, 59);
+      Check(game.RewardPopups.Count == 1, "Reward popup remains visible until one second has elapsed");
+      Tick(game, 1);
+      Check(game.RewardPopups.Count == 0, "Reward popup disappears after exactly one second");
+      game.QueueJump();
+      Tick(game, 60, jump: true);
+      Check(game.Coins == 1 && game.RewardPopups.Count == 0, "Used block gives no additional reward popup");
+
+      game.Restart();
+      Tick(game, 10);
+      game.QueueJump();
+      Tick(game, 10, jump: true);
+      Check(game.RewardPopups.Count == 1, "A reloaded bonus block can show a new reward popup");
+      game.Restart();
+      Check(game.RewardPopups.Count == 0, "Restart clears old reward popups");
 
       game = Map("....................", "....................", "....................", "....................", ".S.^..............G.", "####################");
       Tick(game, 11, 1);
@@ -74,8 +106,30 @@ internal static class SelfTests
       game = Map("....................", "....................", ".S..................", "....................", ".E................G.", "####################");
       // Keep enemy at the left boundary beneath the falling player.
       game.Enemies[0].Direction = 0;
-      Tick(game, 30);
+      for (int i = 0; i < 60 && game.Enemies[0].Alive; i++)
+        game.Update(0, false);
       Check(!game.Enemies[0].Alive && game.Score == 200 && game.Lives == 3, "Falling player stomps enemy");
+      Check(game.Enemies[0].SquashTicksRemaining == Enemy.SquashDurationTicks,
+        "Stomp immediately starts a one-second squash effect");
+      double squashX = game.Enemies[0].X;
+      double squashY = game.Enemies[0].Y;
+      game.Paused = true;
+      Tick(game, 120);
+      Check(game.Enemies[0].SquashTicksRemaining == Enemy.SquashDurationTicks,
+        "Pause freezes the squash effect timer");
+      game.Paused = false;
+      Tick(game, 59);
+      Check(game.Enemies[0].SquashTicksRemaining == 1,
+        "Squashed enemy remains visible until one second elapses");
+      Check(game.Enemies[0].X == squashX && game.Enemies[0].Y == squashY
+        && game.Lives == 3 && game.Score == 200,
+        "Squashed enemy stays in place without damage or duplicate points");
+      Tick(game, 1);
+      Check(game.Enemies[0].SquashTicksRemaining == 0 && !game.Enemies[0].Alive,
+        "Squash effect disappears after exactly one second without reviving enemy");
+      game.Restart();
+      Check(game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining == 0,
+        "Restart loads a live enemy without an old squash effect");
 
       game = Map("....................", "....................", ".B..................", "....................", ".S................G.", "####################");
       Tick(game, 10); game.QueueJump(); Tick(game, 20, jump: true);

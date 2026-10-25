@@ -7,7 +7,8 @@ internal static class ArtExporter
     Directory.CreateDirectory(outputPath);
     var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
     string[] files = Directory.GetFiles(assetsPath, "*.sprite").Order().ToArray();
-    var sheet = new PixelBuffer(256, 144);
+    int sheetRows = (files.Length + 7) / 8;
+    var sheet = new PixelBuffer(256, Math.Max(144, 29 + (sheetRows * 50)));
     sheet.Clear(0xFF17263F);
     PixelFont.Draw(sheet, "NETMAN - PIXEL ART", 8, 7, 0xFFFFD56B);
 
@@ -19,7 +20,7 @@ internal static class ArtExporter
       image.SavePng(Path.Combine(outputPath, Path.GetFileNameWithoutExtension(files[i]) + ".png"));
       int x = 8 + ((i % 8) * 31);
       int y = 29 + ((i / 8) * 50);
-      sheet.Fill(x - 1, y - 1, 18, 18, 0xFF355575);
+      sheet.Fill(x - 1, y - 1, sprite.Width + 2, sprite.Height + 2, 0xFF355575);
       sheet.Draw(sprite, x, y);
       PixelFont.Draw(sheet, (i + 1).ToString(), x, y + 21, 0xFFF6F4DF);
     }

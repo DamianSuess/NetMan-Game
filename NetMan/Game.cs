@@ -2,9 +2,26 @@ namespace NetMan;
 
 public sealed class Enemy(double x, double y)
 {
+  public const int SquashDurationTicks = 60;
+
   public double X = x, Y = y, VelocityY;
   public int Direction = -1;
   public bool Alive = true;
+
+  public int SquashTicksRemaining { get; private set; }
+
+  internal void AdvanceSquash()
+  {
+    if (SquashTicksRemaining > 0)
+      SquashTicksRemaining--;
+  }
+
+  internal void Squash()
+  {
+    Alive = false;
+    VelocityY = 0;
+    SquashTicksRemaining = SquashDurationTicks;
+  }
 }
 
 public sealed class Game
@@ -13,6 +30,7 @@ public sealed class Game
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
 
   private readonly string[] _files;
+  private readonly List<CoinRewardPopup> _rewardPopups = [];
 
   private int _levelIndex;
   private double _jumpBuffer, _coyoteTime, _transition;
@@ -31,6 +49,7 @@ public sealed class Game
   public string Message { get; private set; } = "Let's go!";
   public int LevelNumber => _levelIndex + 1;
   public int LevelCount => _files.Length;
+  public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
 
   public Game(string[] files)
   {
@@ -41,6 +60,7 @@ public sealed class Game
   private void LoadLevel()
   {
     Level = Level.Load(_files[_levelIndex]);
+    _rewardPopups.Clear();
 
     X = Level.Spawn.X;
     Y = Level.Spawn.Y;
@@ -72,7 +92,23 @@ public sealed class Game
 
   public void Update(int direction, bool jumpHeld)
   {
-    if (Paused || Won || Lives == 0)
+    if (Paused)
+      return;
+
+    foreach (var enemy in Enemies)
+      enemy.AdvanceSquash();
+
+    for (int i = _rewardPopups.Count - 1; i >= 0; i--)
+    {
+      var popup = _rewardPopups[i] with { AgeTicks = _rewardPopups[i].AgeTicks + 1 };
+
+      if (popup.AgeTicks >= CoinRewardPopup.DurationTicks)
+        _rewardPopups.RemoveAt(i);
+      else
+        _rewardPopups[i] = popup;
+    }
+
+    if (Won || Lives == 0)
       return;
 
     if (_transition > 0)
@@ -160,7 +196,10 @@ public sealed class Game
       if (!enemy.Alive || !Overlaps(X, Y, ex, ey)) continue;
       if (vertical > 0 && Y + BodyHeight - vertical <= ey + 0.25)
       {
-        enemy.Alive = false; VelocityY = -10; Score += 200; Message = "Stomp!";
+        enemy.Squash();
+        VelocityY = -10;
+        Score += 200;
+        Message = "Stomp!";
       }
       else { Die(); return; }
     }
@@ -189,7 +228,13 @@ public sealed class Game
         if (bump && distance < 0)
         {
           if (Level.Tile(cell.X, cell.Y) == '?')
-          { Level.UseBlock(cell.X, cell.Y); Coins++; Score += 100; Message = "Bonus coin!"; }
+          {
+            Level.UseBlock(cell.X, cell.Y);
+            Coins++;
+            Score += 100;
+            Message = "Bonus coin!";
+            _rewardPopups.Add(new CoinRewardPopup(cell.X, cell.Y));
+          }
           else if (Level.Tile(cell.X, cell.Y) == 'B')
           { Level.Clear(cell.X, cell.Y); Score += 50; }
         }
