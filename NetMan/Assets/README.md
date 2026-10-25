@@ -1,6 +1,6 @@
 # NetMan pixel art
 
-Death messages are editable in `death-quotes.txt`. Each nonblank, non-comment line is one possible quote beneath the large `YOU DIED!` title. Lines beginning with `;` are comments. There are twelve bundled quotes, including "You bring shame to your family" and "Dishonorable and destitute". Add, remove, or replace quotes, then relaunch the game; long quotes wrap automatically. One quote is randomly selected per death and stays unchanged until respawn, including explosion deaths and the last life.
+Death messages are editable in `death-quotes.txt`. Each nonblank, non-comment line is one possible quote beneath the large `YOU DIED!` title. Lines beginning with `;` are comments. There are 42 bundled quotes, including "You bring shame to your family" and "Dishonorable and destitute". Add, remove, or replace quotes, then relaunch the game; long quotes wrap automatically. One quote is randomly selected per death and stays unchanged until respawn, including explosion deaths and the last life.
 
 Each `.sprite` file is a separate image used by the game. Normal characters and tiles are 16 x 16 pixels; enlarged player frames are 16 x 32. Player frames face right; the renderer flips them when moving left. Character sprites are anchored at their feet and centered over their collision body.
 
