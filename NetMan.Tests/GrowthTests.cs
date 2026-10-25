@@ -38,6 +38,8 @@ public sealed class GrowthTests : GameTestBase
     Tick(game, 30, jump: true);
 
     Assert.AreEqual('X', game.Level.Tile(1, 3));
+    Assert.HasCount(1, game.GrowthHearts);
+    TouchHeart(game);
     Assert.IsFalse(game.IsLarge, "A one-tile corridor has no room to grow.");
     Tick(game, 10, 1);
     Assert.IsTrue(game.IsLarge, "Growth should complete when the player reaches open space.");
@@ -216,6 +218,8 @@ public sealed class GrowthTests : GameTestBase
     for (int tick = 0; tick < 90 && !game.IsLarge; tick++)
     {
       game.Update(0, true);
+      if (game.GrowthHearts.Count > 0)
+        TouchHeart(game);
       for (int y = (int)Math.Floor(game.Y + 0.00001); y <= (int)Math.Floor(game.Y + game.PlayerHeight - 0.00001); y++)
       {
         Assert.IsFalse(game.Level.Solid((int)game.X, y), "Growth must not put the player inside a solid block.");

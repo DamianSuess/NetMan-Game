@@ -42,6 +42,8 @@ internal sealed class PixelRenderer
       "brick-rubble",
       "brick-dust",
       "bonus",
+      "heart-1",
+      "heart-2",
       "used",
       "pipe",
       "pipe-small-top",
@@ -109,6 +111,9 @@ internal sealed class PixelRenderer
       var sprite = _sprites[effect.FrameIndex == 0 ? "brick-rubble" : "brick-dust"];
       Frame.Draw(sprite, (effect.X * TileSize) - cameraX, HeaderHeight + (effect.Y * TileSize) - cameraY);
     }
+
+    foreach (var heart in game.GrowthHearts)
+      DrawActor(_sprites[$"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
 
     int animationFrame = (int)(_animationTime * 9) % 2;
 

@@ -66,7 +66,7 @@ public sealed class OverloadTests : GameTestBase
   }
 
   [TestMethod]
-  public void TwoSimultaneousGrowthRewardsExceedTheLimit()
+  public void TwoReleasedHeartsOnlyExceedTheLimitWhenCollected()
   {
     var game = Map(
       "....................", "....................", "....................", "....................",
@@ -75,9 +75,14 @@ public sealed class OverloadTests : GameTestBase
     Tick(game, 10);
     Tick(game, 2, 1);
     game.QueueJump();
-    for (int tick = 0; tick < 90 && !game.IsExploding; tick++)
+    for (int tick = 0; tick < 90 && game.GrowthHearts.Count == 0; tick++)
       game.Update(0, true);
 
+    Assert.HasCount(2, game.GrowthHearts);
+    Assert.IsFalse(game.IsExploding, "Releasing hearts must not count as collecting power-ups.");
+    Assert.IsFalse(game.IsLarge);
+    Assert.AreEqual(0, game.Score);
+    TouchHeart(game);
     Assert.IsTrue(game.IsExploding);
     Assert.AreEqual('X', game.Level.Tile(1, 4));
     Assert.AreEqual('X', game.Level.Tile(2, 4));
@@ -187,13 +192,21 @@ public sealed class OverloadTests : GameTestBase
     Tick(game, 10);
     game.QueueJump();
     for (int tick = 0; tick < 90 && !game.IsLarge; tick++)
+    {
       game.Update(0, true);
+      if (game.GrowthHearts.Count > 0)
+        TouchHeart(game);
+    }
     Assert.IsTrue(game.IsLarge);
     Tick(game, 60);
     Tick(game, 30, 1);
     game.QueueJump();
     for (int tick = 0; tick < 90 && !game.IsExploding; tick++)
+    {
       game.Update(0, true);
+      if (game.GrowthHearts.Count > 0)
+        TouchHeart(game);
+    }
     Assert.IsTrue(game.IsExploding, "A second growth reward should exceed the single-growth limit.");
   }
 }
