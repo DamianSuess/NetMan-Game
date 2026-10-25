@@ -7,7 +7,7 @@ PowerLevel=1
 HopVelocity=0
 
 [ToasterCat]
-Speed=4
+Speed=6
 PowerLevel=2
 HopVelocity=7
 
