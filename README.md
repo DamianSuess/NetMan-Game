@@ -22,6 +22,14 @@ From the repository root, run:
 
 Project and output paths resolve relative to the script, so it also works when invoked by absolute path from another working directory.
 
+To publish and launch the game, double-click `build-exec.bat` or run:
+
+```powershell
+.\build-exec.bat
+```
+
+This runs the same Release build, tests, Native AOT publish, and ZIP packaging, then opens the newly published game. If any step fails, the game is not launched. Build options are forwarded, for example `.\build-exec.bat -SkipTests`. The PowerShell equivalent is `.\build.ps1 -Run`.
+
 It builds Release, runs the MSTest suite, and publishes a self-contained, trimmed Native AOT Windows x64 executable optimized for size. It then creates `Publish/NetMan-vX.Y.Z/` and `Publish/NetMan-vX.Y.Z.zip`. The ZIP contains that versioned directory with `NetMan.exe`, runtime assets, editable levels, and the license. No .NET installation is needed on the player's machine.
 
 The name comes from the first three components of `FileVersion` in `NetMan/NetMan.csproj` (Major.Minor.Revision). Change that property to change the package version. Rebuilding the same version replaces its generated folder and ZIP after publishing and compression succeed; older versions are retained. `Publish` is ignored by Git.
