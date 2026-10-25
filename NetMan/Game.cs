@@ -46,10 +46,11 @@ public sealed class Game
   private readonly string[] _files;
   private readonly string[] _deathQuotes;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
+  private readonly List<GrowthHeart> _growthHearts = [];
   private double _jumpBuffer, _coyoteTime, _transition;
   private int _levelIndex;
   private bool _growthPending;
-  private bool _overloadPending;
+  private int _facingDirection = 1;
 
   public Game(string[] files, string? deathQuotesPath = null)
   {
@@ -66,6 +67,7 @@ public sealed class Game
   }
 
   public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
+  public IReadOnlyList<GrowthHeart> GrowthHearts => _growthHearts;
   public int Coins { get; private set; }
   public int DeathTicksRemaining { get; private set; }
   public string DeathQuote { get; private set; } = string.Empty;
@@ -180,6 +182,10 @@ public sealed class Game
     }
 
     _jumpBuffer -= Step;
+    if (direction != 0)
+      _facingDirection = Math.Sign(direction);
+
+    AdvanceGrowthHearts();
     if (DamageTicksRemaining > 0)
       DamageTicksRemaining--;
 
@@ -210,12 +216,6 @@ public sealed class Game
     X = x;
     Y = y;
 
-    if (_overloadPending)
-    {
-      Explode();
-      return;
-    }
-
     if (vertical > 0 && TryFindSpikeLanding(previousFeet, out double spikeTop))
     {
       Y = spikeTop - PlayerHeight;
@@ -226,6 +226,9 @@ public sealed class Game
       Grounded = true;
       VelocityY = 0;
     }
+
+    if (CollectGrowthHearts())
+      return;
 
     TryGrow();
 
@@ -318,6 +321,52 @@ public sealed class Game
   private static bool Overlaps(double ax, double ay, double height, double bx, double by) =>
     ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + BodyHeight && ay + height > by;
 
+  private void AdvanceGrowthHearts()
+  {
+    for (int i = _growthHearts.Count - 1; i >= 0; i--)
+    {
+      var heart = _growthHearts[i];
+      heart.AgeTicks++;
+      double x = heart.X, y = heart.Y;
+      Move(ref x, ref y, heart.Direction * GrowthHeart.Speed * Step, true, false, out bool wall);
+      if (wall)
+        heart.Direction *= -1;
+
+      heart.VelocityY = Math.Min(heart.VelocityY + 40 * Step, 28);
+      Move(ref x, ref y, heart.VelocityY * Step, false, false, out bool floor);
+      if (floor)
+        heart.VelocityY = heart.VelocityY > 0 ? -5 : 0;
+
+      heart.X = x;
+      heart.Y = y;
+      if (heart.Y > Level.Height + 2)
+        _growthHearts.RemoveAt(i);
+    }
+  }
+
+  private bool CollectGrowthHearts()
+  {
+    for (int i = _growthHearts.Count - 1; i >= 0; i--)
+    {
+      var heart = _growthHearts[i];
+      if (!Overlaps(X, Y, PlayerHeight, heart.X, heart.Y))
+        continue;
+
+      _growthHearts.RemoveAt(i);
+      Score += 100;
+      if (IsLarge || _growthPending)
+      {
+        Explode();
+        return true;
+      }
+
+      _growthPending = true;
+      Message = "Heart collected!";
+    }
+
+    return false;
+  }
+
   private void TryGrow()
   {
     if (!_growthPending || IsLarge)
@@ -374,7 +423,6 @@ public sealed class Game
     IsExploding = false;
     IsLarge = false;
     _growthPending = false;
-    _overloadPending = false;
     DamageTicksRemaining = 0;
     DeathTicksRemaining = DeathDurationTicks;
     VelocityY = 0;
@@ -390,7 +438,8 @@ public sealed class Game
     IsExploding = false;
     IsLarge = false;
     _growthPending = keepGrowth;
-    _overloadPending = false;
+    _growthHearts.Clear();
+    _facingDirection = 1;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
     _rewardPopups.Clear();
@@ -447,13 +496,8 @@ public sealed class Game
           if (Level.Tile(cell.X, cell.Y) == 'M')
           {
             Level.UseBlock(cell.X, cell.Y);
-            Score += 100;
-            if (IsLarge || _growthPending)
-              _overloadPending = true;
-            else
-              _growthPending = true;
-
-            Message = "Growth power!";
+            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection));
+            Message = "Catch the heart!";
           }
           else if (Level.Tile(cell.X, cell.Y) == '?')
           {

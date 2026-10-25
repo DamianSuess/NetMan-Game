@@ -34,4 +34,17 @@ public abstract class GameTestBase
       game.Update(direction, jump);
     }
   }
+
+  protected static void TouchHeart(Game game)
+  {
+    // Arrange physical contact for size/damage tests; chase physics is tested separately.
+    foreach (var heart in game.GrowthHearts)
+    {
+      heart.X = game.X;
+      heart.Y = game.Y;
+      heart.Direction = 0;
+      heart.VelocityY = 0;
+    }
+    game.Update(0, false);
+  }
 }
