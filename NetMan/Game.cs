@@ -11,6 +11,7 @@ public sealed class Game
 {
   public const double Step = 1.0 / 60;
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
+  public const int DeathDurationTicks = 60;
 
   private readonly string[] _files;
 
@@ -31,6 +32,8 @@ public sealed class Game
   public string Message { get; private set; } = "Let's go!";
   public int LevelNumber => _levelIndex + 1;
   public int LevelCount => _files.Length;
+  public int DeathTicksRemaining { get; private set; }
+  public bool IsDying => DeathTicksRemaining > 0;
 
   public Game(string[] files)
   {
@@ -45,6 +48,7 @@ public sealed class Game
     X = Level.Spawn.X;
     Y = Level.Spawn.Y;
     VelocityY = 0;
+    DeathTicksRemaining = 0;
 
     Grounded = false;
     _jumpBuffer = _coyoteTime = 0;
@@ -66,13 +70,34 @@ public sealed class Game
 
   public void QueueJump()
   {
-    if (!Paused && !Won && Lives > 0)
+    if (!Paused && !Won && !IsDying && Lives > 0)
       _jumpBuffer = 0.12;
   }
 
   public void Update(int direction, bool jumpHeld)
   {
-    if (Paused || Won || Lives == 0)
+    if (Paused || Won)
+      return;
+
+    if (IsDying)
+    {
+      DeathTicksRemaining--;
+
+      if (!IsDying)
+      {
+        if (Lives > 0)
+        {
+          LoadLevel();
+          Message = "Try again!";
+        }
+        else
+          Restart();
+      }
+
+      return;
+    }
+
+    if (Lives == 0)
       return;
 
     if (_transition > 0)
@@ -168,9 +193,15 @@ public sealed class Game
 
   private void Die()
   {
+    if (IsDying || Lives == 0)
+      return;
+
     Lives--;
-    Message = Lives == 0 ? "GAME OVER - R to restart" : "Try again!";
-    if (Lives > 0) { LoadLevel(); _transition = 0.7; }
+    DeathTicksRemaining = DeathDurationTicks;
+    VelocityY = 0;
+    Grounded = false;
+    _jumpBuffer = _coyoteTime = 0;
+    Message = Lives == 0 ? "Ouch! Restarting game..." : "Ouch!";
   }
 
   private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit)

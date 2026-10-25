@@ -20,7 +20,7 @@ internal sealed class PixelRenderer
   {
     var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
 
-    foreach (string name in new[] { "player-idle", "player-run-1", "player-run-2", "player-jump",
+    foreach (string name in new[] { "player-idle", "player-run-1", "player-run-2", "player-jump", "player-splatter",
       "enemy-idle", "enemy-walk", "grass", "dirt", "brick", "bonus", "used", "pipe", "coin", "spike", "goal" })
       _sprites.Add(name, Sprite.Load(Path.Combine(assetsPath, name + ".sprite"), palette));
   }
@@ -29,7 +29,7 @@ internal sealed class PixelRenderer
 
   public void Draw(Game game, int direction, double elapsed = Game.Step)
   {
-    bool moving = !game.Paused && !game.Won && game.Lives > 0;
+    bool moving = !game.Paused && !game.Won && !game.IsDying && game.Lives > 0;
 
     if (moving)
     {
@@ -73,10 +73,13 @@ internal sealed class PixelRenderer
 
     string playerFrame = !game.Grounded ? "player-jump"
       : moving && direction != 0 ? $"player-run-{animationFrame + 1}" : "player-idle";
-    DrawActor(_sprites[playerFrame], game.X, game.Y, cameraX, cameraY, _facingLeft);
+    if (game.IsDying)
+      DrawActor(_sprites["player-splatter"], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
+    else
+      DrawActor(_sprites[playerFrame], game.X, game.Y, cameraX, cameraY, _facingLeft);
     DrawHud(game);
 
-    if (game.Paused || game.Won || game.Lives == 0)
+    if (game.Paused || game.Won || (game.Lives == 0 && !game.IsDying))
     {
       string title = game.Won ? "LEVELS COMPLETE!" : game.Lives == 0 ? "GAME OVER" : "PAUSED";
       string hint = game.Won || game.Lives == 0 ? "R TO PLAY AGAIN" : "P TO RESUME";
@@ -87,10 +90,17 @@ internal sealed class PixelRenderer
     }
   }
 
-  private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip)
+  private void DrawActor(Sprite sprite, double x, double y, int cameraX, int cameraY, bool flip, bool keepInView = false)
   {
     int px = (int)Math.Round((x + (Game.BodyWidth / 2)) * TileSize) - (sprite.Width / 2) - cameraX;
     int py = HeaderHeight + (int)Math.Round((y + Game.BodyHeight) * TileSize) - sprite.Height - cameraY;
+
+    if (keepInView)
+    {
+      px = Math.Clamp(px, 0, Width - sprite.Width);
+      py = Math.Clamp(py, HeaderHeight, Height - FooterHeight - sprite.Height);
+    }
+
     Frame.Draw(sprite, px, py, flip);
   }
 

@@ -63,13 +63,36 @@ internal static class SelfTests
       Tick(game, 10); game.QueueJump(); Tick(game, 20, jump: true);
       Check(game.Coins == 1 && game.Level.Tile(1, 2) == 'X', "Head bump dispenses bonus coin");
 
-      game = Map("....................", "....................", "....................", "....................", ".S.^..............G.", "####################");
-      Tick(game, 11, 1);
-      Check(game.Lives == 2, "Hazard costs one life and respawns");
+      game = Map("....................", "....................", "....................", "....................", ".So^..............G.", "####################");
+
+      for (int i = 0; i < 60 && !game.IsDying; i++)
+        game.Update(1, false);
+
+      Check(game.Lives == 2 && game.DeathTicksRemaining == Game.DeathDurationTicks,
+        "Hazard costs one life and immediately starts the death splatter");
+      double deathX = game.X;
+      double deathY = game.Y;
+      var dyingLevel = game.Level;
+      game.Paused = true;
+      Tick(game, 120, 1, true);
+      Check(game.DeathTicksRemaining == Game.DeathDurationTicks, "Pause freezes the death timer");
+      game.Paused = false;
+      game.QueueJump();
+      Tick(game, 59, 1, true);
+      Check(game.IsDying && game.DeathTicksRemaining == 1 && game.X == deathX && game.Y == deathY
+        && ReferenceEquals(game.Level, dyingLevel) && game.Lives == 2,
+        "Death holds position and level for a full second without repeated damage");
+      Tick(game, 1);
+      Check(!game.IsDying && game.X == game.Level.Spawn.X && game.Y == game.Level.Spawn.Y
+        && !ReferenceEquals(game.Level, dyingLevel) && game.Lives == 2,
+        "Level reloads exactly one second after death");
+      Check(game.Coins == 1 && game.Score == 100, "Level respawn preserves earned coins and score");
 
       game = Map("....................", "....................", "....................", "....................", ".S.E..............G.", "####################");
       Tick(game, 15, 1);
-      Check(game.Lives == 2, "Enemy side contact costs a life");
+      Check(game.Lives == 2 && game.IsDying, "Enemy side contact costs a life and starts death splatter");
+      game.Restart();
+      Check(!game.IsDying && game.Lives == 3, "Manual restart clears the death state");
 
       game = Map("....................", "....................", ".S..................", "....................", ".E................G.", "####################");
       // Keep enemy at the left boundary beneath the falling player.
@@ -82,10 +105,23 @@ internal static class SelfTests
       Check(game.Level.Tile(1, 2) == '.' && game.Score == 50, "Head bump breaks a brick");
 
       game = Map("....................", "....................", "....................", ".S................G.", "....................");
-      Tick(game, 400);
-      Check(game.Lives == 0, "Repeated pit falls reach game over");
-      double deadY = game.Y; Tick(game, 30, 1);
-      Check(game.Y == deadY, "Game over stops simulation");
+
+      for (int remainingLives = 2; remainingLives >= 0; remainingLives--)
+      {
+        for (int i = 0; i < 120 && !game.IsDying; i++)
+          game.Update(0, false);
+
+        Check(game.IsDying && game.Lives == remainingLives
+          && game.DeathTicksRemaining == Game.DeathDurationTicks, "Pit fall starts a timed death");
+        Tick(game, Game.DeathDurationTicks - 1);
+        Check(game.IsDying && game.Lives == remainingLives, "Pit splatter remains for the full death delay");
+        Tick(game, 1);
+        Check(!game.IsDying && game.Lives == (remainingLives == 0 ? 3 : remainingLives),
+          "Death respawns the level or restarts the game after the last life");
+      }
+
+      Check(game.LevelNumber == 1 && game.Score == 0 && game.Coins == 0,
+        "Automatic game restart resets progress and rewards");
 
       File.WriteAllLines(path, ["....................", "....................", ".S.G................", "####################"]);
       File.WriteAllLines(nextPath, ["....................", "....................", ".S...............G..", "####################"]);
