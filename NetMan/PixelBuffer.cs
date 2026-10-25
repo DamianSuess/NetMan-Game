@@ -1,0 +1,100 @@
+using System.Buffers.Binary;
+using System.IO.Compression;
+using System.Text;
+
+namespace NetMan;
+
+// CPU-rendered ARGB pixels. No operating-system APIs or graphics packages are used here.
+internal sealed class PixelBuffer(int width, int height)
+{
+  public int Height { get; } = height;
+
+  public uint[] Pixels { get; } = new uint[width * height];
+
+  public int Width { get; } = width;
+
+  public void Clear(uint color) => Array.Fill(Pixels, color);
+
+  public void Draw(Sprite sprite, int x, int y, bool flip = false)
+  {
+    for (int sy = Math.Max(0, -y); sy < Math.Min(sprite.Height, Height - y); sy++)
+    {
+      for (int sx = Math.Max(0, -x); sx < Math.Min(sprite.Width, Width - x); sx++)
+      {
+        uint color = sprite.Pixel(flip ? sprite.Width - sx - 1 : sx, sy);
+
+        if ((color >> 24) != 0)
+          Pixels[((y + sy) * Width) + x + sx] = color;
+      }
+    }
+  }
+
+  public void Fill(int x, int y, int width, int height, uint color)
+  {
+    int left = Math.Clamp(x, 0, Width);
+    int right = Math.Clamp(x + width, 0, Width);
+
+    for (int row = Math.Max(0, y); row < Math.Min(Height, y + height); row++)
+      Array.Fill(Pixels, color, (row * Width) + left, Math.Max(0, right - left));
+  }
+
+  // A minimal lossless PNG exporter, using only the .NET compression library.
+  public void SavePng(string path)
+  {
+    using var output = File.Create(path);
+    output.Write(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+    var header = new byte[13];
+    BinaryPrimitives.WriteInt32BigEndian(header, Width);
+    BinaryPrimitives.WriteInt32BigEndian(header.AsSpan(4), Height);
+    header[8] = 8;
+    header[9] = 6;
+    WriteChunk(output, "IHDR", header);
+
+    using var compressed = new MemoryStream();
+
+    using (var zlib = new ZLibStream(compressed, CompressionLevel.Optimal, true))
+    {
+      var row = new byte[1 + (Width * 4)];
+
+      for (int y = 0; y < Height; y++)
+      {
+        for (int x = 0; x < Width; x++)
+        {
+          uint pixel = Pixels[(y * Width) + x];
+          int offset = 1 + (x * 4);
+          row[offset] = (byte)(pixel >> 16);
+          row[offset + 1] = (byte)(pixel >> 8);
+          row[offset + 2] = (byte)pixel;
+          row[offset + 3] = (byte)(pixel >> 24);
+        }
+
+        zlib.Write(row);
+      }
+    }
+
+    WriteChunk(output, "IDAT", compressed.ToArray());
+    WriteChunk(output, "IEND", []);
+  }
+
+  private static void WriteChunk(Stream output, string name, byte[] data)
+  {
+    byte[] type = Encoding.ASCII.GetBytes(name);
+    Span<byte> number = stackalloc byte[4];
+    BinaryPrimitives.WriteInt32BigEndian(number, data.Length);
+    output.Write(number);
+    output.Write(type);
+    output.Write(data);
+    uint crc = uint.MaxValue;
+
+    foreach (byte value in type.Concat(data))
+    {
+      crc ^= value;
+
+      for (int bit = 0; bit < 8; bit++)
+        crc = (crc >> 1) ^ ((crc & 1) == 0 ? 0 : 0xEDB88320);
+    }
+
+    BinaryPrimitives.WriteUInt32BigEndian(number, ~crc);
+    output.Write(number);
+  }
+}

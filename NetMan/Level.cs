@@ -1,4 +1,4 @@
-namespace NetBro;
+namespace NetMan;
 
 public sealed class Level
 {
