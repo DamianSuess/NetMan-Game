@@ -17,11 +17,12 @@
     <DefineConstants>$(DefineConstants);NETMAN_DISTRIBUTION</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="NetMan.Tests" />
     <Content Include="Levels\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(NetManDistribution)' == 'true'">
-    <Compile Remove="SelfTests.cs;GraphicsTests.cs;ArtExporter.cs" />
+    <Compile Remove="ArtExporter.cs" />
     <Content Update="Assets\Previews\**\*;Assets\README.md" CopyToPublishDirectory="Never" />
   </ItemGroup>
 </Project>
