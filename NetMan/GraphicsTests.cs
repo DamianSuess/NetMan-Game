@@ -58,9 +58,13 @@ internal static class GraphicsTests
     foreach (string file in Directory.GetFiles(assets, "*.sprite"))
     {
       var asset = Sprite.Load(file, gamePalette);
-      bool validSize = Path.GetFileName(file) == "player-splatter.sprite"
-        ? asset.Width == 24 && asset.Height == 16
-        : asset.Width == 16 && asset.Height == 16;
+      bool validSize = Path.GetFileName(file) switch
+      {
+        "player-splatter.sprite" => asset.Width == 24 && asset.Height == 16,
+        "enemy-squashed.sprite" => asset.Width == 24 && asset.Height == 16,
+        "reward-plus-one.sprite" => true,
+        _ => asset.Width == 16 && asset.Height == 16,
+      };
       Check(validSize, $"Bundled pixel art validates: {Path.GetFileName(file)}");
     }
 
@@ -121,6 +125,80 @@ internal static class GraphicsTests
     finally
     {
       File.Delete(deathLevelPath);
+    }
+
+    var combinedLevelPath = Path.Combine(Path.GetTempPath(), $"netman-both-splatters-{Guid.NewGuid():N}.txt");
+
+    try
+    {
+      File.WriteAllLines(combinedLevelPath,
+        ["....................", "....................", ".S.^................", "...^................", ".E.^..............G.", "####################"]);
+      var combinedGame = new Game([combinedLevelPath]);
+      combinedGame.Enemies[0].Direction = 0;
+
+      for (int i = 0; i < 60 && combinedGame.Enemies[0].Alive; i++)
+        combinedGame.Update(0, false);
+
+      renderer.Draw(combinedGame, 0);
+      Check(renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] == gamePalette['F'],
+        "Enemy splatter sprite renders at the stomp location");
+
+      for (int i = 0; i < 60 && !combinedGame.IsDying; i++)
+        combinedGame.Update(1, false);
+
+      renderer.Draw(combinedGame, 0);
+      Check(combinedGame.IsDying && combinedGame.Enemies[0].SquashTicksRemaining > 0
+        && renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] == gamePalette['F']
+        && renderer.Frame.Pixels.Contains(gamePalette['T']) && renderer.Frame.Pixels.Contains(gamePalette['B']),
+        "Enemy and player splatter sprites render together");
+
+      int enemyTicks = combinedGame.Enemies[0].SquashTicksRemaining;
+
+      for (int i = 0; i < enemyTicks; i++)
+        combinedGame.Update(0, false);
+
+      renderer.Draw(combinedGame, 0);
+      Check(combinedGame.IsDying && renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] != gamePalette['F']
+        && renderer.Frame.Pixels.Contains(gamePalette['T']),
+        "Expired enemy splatter is removed without removing player splatter");
+    }
+    finally
+    {
+      File.Delete(combinedLevelPath);
+    }
+
+    var rewardLevelPath = Path.Combine(Path.GetTempPath(), $"netman-reward-{Guid.NewGuid():N}.txt");
+
+    try
+    {
+      File.WriteAllLines(rewardLevelPath,
+        ["....................", "....................", ".?..................", "....................", ".S................G.", "####################"]);
+      var rewardGame = new Game([rewardLevelPath]);
+
+      for (int i = 0; i < 10; i++)
+        rewardGame.Update(0, false);
+
+      rewardGame.QueueJump();
+
+      for (int i = 0; i < 30 && rewardGame.RewardPopups.Count == 0; i++)
+        rewardGame.Update(0, true);
+
+      renderer.Draw(rewardGame, 0);
+      Check(renderer.Frame.Pixels[(53 * PixelRenderer.Width) + 21] == gamePalette['Y']
+        && renderer.Frame.Pixels[(52 * PixelRenderer.Width) + 25] == gamePalette['Y'],
+        "Coin reward renders the editable sprite above the rewarded block");
+
+      for (int i = 0; i < 60; i++)
+        rewardGame.Update(0, false);
+
+      renderer.Draw(rewardGame, 0);
+      Check(renderer.Frame.Pixels[(53 * PixelRenderer.Width) + 21] != gamePalette['Y']
+        && renderer.Frame.Pixels[(52 * PixelRenderer.Width) + 25] != gamePalette['Y'],
+        "Expired reward text is removed from the rendered scene");
+    }
+    finally
+    {
+      File.Delete(rewardLevelPath);
     }
 
     Console.WriteLine($"All {passed} graphics checks passed.");

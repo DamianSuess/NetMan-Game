@@ -21,7 +21,7 @@ internal sealed class PixelRenderer
     var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
 
     foreach (string name in new[] { "player-idle", "player-run-1", "player-run-2", "player-jump", "player-splatter",
-      "enemy-idle", "enemy-walk", "grass", "dirt", "brick", "bonus", "used", "pipe", "coin", "spike", "goal" })
+      "enemy-idle", "enemy-walk", "enemy-squashed", "grass", "dirt", "brick", "bonus", "used", "pipe", "coin", "spike", "goal", "reward-plus-one" })
       _sprites.Add(name, Sprite.Load(Path.Combine(assetsPath, name + ".sprite"), palette));
   }
 
@@ -71,12 +71,25 @@ internal sealed class PixelRenderer
     foreach (var enemy in game.Enemies.Where(enemy => enemy.Alive))
       DrawActor(_sprites[animationFrame == 0 ? "enemy-idle" : "enemy-walk"], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
 
+    foreach (var enemy in game.Enemies.Where(enemy => enemy.SquashTicksRemaining > 0))
+      DrawActor(_sprites["enemy-squashed"], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
+
     string playerFrame = !game.Grounded ? "player-jump"
       : moving && direction != 0 ? $"player-run-{animationFrame + 1}" : "player-idle";
     if (game.IsDying)
       DrawActor(_sprites["player-splatter"], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
     else
       DrawActor(_sprites[playerFrame], game.X, game.Y, cameraX, cameraY, _facingLeft);
+
+    foreach (var popup in game.RewardPopups)
+    {
+      var rewardSprite = _sprites["reward-plus-one"];
+      int x = (popup.X * TileSize) - cameraX + ((TileSize - rewardSprite.Width) / 2);
+      int y = HeaderHeight + (popup.Y * TileSize) - cameraY - rewardSprite.Height - 2
+        - ((popup.AgeTicks * 8) / CoinRewardPopup.DurationTicks);
+      Frame.Draw(rewardSprite, x, y);
+    }
+
     DrawHud(game);
 
     if (game.Paused || game.Won || (game.Lives == 0 && !game.IsDying))
