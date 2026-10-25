@@ -153,6 +153,12 @@ internal sealed class PixelRenderer
       Frame.Draw(rewardSprite, x, y);
     }
 
+    if (game.Won && game.Credits is { } credits)
+    {
+      DrawCredits(game, credits);
+      return;
+    }
+
     DrawHud(game);
 
     if (game.IsDying)
@@ -176,6 +182,45 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
       PixelFont.Draw(Frame, hint, (Width - (hint.Length * 4)) / 2, 130, White);
     }
+  }
+
+  private void DrawCredits(Game game, EndCredits credits)
+  {
+    const int ViewTop = 12;
+    const int ViewBottom = 198;
+    const int ScrollSpeed = 30;
+    Frame.OverlayBlack(180);
+    long maximumOffset = ViewBottom + credits.ClosingOffset - 72;
+    int offset = (int)Math.Min(maximumOffset, game.CreditsTicks * ScrollSpeed / 60);
+    foreach (var line in credits.Lines)
+    {
+      int y = ViewBottom + line.Y - offset;
+      if (y >= ViewBottom || y + (5 * line.Scale) <= ViewTop)
+        continue;
+
+      int x = (Width - (((line.Text.Length * 4) - 1) * line.Scale)) / 2;
+      PixelFont.Draw(Frame, line.Text, x + 1, y + 1, Ink, line.Scale, ViewTop, ViewBottom);
+      PixelFont.Draw(Frame, line.Text, x, y, line.Highlight ? Gold : White, line.Scale, ViewTop, ViewBottom);
+    }
+
+    int animationFrame = (int)(game.CreditsTicks / 6 % 2);
+    Frame.Fill(0, 239, Width, 1, 0xFF355575);
+    DrawCreditsRunner($"player-run-{animationFrame + 1}", game.CreditsTicks, 0, 46, false);
+    DrawCreditsRunner($"player-large-run-{animationFrame + 1}", game.CreditsTicks, 160, 38, false);
+    DrawCreditsRunner(animationFrame == 0 ? "enemy-idle" : "enemy-walk", game.CreditsTicks, 290, -32, false);
+    DrawCreditsRunner(animationFrame == 0 ? "enemy-walk" : "enemy-idle", game.CreditsTicks, 80, 54, true);
+
+    if (game.Paused)
+      PixelFont.Draw(Frame, "PAUSED", Width - 30, 4, Gold);
+  }
+
+  private void DrawCreditsRunner(string name, long ticks, int phase, int speed, bool flip)
+  {
+    const int WrapWidth = Width + 64;
+    long distance = (ticks * speed / 60) + phase;
+    int x = (int)(((distance % WrapWidth) + WrapWidth) % WrapWidth) - 32;
+    var sprite = _sprites[name];
+    Frame.Draw(sprite, x, 238 - sprite.Height, flip);
   }
 
   private void DrawDeathMessage(string quote)

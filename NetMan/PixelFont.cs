@@ -51,7 +51,8 @@ internal static class PixelFont
     ['\''] = "010010000000000",
   };
 
-  public static void Draw(PixelBuffer frame, string text, int x, int y, uint color, int scale = 1)
+  public static void Draw(PixelBuffer frame, string text, int x, int y, uint color, int scale = 1,
+    int clipTop = 0, int clipBottom = int.MaxValue)
   {
     foreach (char character in text.ToUpperInvariant())
     {
@@ -62,7 +63,12 @@ internal static class PixelFont
           for (int col = 0; col < 3; col++)
           {
             if (bits[(row * 3) + col] == '1')
-              frame.Fill(x + (col * scale), y + (row * scale), scale, scale, color);
+            {
+              int top = Math.Max(y + (row * scale), clipTop);
+              int bottom = Math.Min(y + ((row + 1) * scale), clipBottom);
+              if (bottom > top)
+                frame.Fill(x + (col * scale), top, scale, bottom - top, color);
+            }
           }
         }
       }

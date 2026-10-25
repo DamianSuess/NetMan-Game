@@ -12,6 +12,7 @@ public sealed class OverloadTests : GameTestBase
     Overload(game);
 
     Assert.AreEqual(2, game.Lives);
+    Assert.AreEqual(1, game.TotalDeaths);
     Assert.IsTrue(game.IsDying);
     Assert.AreEqual(Game.OverloadedBodyHeight, game.PlayerHeight);
     Assert.IsGreaterThan(Game.LargeBodyHeight, game.PlayerHeight);

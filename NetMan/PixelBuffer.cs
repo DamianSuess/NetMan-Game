@@ -15,6 +15,19 @@ internal sealed class PixelBuffer(int width, int height)
 
   public void Clear(uint color) => Array.Fill(Pixels, color);
 
+  public void OverlayBlack(byte opacity)
+  {
+    uint remaining = (uint)(255 - opacity);
+    for (int i = 0; i < Pixels.Length; i++)
+    {
+      uint pixel = Pixels[i];
+      uint red = ((pixel >> 16) & 255) * remaining / 255;
+      uint green = ((pixel >> 8) & 255) * remaining / 255;
+      uint blue = (pixel & 255) * remaining / 255;
+      Pixels[i] = (pixel & 0xFF000000) | (red << 16) | (green << 8) | blue;
+    }
+  }
+
   public void Draw(Sprite sprite, int x, int y, bool flip = false)
   {
     for (int sy = Math.Max(0, -y); sy < Math.Min(sprite.Height, Height - y); sy++)
