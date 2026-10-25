@@ -67,6 +67,9 @@ public sealed class RenderingTests
       {
         "player-splatter.sprite" => asset.Width == 24 && asset.Height == 16,
         "enemy-squashed.sprite" => asset.Width == 24 && asset.Height == 16,
+        "toaster-cat-run-1.sprite" or "toaster-cat-run-2.sprite" or "toaster-cat-jump.sprite"
+          => asset.Width == 24 && asset.Height == 16,
+        "toaster-cat-squashed.sprite" => asset.Width == 32 && asset.Height == 16,
         "reward-plus-one.sprite" => true,
         "player-explosion-1.sprite" or "player-explosion-2.sprite" or "player-explosion-3.sprite" or "player-explosion-4.sprite"
           => asset.Width == 64 && asset.Height == 64,

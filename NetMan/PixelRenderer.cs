@@ -36,6 +36,10 @@ internal sealed class PixelRenderer
       "enemy-idle",
       "enemy-walk",
       "enemy-squashed",
+      "toaster-cat-run-1",
+      "toaster-cat-run-2",
+      "toaster-cat-jump",
+      "toaster-cat-squashed",
       "grass",
       "dirt",
       "brick",
@@ -118,10 +122,16 @@ internal sealed class PixelRenderer
     int animationFrame = (int)(_animationTime * 9) % 2;
 
     foreach (var enemy in game.Enemies.Where(enemy => enemy.Alive))
-      DrawActor(_sprites[animationFrame == 0 ? "enemy-idle" : "enemy-walk"], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
+    {
+      string name = enemy.Kind == EnemyKind.ToasterCat
+        ? Math.Abs(enemy.VelocityY) > 0.01 ? "toaster-cat-jump" : $"toaster-cat-run-{animationFrame + 1}"
+        : animationFrame == 0 ? "enemy-idle" : "enemy-walk";
+      DrawActor(_sprites[name], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
+    }
 
     foreach (var enemy in game.Enemies.Where(enemy => enemy.SquashTicksRemaining > 0))
-      DrawActor(_sprites["enemy-squashed"], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
+      DrawActor(_sprites[enemy.Kind == EnemyKind.ToasterCat ? "toaster-cat-squashed" : "enemy-squashed"],
+        enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
 
     string playerFrame = !game.Grounded ? "player-jump"
       : moving && direction != 0 ? $"player-run-{animationFrame + 1}" : "player-idle";
@@ -209,6 +219,7 @@ internal sealed class PixelRenderer
     DrawCreditsRunner($"player-large-run-{animationFrame + 1}", game.CreditsTicks, 160, 38, false);
     DrawCreditsRunner(animationFrame == 0 ? "enemy-idle" : "enemy-walk", game.CreditsTicks, 290, -32, false);
     DrawCreditsRunner(animationFrame == 0 ? "enemy-walk" : "enemy-idle", game.CreditsTicks, 80, 54, true);
+    DrawCreditsRunner($"toaster-cat-run-{animationFrame + 1}", game.CreditsTicks, 380, -50, false);
 
     if (game.Paused)
       PixelFont.Draw(Frame, "PAUSED", Width - 30, 4, Gold);

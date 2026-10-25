@@ -13,6 +13,7 @@ public sealed class Level
   public (int X, int Y) Spawn { get; private set; }
 
   public List<(int X, int Y)> EnemySpawns { get; } = [];
+  public List<(int X, int Y)> ToasterCatSpawns { get; } = [];
 
   private Level(string name, char[,] tiles)
   {
@@ -35,7 +36,7 @@ public sealed class Level
       for (int x = 0; x < map.Width; x++)
       {
         char tile = x < lines[y].Length ? lines[y][x] : '.';
-        if (!". #B?Mo^PpSGE".Contains(tile))
+        if (!". #B?Mo^PpSGEC".Contains(tile))
           throw new InvalidDataException($"{name}: unknown tile '{tile}' at column {x + 1}, row {y + 1}.");
 
         if (tile == 'S')
@@ -45,9 +46,10 @@ public sealed class Level
           tile = '.';
         }
 
-        if (tile == 'E')
+        if (tile is 'E' or 'C')
         {
-          map.EnemySpawns.Add((x, y));
+          var spawns = tile == 'C' ? map.ToasterCatSpawns : map.EnemySpawns;
+          spawns.Add((x, y));
           tile = '.';
         }
 
