@@ -4,9 +4,8 @@ public sealed class Enemy(double x, double y)
 {
   public const int SquashDurationTicks = 60;
 
-  public double X = x, Y = y, VelocityY;
   public int Direction = -1;
-
+  public double X = x, Y = y, VelocityY;
   public bool Alive { get; private set; } = true;
   public int SquashTicksRemaining { get; private set; }
 
@@ -29,36 +28,18 @@ public sealed class Enemy(double x, double y)
 
 public sealed class Game
 {
-  public const double Step = 1.0 / 60;
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
   public const int DeathDurationTicks = 60;
+  public const double Step = 1.0 / 60;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
   private const double SpikeTipOffset = 3.0 / 16;
 
+  private readonly List<BlockBreakEffect> _blockBreakEffects = [];
   private readonly string[] _files;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
-
-  private int _levelIndex;
   private double _jumpBuffer, _coyoteTime, _transition;
-
-  public Level Level { get; private set; } = null!;
-  public List<Enemy> Enemies { get; private set; } = [];
-  public double X { get; private set; }
-  public double Y { get; private set; }
-  public double VelocityY { get; private set; }
-  public bool Grounded { get; private set; }
-  public int Lives { get; private set; } = 3;
-  public int Coins { get; private set; }
-  public int Score { get; private set; }
-  public bool Won { get; private set; }
-  public bool Paused { get; set; }
-  public string Message { get; private set; } = "Let's go!";
-  public int LevelNumber => _levelIndex + 1;
-  public int LevelCount => _files.Length;
-  public int DeathTicksRemaining { get; private set; }
-  public bool IsDying => DeathTicksRemaining > 0;
-  public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
+  private int _levelIndex;
 
   public Game(string[] files)
   {
@@ -66,20 +47,29 @@ public sealed class Game
     LoadLevel();
   }
 
-  private void LoadLevel()
+  public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
+  public int Coins { get; private set; }
+  public int DeathTicksRemaining { get; private set; }
+  public List<Enemy> Enemies { get; private set; } = [];
+  public bool Grounded { get; private set; }
+  public bool IsDying => DeathTicksRemaining > 0;
+  public Level Level { get; private set; } = null!;
+  public int LevelCount => _files.Length;
+  public int LevelNumber => _levelIndex + 1;
+  public int Lives { get; private set; } = 3;
+  public string Message { get; private set; } = "Let's go!";
+  public bool Paused { get; set; }
+  public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
+  public int Score { get; private set; }
+  public double VelocityY { get; private set; }
+  public bool Won { get; private set; }
+  public double X { get; private set; }
+  public double Y { get; private set; }
+
+  public void QueueJump()
   {
-    Level = Level.Load(_files[_levelIndex]);
-    _rewardPopups.Clear();
-
-    X = Level.Spawn.X;
-    Y = Level.Spawn.Y;
-    VelocityY = 0;
-    DeathTicksRemaining = 0;
-
-    Grounded = false;
-    _jumpBuffer = _coyoteTime = 0;
-
-    Enemies = Level.EnemySpawns.Select(spawn => new Enemy(spawn.X, spawn.Y)).ToList();
+    if (!Paused && !Won && !IsDying && Lives > 0)
+      _jumpBuffer = 0.12;
   }
 
   public void Restart()
@@ -94,16 +84,20 @@ public sealed class Game
     LoadLevel();
   }
 
-  public void QueueJump()
-  {
-    if (!Paused && !Won && !IsDying && Lives > 0)
-      _jumpBuffer = 0.12;
-  }
-
   public void Update(int direction, bool jumpHeld)
   {
     if (Paused)
       return;
+
+    for (int i = _blockBreakEffects.Count - 1; i >= 0; i--)
+    {
+      var effect = _blockBreakEffects[i] with { AgeTicks = _blockBreakEffects[i].AgeTicks + 1 };
+
+      if (effect.AgeTicks >= BlockBreakEffect.DurationTicks)
+        _blockBreakEffects.RemoveAt(i);
+      else
+        _blockBreakEffects[i] = effect;
+    }
 
     foreach (var enemy in Enemies)
       enemy.AdvanceSquash();
@@ -222,17 +216,27 @@ public sealed class Game
     {
       double ex = enemy.X, ey = enemy.Y;
       Move(ref ex, ref ey, enemy.Direction * 3 * Step, true, false, out bool wall);
-      if (wall) enemy.Direction *= -1;
+
+      if (wall)
+        enemy.Direction *= -1;
+
       enemy.VelocityY = Math.Min(enemy.VelocityY + 40 * Step, 28);
       Move(ref ex, ref ey, enemy.VelocityY * Step, false, false, out bool floor);
-      if (floor) enemy.VelocityY = 0;
+
+      if (floor)
+        enemy.VelocityY = 0;
+
       enemy.X = ex; enemy.Y = ey;
+
       if (ey > Level.Height + 2)
       {
         enemy.Y = Level.Height - BodyHeight;
         enemy.Squash();
       }
-      if (!enemy.Alive || !Overlaps(X, Y, ex, ey)) continue;
+
+      if (!enemy.Alive || !Overlaps(X, Y, ex, ey))
+        continue;
+
       if (vertical > 0 && Y + BodyHeight - vertical <= ey + 0.25)
       {
         enemy.Squash();
@@ -240,9 +244,26 @@ public sealed class Game
         Score += 200;
         Message = "Stomp!";
       }
-      else { Die(); return; }
+      else
+      {
+        Die();
+        return;
+      }
     }
   }
+
+  private static IEnumerable<(int X, int Y)> Cells(double x, double y)
+  {
+    for (int ty = (int)Math.Floor(y + 0.00001);
+      ty <= (int)Math.Floor(y + BodyHeight - 0.00001); ty++)
+    {
+      for (int tx = (int)Math.Floor(x + 0.00001); tx <= (int)Math.Floor(x + BodyWidth - 0.00001); tx++)
+        yield return (tx, ty);
+    }
+  }
+
+  private static bool Overlaps(double ax, double ay, double bx, double by) =>
+    ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + BodyHeight && ay + BodyHeight > by;
 
   private void Die()
   {
@@ -256,6 +277,83 @@ public sealed class Game
     _jumpBuffer = _coyoteTime = 0;
 
     Message = Lives == 0 ? "Ouch! Restarting game..." : "Ouch!";
+  }
+
+  private void LoadLevel()
+  {
+    Level = Level.Load(_files[_levelIndex]);
+    _rewardPopups.Clear();
+    _blockBreakEffects.Clear();
+
+    X = Level.Spawn.X;
+    Y = Level.Spawn.Y;
+    VelocityY = 0;
+    DeathTicksRemaining = 0;
+
+    Grounded = false;
+    _jumpBuffer = _coyoteTime = 0;
+
+    Enemies = Level.EnemySpawns.Select(spawn => new Enemy(spawn.X, spawn.Y)).ToList();
+  }
+
+  private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit)
+  {
+    hit = false;
+    int steps = Math.Max(1, (int)Math.Ceiling(Math.Abs(distance) / 0.15));
+
+    for (int i = 0; i < steps; i++)
+    {
+      double nx = x + (horizontal ? distance / steps : 0);
+      double ny = y + (horizontal ? 0 : distance / steps);
+      double previousX = x;
+      double bodyBottom = y + BodyHeight;
+
+      // Spike sides block entry like a pipe. Vertical contact is handled separately at the tip.
+      var collisions = Cells(nx, ny).Where(
+        cell => Level.Solid(cell.X, cell.Y) ||
+        (horizontal
+        && Level.Tile(cell.X, cell.Y) == '^'
+        && bodyBottom > cell.Y + SpikeTipOffset + 0.00001
+        && ((distance > 0 && previousX + BodyWidth <= cell.X + 0.00001) || (distance < 0 && previousX >= cell.X + 1 - 0.00001))
+        )).ToArray();
+
+      if (collisions.Length == 0)
+      {
+        x = nx;
+        y = ny;
+        continue;
+      }
+
+      hit = true;
+
+      foreach (var cell in collisions)
+      {
+        if (bump && distance < 0)
+        {
+          if (Level.Tile(cell.X, cell.Y) == '?')
+          {
+            Level.UseBlock(cell.X, cell.Y);
+            Coins++;
+            Score += 100;
+            Message = "Bonus coin!";
+
+            _rewardPopups.Add(new CoinRewardPopup(cell.X, cell.Y));
+          }
+          else if (Level.Tile(cell.X, cell.Y) == 'B')
+          {
+            Level.Clear(cell.X, cell.Y);
+            Score += 50;
+            _blockBreakEffects.Add(new BlockBreakEffect(cell.X, cell.Y));
+          }
+        }
+      }
+
+      if (horizontal)
+        x = distance > 0 ? collisions.Min(c => c.X) - BodyWidth : collisions.Max(c => c.X) + 1;
+      else
+        y = distance > 0 ? collisions.Min(c => c.Y) - BodyHeight : collisions.Max(c => c.Y) + 1;
+      break;
+    }
   }
 
   private bool TryFindSpikeLanding(double previousFeet, out double spikeTop)
@@ -290,75 +388,4 @@ public sealed class Game
 
     return false;
   }
-
-  private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit)
-  {
-    hit = false;
-    int steps = Math.Max(1, (int)Math.Ceiling(Math.Abs(distance) / 0.15));
-
-    for (int i = 0; i < steps; i++)
-    {
-      double nx = x + (horizontal ? distance / steps : 0);
-      double ny = y + (horizontal ? 0 : distance / steps);
-      double previousX = x;
-      double bodyBottom = y + BodyHeight;
-
-      // Spike sides block entry like a pipe. Vertical contact is handled separately at the tip.
-      var collisions = Cells(nx, ny).Where(cell => Level.Solid(cell.X, cell.Y)
-        || (horizontal && Level.Tile(cell.X, cell.Y) == '^'
-          && bodyBottom > cell.Y + SpikeTipOffset + 0.00001
-          && ((distance > 0 && previousX + BodyWidth <= cell.X + 0.00001)
-            || (distance < 0 && previousX >= cell.X + 1 - 0.00001)))).ToArray();
-
-      if (collisions.Length == 0)
-      {
-        x = nx;
-        y = ny;
-        continue;
-      }
-
-      hit = true;
-
-      foreach (var cell in collisions)
-      {
-        if (bump && distance < 0)
-        {
-          if (Level.Tile(cell.X, cell.Y) == '?')
-          {
-            Level.UseBlock(cell.X, cell.Y);
-            Coins++;
-            Score += 100;
-            Message = "Bonus coin!";
-
-            _rewardPopups.Add(new CoinRewardPopup(cell.X, cell.Y));
-          }
-          else if (Level.Tile(cell.X, cell.Y) == 'B')
-          {
-            Level.Clear(cell.X, cell.Y);
-            Score += 50;
-          }
-        }
-      }
-
-      if (horizontal)
-        x = distance > 0 ? collisions.Min(c => c.X) - BodyWidth : collisions.Max(c => c.X) + 1;
-      else
-        y = distance > 0 ? collisions.Min(c => c.Y) - BodyHeight : collisions.Max(c => c.Y) + 1;
-      break;
-    }
-  }
-
-  private static IEnumerable<(int X, int Y)> Cells(double x, double y)
-  {
-    for (int ty = (int)Math.Floor(y + 0.00001);
-      ty <= (int)Math.Floor(y + BodyHeight - 0.00001); ty++)
-    {
-
-      for (int tx = (int)Math.Floor(x + 0.00001); tx <= (int)Math.Floor(x + BodyWidth - 0.00001); tx++)
-        yield return (tx, ty);
-    }
-  }
-
-  private static bool Overlaps(double ax, double ay, double bx, double by) =>
-    ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + BodyHeight && ay + BodyHeight > by;
 }

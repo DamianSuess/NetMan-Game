@@ -35,7 +35,7 @@ Each character is one tile. Rows run from top to bottom; columns run left to rig
 | `.` or space | Empty air |
 | `S` | Player spawn; exactly one per map |
 | `#` | Solid ground / wall |
-| `B` | Breakable brick |
+| `B` | Breakable brick; animates into rubble and dust over 0.5 seconds |
 | `?` | One-coin bonus block |
 | `P` | Solid pipe |
 | `o` | Coin |
