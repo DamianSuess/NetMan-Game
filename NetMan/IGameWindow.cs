@@ -15,6 +15,8 @@ internal interface IGameWindow : IDisposable
 {
   bool Active { get; }
 
+  bool AnyKeyPressed { get; }
+
   bool Closed { get; }
 
   bool Down(GameKey key);

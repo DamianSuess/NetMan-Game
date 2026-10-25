@@ -51,7 +51,7 @@ try
   {
     window.PumpEvents();
 
-    if (window.Closed || window.Pressed(GameKey.Escape))
+    if (window.Closed)
       break;
 
     var now = clock.Elapsed.TotalSeconds;
@@ -69,20 +69,33 @@ try
       continue;
     }
 
-    if (window.Pressed(GameKey.Restart))
-      game.Restart();
+    bool wasDying = game.IsDying;
+    if (wasDying)
+    {
+      game.Paused = false;
+      if (window.AnyKeyPressed && game.ContinueAfterDeath())
+        accumulator = 0;
+    }
+    else
+    {
+      if (window.Pressed(GameKey.Escape))
+        break;
 
-    if (window.Pressed(GameKey.Pause))
-      game.Paused = !game.Paused;
+      if (window.Pressed(GameKey.Restart))
+        game.Restart();
 
-    if (window.Pressed(GameKey.Jump))
-      game.QueueJump();
+      if (window.Pressed(GameKey.Pause))
+        game.Paused = !game.Paused;
 
-    int direction = (window.Down(GameKey.Right) ? 1 : 0) - (window.Down(GameKey.Left) ? 1 : 0);
+      if (window.Pressed(GameKey.Jump))
+        game.QueueJump();
+    }
+
+    int direction = wasDying ? 0 : (window.Down(GameKey.Right) ? 1 : 0) - (window.Down(GameKey.Left) ? 1 : 0);
 
     while (accumulator >= Game.Step)
     {
-      game.Update(direction, window.Down(GameKey.Jump));
+      game.Update(direction, !wasDying && window.Down(GameKey.Jump));
       accumulator -= Game.Step;
     }
 

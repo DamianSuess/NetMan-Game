@@ -129,6 +129,7 @@ public sealed class RenderingTests
       for (int i = 0; i < Game.DeathDurationTicks; i++)
         deathGame.Update(0, false);
 
+      Assert.IsTrue(deathGame.ContinueAfterDeath());
       renderer.Draw(deathGame, 0);
       Assert.IsTrue(!renderer.Frame.Pixels.Contains(gamePalette['E']) && !renderer.Frame.Pixels.Contains(gamePalette['F']),
         "Player splatter disappears when the level respawns");
@@ -148,6 +149,7 @@ public sealed class RenderingTests
 
         for (int i = 0; i < Game.DeathDurationTicks; i++)
           deathGame.Update(0, false);
+        Assert.IsTrue(deathGame.ContinueAfterDeath());
       }
     }
     finally

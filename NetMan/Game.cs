@@ -72,7 +72,8 @@ public sealed class Game
   public int DamageTicksRemaining { get; private set; }
   public List<Enemy> Enemies { get; private set; } = [];
   public bool Grounded { get; private set; }
-  public bool IsDying => DeathTicksRemaining > 0;
+  public bool AwaitingRestart { get; private set; }
+  public bool IsDying => DeathTicksRemaining > 0 || AwaitingRestart;
   public bool IsLarge { get; private set; }
   public bool IsExploding { get; private set; }
   public bool IsExplosionVisible => IsExploding && DeathDurationTicks - DeathTicksRemaining < ExplosionDurationTicks;
@@ -110,6 +111,23 @@ public sealed class Game
     LoadLevel();
   }
 
+  public bool ContinueAfterDeath()
+  {
+    if (!AwaitingRestart)
+      return false;
+
+    if (Lives > 0)
+    {
+      Paused = false;
+      LoadLevel();
+      Message = "Try again!";
+    }
+    else
+      Restart();
+
+    return true;
+  }
+
   public void Update(int direction, bool jumpHeld)
   {
     if (Paused)
@@ -143,17 +161,10 @@ public sealed class Game
 
     if (IsDying)
     {
-      DeathTicksRemaining--;
-
-      if (!IsDying)
+      if (DeathTicksRemaining > 0)
       {
-        if (Lives > 0)
-        {
-          LoadLevel();
-          Message = "Try again!";
-        }
-        else
-          Restart();
+        DeathTicksRemaining--;
+        AwaitingRestart = DeathTicksRemaining == 0;
       }
 
       return;
@@ -357,6 +368,7 @@ public sealed class Game
       return;
 
     Lives--;
+    AwaitingRestart = false;
     DeathQuote = _deathQuotes[Random.Shared.Next(_deathQuotes.Length)];
     Y += PlayerHeight - BodyHeight;
     IsExploding = false;
@@ -388,6 +400,7 @@ public sealed class Game
     Y = Level.Spawn.Y;
     VelocityY = 0;
     DeathTicksRemaining = 0;
+    AwaitingRestart = false;
     DeathQuote = string.Empty;
 
     Grounded = false;

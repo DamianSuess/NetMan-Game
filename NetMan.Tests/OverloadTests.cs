@@ -55,6 +55,8 @@ public sealed class OverloadTests : GameTestBase
     Assert.AreSame(level, game.Level);
     Tick(game, 1);
 
+    Assert.IsTrue(game.AwaitingRestart);
+    Assert.IsTrue(game.ContinueAfterDeath());
     Assert.IsFalse(game.IsExploding);
     Assert.IsFalse(game.IsDying);
     Assert.IsFalse(game.IsLarge);
@@ -94,6 +96,7 @@ public sealed class OverloadTests : GameTestBase
       Assert.IsTrue(game.IsExploding);
       Assert.AreEqual(3, game.ExplosionFrameIndex);
       Tick(game, 1);
+      Assert.IsTrue(game.ContinueAfterDeath());
       Assert.IsFalse(game.IsExploding);
     }
 
@@ -168,6 +171,7 @@ public sealed class OverloadTests : GameTestBase
       Assert.IsFalse(renderer.Frame.Pixels.Contains(palette[color]), "No explosion, regular player, or death splatter should remain visible.");
 
     Tick(game, Game.DeathDurationTicks - elapsedTicks);
+    Assert.IsTrue(game.ContinueAfterDeath());
     Assert.IsFalse(game.IsDying);
     renderer.Draw(game, 0, 0);
     Assert.IsTrue(renderer.Frame.Pixels.Contains(palette['T']), "The player must become visible again upon respawn.");
