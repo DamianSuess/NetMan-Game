@@ -22,7 +22,7 @@ This version runs on Windows. The gameplay, text-level loader, sprite loader, pi
 | R | Restart the entire game |
 | Esc | Quit |
 
-You have three lives. Enemy side contact, spikes, and falling into a pit cost a life. The player becomes a blood-and-clothing splatter for one second of game time while gameplay freezes, then the current level reloads. After the last life, the game automatically restarts from level one with three lives and cleared rewards. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
+You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter for one second of game time while gameplay freezes, then the current level reloads. After the last life, the game automatically restarts from level one with three lives and cleared rewards. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 
 ## Make levels
 
@@ -40,7 +40,7 @@ Each character is one tile. Rows run from top to bottom; columns run left to rig
 | `P` | Solid pipe |
 | `o` | Coin |
 | `E` | Walking enemy |
-| `^` | Deadly spike |
+| `^` | Spike; blocks sideways movement and is deadly only when landing on its tip from above |
 | `G` | Green goal flag; at least one per map |
 
 Example:

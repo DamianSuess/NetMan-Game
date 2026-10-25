@@ -33,6 +33,9 @@ public sealed class Game
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
   public const int DeathDurationTicks = 60;
 
+  // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
+  private const double SpikeTipOffset = 3.0 / 16;
+
   private readonly string[] _files;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
 
@@ -159,6 +162,7 @@ public sealed class Game
     VelocityY = Math.Min(VelocityY + (VelocityY < 0 && !jumpHeld ? 75 : 40) * Step, 28);
 
     double x = X, y = Y;
+    double previousFeet = Y + BodyHeight;
     Move(ref x, ref y, Math.Clamp(direction, -1, 1) * 12 * Step, true, false, out _);
 
     var vertical = VelocityY * Step;
@@ -172,6 +176,13 @@ public sealed class Game
     X = x;
     Y = y;
 
+    if (vertical > 0 && TryFindSpikeLanding(previousFeet, out double spikeTop))
+    {
+      Y = spikeTop - BodyHeight;
+      Die();
+      return;
+    }
+
     foreach (var (tx, ty) in Cells(X, Y))
     {
       switch (Level.Tile(tx, ty))
@@ -181,10 +192,6 @@ public sealed class Game
           Coins++;
           Score += 100;
           break;
-
-        case '^':
-          Die();
-          return;
 
         case 'G':
           Score += 1000;
@@ -247,20 +254,71 @@ public sealed class Game
     VelocityY = 0;
     Grounded = false;
     _jumpBuffer = _coyoteTime = 0;
+
     Message = Lives == 0 ? "Ouch! Restarting game..." : "Ouch!";
+  }
+
+  private bool TryFindSpikeLanding(double previousFeet, out double spikeTop)
+  {
+    double currentFeet = Y + BodyHeight;
+    spikeTop = 0;
+
+    if (currentFeet <= previousFeet + 0.00001)
+      return false;
+
+    // Sweep the feet across the whole downward movement so fast falls cannot skip a tip.
+    for (int ty = (int)Math.Floor(previousFeet);
+         ty <= (int)Math.Floor(currentFeet);
+         ty++)
+    {
+      double tip = ty + SpikeTipOffset;
+
+      if (previousFeet > tip + 0.00001 || currentFeet < tip)
+        continue;
+
+      for (int tx = (int)Math.Floor(X + 0.00001);
+           tx <= (int)Math.Floor(X + BodyWidth - 0.00001);
+           tx++)
+      {
+        if (Level.Tile(tx, ty) != '^')
+          continue;
+
+        spikeTop = tip;
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit)
   {
     hit = false;
     int steps = Math.Max(1, (int)Math.Ceiling(Math.Abs(distance) / 0.15));
+
     for (int i = 0; i < steps; i++)
     {
       double nx = x + (horizontal ? distance / steps : 0);
       double ny = y + (horizontal ? 0 : distance / steps);
-      var collisions = Cells(nx, ny).Where(cell => Level.Solid(cell.X, cell.Y)).ToArray();
-      if (collisions.Length == 0) { x = nx; y = ny; continue; }
+      double previousX = x;
+      double bodyBottom = y + BodyHeight;
+
+      // Spike sides block entry like a pipe. Vertical contact is handled separately at the tip.
+      var collisions = Cells(nx, ny).Where(cell => Level.Solid(cell.X, cell.Y)
+        || (horizontal && Level.Tile(cell.X, cell.Y) == '^'
+          && bodyBottom > cell.Y + SpikeTipOffset + 0.00001
+          && ((distance > 0 && previousX + BodyWidth <= cell.X + 0.00001)
+            || (distance < 0 && previousX >= cell.X + 1 - 0.00001)))).ToArray();
+
+      if (collisions.Length == 0)
+      {
+        x = nx;
+        y = ny;
+        continue;
+      }
+
       hit = true;
+
       foreach (var cell in collisions)
       {
         if (bump && distance < 0)
@@ -271,12 +329,17 @@ public sealed class Game
             Coins++;
             Score += 100;
             Message = "Bonus coin!";
+
             _rewardPopups.Add(new CoinRewardPopup(cell.X, cell.Y));
           }
           else if (Level.Tile(cell.X, cell.Y) == 'B')
-          { Level.Clear(cell.X, cell.Y); Score += 50; }
+          {
+            Level.Clear(cell.X, cell.Y);
+            Score += 50;
+          }
         }
       }
+
       if (horizontal)
         x = distance > 0 ? collisions.Min(c => c.X) - BodyWidth : collisions.Max(c => c.X) + 1;
       else

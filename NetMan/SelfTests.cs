@@ -112,13 +112,67 @@ internal static class SelfTests
 
       Check(game.RewardPopups.Count == 0, "Restart clears old reward popups");
 
-      game = Map("....................", "....................", "....................", "....................", ".So^..............G.", "####################");
+      game = Map("....................", "....................", "....................", "....................", ".S.^..............G.", "####################");
+      Tick(game, 30, 1);
+      Check(game.Lives == 3 && !game.IsDying && Math.Abs(game.X + Game.BodyWidth - 3) < 0.00001,
+        "Spike sides stop the player approaching from the left without damage");
+      double stoppedX = game.X;
+      Tick(game, 60, 1);
+      Check(game.Lives == 3 && !game.IsDying && game.X == stoppedX,
+        "Continuing to push against a spike cannot move the player through it");
+      Tick(game, 10, -1);
+      Check(game.Lives == 3 && game.X < stoppedX, "The player can walk away from a spike");
+
+      game = Map("....................", "....................", "....................", "....................", "...^..S...........G.", "####################");
+      Tick(game, 30, -1);
+      Check(game.Lives == 3 && !game.IsDying && Math.Abs(game.X - 4) < 0.00001,
+        "Spike sides stop the player approaching from the right without damage");
+
+      game = Map("....................", "....................", "....................", ".S.^..............G.", "....................", "....................", "....................", "####################");
+      Tick(game, 10, 1);
+      Check(game.Lives == 3 && !game.IsDying && game.X + Game.BodyWidth <= 3.00001 && game.Y > 3,
+        "Spike sides block horizontal movement while allowing the player to fall safely");
+      Tick(game, 30, 1);
+      Check(game.Lives == 3 && !game.IsDying && game.X > 4,
+        "The player can move underneath a spike after falling clear of its side");
+
+      game = Map("....................", "....................", "....................", ".^..................", ".S................G.", "####################");
+      Tick(game, 10);
+      game.QueueJump();
+      Tick(game, 12, jump: true);
+      Check(game.Lives == 3 && !game.IsDying && game.VelocityY < 0 && game.Y + Game.BodyHeight < 3.1875,
+        "Jumping upward through a spike from below is safe");
+
+      for (int i = 0; i < 90 && !game.IsDying; i++)
+        game.Update(0, true);
+
+      Check(game.Lives == 2 && game.IsDying && Math.Abs(game.Y + Game.BodyHeight - 3.1875) < 0.00001,
+        "Descending onto a spike tip starts the player death effect at contact");
+
+      game = Map("....................", "...S................", "....................", "####################", "...^..............G.", "####################");
+      Tick(game, 60);
+      Check(game.Lives == 3 && !game.IsDying && game.Grounded && Math.Abs(game.Y + Game.BodyHeight - 3) < 0.00001,
+        "A solid platform above a spike prevents spike damage");
+
+      var tallRows = Enumerable.Repeat("....................", 22).ToArray();
+      tallRows[1] = "...S................";
+      tallRows[20] = "...^..............G.";
+      tallRows[21] = "####################";
+      game = Map(tallRows);
+
+      for (int i = 0; i < 180 && !game.IsDying; i++)
+        game.Update(0, false);
+
+      Check(game.IsDying && game.Lives == 2 && Math.Abs(game.Y + Game.BodyHeight - 20.1875) < 0.00001,
+        "Fast falls cannot skip spike tips");
+
+      game = Map("....................", "...S................", "....................", "...o................", "...^..............G.", "####################");
 
       for (int i = 0; i < 60 && !game.IsDying; i++)
-        game.Update(1, false);
+        game.Update(0, false);
 
       Check(game.Lives == 2 && game.DeathTicksRemaining == Game.DeathDurationTicks,
-        "Hazard costs one life and immediately starts the death splatter");
+        "Landing on a spike costs one life and immediately starts the death splatter");
 
       double deathX = game.X;
       double deathY = game.Y;
@@ -188,14 +242,14 @@ internal static class SelfTests
       Check(game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining == 0,
         "Restart loads a live enemy without an old squash effect");
 
-      game = Map("....................", "....................", ".S.^................", "...^................", ".E.^..............G.", "####################");
+      game = Map("....................", "....................", ".S..................", "...^^^^^^^^.........", ".E................G.", "####################");
       game.Enemies[0].Direction = 0;
 
       for (int i = 0; i < 60 && game.Enemies[0].Alive; i++)
         game.Update(0, false);
 
       for (int i = 0; i < 60 && !game.IsDying; i++)
-        game.Update(1, false);
+        game.Update(1, true);
 
       Check(game.IsDying && !game.Enemies[0].Alive && game.Enemies[0].SquashTicksRemaining > 0,
         "Enemy splatter and player splatter coexist in the same game");
