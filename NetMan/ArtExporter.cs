@@ -1,4 +1,4 @@
-namespace NetBro;
+namespace NetMan;
 
 internal static class ArtExporter
 {

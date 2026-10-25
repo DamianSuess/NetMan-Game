@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
 
-namespace NetBro;
+namespace NetMan;
 
 // CPU-rendered ARGB pixels. No operating-system APIs or graphics packages are used here.
 internal sealed class PixelBuffer(int width, int height)

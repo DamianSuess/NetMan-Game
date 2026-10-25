@@ -7,7 +7,7 @@ Active development lives in [NetMan](NetMan/README.md), a .NET 10 pixel-art plat
 From this repository folder, run:
 
 ```powershell
-dotnet run --project .\NetMan\NetBro.csproj
+dotnet run --project .\NetMan\NetMan.csproj
 ```
 
 See the game README for controls, editable text levels, and development checks.

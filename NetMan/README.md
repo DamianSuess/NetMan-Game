@@ -69,7 +69,7 @@ To distribute a Windows x64 executable with its own runtime:
 dotnet publish -c Release -r win-x64 --self-contained true -o publish
 ```
 
-Ship the entire `publish` folder, including its `Assets` and editable `Levels` directories. When running the published game, edit the maps beside `NetMan.exe` and relaunch it. The project file is still named `NetBro.csproj` for compatibility with the existing solution, but its output executable is `NetMan.exe`.
+Ship the entire `publish` folder, including its `Assets` and editable `Levels` directories. When running the published game, edit the maps beside `NetMan.exe` and relaunch it.
 
 ## Pixel art
 

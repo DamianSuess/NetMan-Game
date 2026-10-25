@@ -1,4 +1,4 @@
-namespace NetBro;
+namespace NetMan;
 
 internal sealed class PixelRenderer
 {

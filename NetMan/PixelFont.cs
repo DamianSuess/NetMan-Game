@@ -1,4 +1,4 @@
-namespace NetBro;
+namespace NetMan;
 
 // A tiny 3 x 5 bitmap font keeps HUD text sharp at the same scale as the sprites.
 internal static class PixelFont

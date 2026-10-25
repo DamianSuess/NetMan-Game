@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace NetBro;
+namespace NetMan;
 
 // Win32 and GDI interop stays in the Windows backend; no engine or native package is required.
 [SupportedOSPlatform("windows")]

@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace NetBro;
+namespace NetMan;
 
 [SupportedOSPlatform("windows")]
 internal sealed class WindowsGameWindow : IGameWindow

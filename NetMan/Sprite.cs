@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace NetBro;
+namespace NetMan;
 
 internal sealed class Sprite
 {

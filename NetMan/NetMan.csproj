@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>NetMan</AssemblyName>
+    <Copyright>Copyright 2026 Xeno Innovations, Inc.</Copyright>
+    <PackageProjectUrl>https://github.com/DamianSuess/NetMan-Game</PackageProjectUrl>
+    <Description>Side scrolling game (engine) written in .NET</Description>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Levels\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
