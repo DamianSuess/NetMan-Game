@@ -24,6 +24,10 @@ This version runs on Windows. The gameplay, text-level loader, sprite loader, pi
 
 You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter while gameplay freezes for two seconds of game time, then shows PRESS ANY KEY TO CONTINUE. A fresh keypress reloads the current level; holding a key does not dismiss the screen. After the last life, the same prompt restarts from level one with three lives and cleared rewards. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 
+## Title screen
+
+The animated title screen opens before Level 1. Choose Sam or Ella with A/D or the Left/Right arrow keys. Both previews show the powered-up size; Ella wears purple and has a ponytail. Press Enter or Space to start, or Esc to quit. Gameplay begins at normal size; the selection preview does not grant a power-up. The selected character remains active through growth, shrinking, deaths, level changes, and restarts. Both characters use the same movement and power settings. Characters move along the bottom beneath the selection, and the copyright appears in the bottom-right corner. Losing window focus freezes the title animation.
+
 ## Make levels
 
 Edit `Levels/*.txt` in any text editor, then restart the game. `dotnet run` copies them into the output directory. Files play in alphabetical order: use names such as `01-meadow.txt`, `02-ruins.txt`, `03-your-level.txt`. The game discovers additional `.txt` files automatically on startup.
@@ -93,7 +97,7 @@ Ship the entire `publish` folder, including its `Assets` and editable `Levels` d
 
 ## Pixel art
 
-Character artwork lives in separate files under `Assets`: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`, `enemy-idle.sprite`, and `enemy-walk.sprite`. Tiles and objects also have their own sprite files. Characters and tiles are 16 x 16 pixels; `player-splatter.sprite` and `enemy-squashed.sprite` are wider 24 x 16 death effects, and the coin-block reward popup uses the editable 8 x 6 `reward-plus-one.sprite`. Sprites share an 18-color palette for a retro look; the framebuffer uses 32-bit color.
+Character artwork lives in separate files under `Assets`: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`, `enemy-idle.sprite`, and `enemy-walk.sprite`. Tiles and objects also have their own sprite files. Characters and tiles are 16 x 16 pixels; `player-splatter.sprite` and `enemy-squashed.sprite` are wider 24 x 16 death effects, and the coin-block reward popup uses the editable 8 x 6 `reward-plus-one.sprite`. Sprites share an 22-color palette for a retro look; the framebuffer uses 32-bit color.
 
 The `.sprite` files are editable pixel grids. Each symbol represents one pixel, `.` is transparent, and colors are defined in `Assets/palette.txt`. Edit the source files and restart the game to see changes. See [Assets/README.md](Assets/README.md) for the format.
 

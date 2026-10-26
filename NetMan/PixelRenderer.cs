@@ -68,9 +68,62 @@ internal sealed class PixelRenderer
       "reward-plus-one",
     })
       _sprites.Add(name, Sprite.Load(Path.Combine(assetsPath, name + ".sprite"), palette));
+
+    foreach (string name in _sprites.Keys.Where(name => name.StartsWith("player-", StringComparison.Ordinal)).ToArray())
+    {
+      string ellaName = PlayerSprite(PlayerCharacter.Ella, name);
+      _sprites.Add(ellaName, Sprite.Load(Path.Combine(assetsPath, ellaName + ".sprite"), palette));
+    }
   }
 
   public PixelBuffer Frame { get; } = new(Width, Height);
+
+  public void DrawTitle(TitleScreen title)
+  {
+    DrawBackground((int)(title.Elapsed * 10) % (Width * 4));
+    Frame.OverlayBlack(100);
+    DrawTitleText("NETMAN", 34, Gold, 5, shadow: true);
+    DrawTitleText("PLAYER SELECT", 86, White, 2);
+
+    int animationFrame = (int)(title.Elapsed * 6) % 2 + 1;
+    foreach (PlayerCharacter character in Enum.GetValues<PlayerCharacter>())
+    {
+      int left = character == PlayerCharacter.Sam ? 76 : 202;
+      bool selected = title.SelectedCharacter == character;
+      Frame.Fill(left, 97, 106, 69, selected ? Gold : 0xFF527787);
+      Frame.Fill(left + 2, 99, 102, 65, Ink);
+      Frame.Draw(_sprites[PlayerSprite(character, $"player-large-run-{animationFrame}")], left + 45, 108);
+      string name = character.ToString().ToUpperInvariant();
+      PixelFont.Draw(Frame, name, left + (106 - ((name.Length * 4) - 1)) / 2, 149, selected ? Gold : White);
+      if (selected)
+        PixelFont.Draw(Frame, ">", left + 10, 126, Gold);
+    }
+    DrawTitleText("1 PLAYER  A/D OR ARROWS TO SELECT", 173, Gold, 1);
+    DrawTitleText("ENTER / SPACE TO START", 186, White, 1);
+
+    long ticks = (long)(title.Elapsed * 60);
+    DrawCreditsRunner($"player-run-{animationFrame}", ticks, 0, 38, false, 224);
+    DrawCreditsRunner($"ella-run-{animationFrame}", ticks, 215, 38, false, 224);
+    DrawCreditsRunner($"toaster-cat-run-{animationFrame}", ticks, 140, -45, false, 224);
+    DrawCreditsRunner((int)(title.Elapsed * 4) % 2 == 0 ? "enemy-idle" : "enemy-walk", ticks, 290, -24, false, 224);
+    DrawCreditsRunner($"zombie-walk-{(int)(title.Elapsed * 3) % 2 + 1}", ticks, 380, -12, false, 224);
+    Frame.Fill(0, 224, Width, 2, Gold);
+    Frame.Fill(0, 226, Width, 14, Ink);
+    const string Copyright = "© 2026 XENO INNOVATIONS, INC.";
+    PixelFont.Draw(Frame, Copyright, Width - (Copyright.Length * 4) - 5, Height - 9, White);
+  }
+
+  private void DrawTitleText(string text, int y, uint color, int scale, bool shadow = false)
+  {
+    int x = (Width - (((text.Length * 4) - 1) * scale)) / 2;
+    if (shadow)
+      PixelFont.Draw(Frame, text, x + 2, y + 3, Ink, scale);
+
+    PixelFont.Draw(Frame, text, x, y, color, scale);
+  }
+
+  private static string PlayerSprite(PlayerCharacter character, string name) =>
+    character == PlayerCharacter.Ella ? name.Replace("player-", "ella-", StringComparison.Ordinal) : name;
 
   public void Draw(Game game, int direction, double elapsed = Game.Step)
   {
@@ -157,13 +210,13 @@ internal sealed class PixelRenderer
     if (game.IsExploding)
     {
       if (game.IsExplosionVisible)
-        DrawActor(_sprites[$"player-explosion-{game.ExplosionFrameIndex + 1}"], game.X, game.Y,
+        DrawActor(_sprites[PlayerSprite(game.Character, $"player-explosion-{game.ExplosionFrameIndex + 1}")], game.X, game.Y,
           cameraX, cameraY, _facingLeft, true, game.PlayerHeight);
     }
     else if (game.IsDying)
-      DrawActor(_sprites["player-splatter"], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
+      DrawActor(_sprites[PlayerSprite(game.Character, "player-splatter")], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
-      DrawActor(_sprites[playerFrame], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
+      DrawActor(_sprites[PlayerSprite(game.Character, playerFrame)], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
 
     foreach (var popup in game.RewardPopups)
     {
@@ -232,6 +285,7 @@ internal sealed class PixelRenderer
     Frame.Fill(0, 239, Width, 1, 0xFF355575);
     DrawCreditsRunner($"player-run-{animationFrame + 1}", game.CreditsTicks, 0, 46, false);
     DrawCreditsRunner($"player-large-run-{animationFrame + 1}", game.CreditsTicks, 160, 38, false);
+    DrawCreditsRunner($"ella-large-run-{animationFrame + 1}", game.CreditsTicks, 340, 38, false);
     DrawCreditsRunner(animationFrame == 0 ? "enemy-idle" : "enemy-walk", game.CreditsTicks, 290, -32, false);
     DrawCreditsRunner(animationFrame == 0 ? "enemy-walk" : "enemy-idle", game.CreditsTicks, 80, 54, true);
     DrawCreditsRunner($"toaster-cat-run-{animationFrame + 1}", game.CreditsTicks, 380, -50, false);
@@ -241,13 +295,13 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, "PAUSED", Width - 30, 4, Gold);
   }
 
-  private void DrawCreditsRunner(string name, long ticks, int phase, int speed, bool flip)
+  private void DrawCreditsRunner(string name, long ticks, int phase, int speed, bool flip, int bottom = 238)
   {
     const int WrapWidth = Width + 64;
     long distance = (ticks * speed / 60) + phase;
     int x = (int)(((distance % WrapWidth) + WrapWidth) % WrapWidth) - 32;
     var sprite = _sprites[name];
-    Frame.Draw(sprite, x, 238 - sprite.Height, flip);
+    Frame.Draw(sprite, x, bottom - sprite.Height, flip);
   }
 
   private void DrawDeathMessage(string quote)

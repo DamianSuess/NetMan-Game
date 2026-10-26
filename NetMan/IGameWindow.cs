@@ -8,6 +8,7 @@ internal enum GameKey
   Pause,
   Restart,
   Escape,
+  Start,
 }
 
 // Only this interface needs a new implementation to host the game on another OS.

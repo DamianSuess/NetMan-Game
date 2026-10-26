@@ -10,7 +10,7 @@ public sealed class NewLevelTests
 {
   [TestMethod]
   [DataRow("03-pipe-gardens.txt")]
-  [DataRow("04-brick-foothills.txt")]
+  [DataRow("04-zombie-ate-my.txt")]
   [DataRow("05-pipe-terraces.txt")]
   [DataRow("06-ruins-crossing.txt")]
   [DataRow("07-brick-summit.txt")]
