@@ -81,6 +81,9 @@ internal sealed class PixelRenderer
       "spike",
       "goal",
       "reward-plus-one",
+      "moon",
+      "tombstone",
+      "tombstone-cross",
     })
       _sprites.Add(name, Sprite.Load(Path.Combine(assetsPath, name + ".sprite"), palette));
 
@@ -160,7 +163,11 @@ internal sealed class PixelRenderer
     int cameraX = Math.Clamp((int)(game.X * TileSize) - (Width / 3), 0, Math.Max(0, (game.Level.Width * TileSize) - Width));
     int cameraY = Math.Clamp((int)(game.Y * TileSize) - ((viewHeight * 2) / 3), 0, Math.Max(0, (game.Level.Height * TileSize) - viewHeight));
 
-    DrawBackground(cameraX);
+    bool night = game.LevelNumber is >= 4 and < 6;
+    DrawBackground(cameraX, night);
+
+    if (night)
+      DrawGraveyard(cameraX, cameraY, game.Level.Height);
 
     for (int y = cameraY / TileSize; y <= (cameraY + viewHeight) / TileSize; y++)
     {
@@ -513,24 +520,52 @@ internal sealed class PixelRenderer
     Frame.Draw(sprite, px, py, flip);
   }
 
-  private void DrawBackground(int cameraX)
+  private void DrawGraveyard(int cameraX, int cameraY, int levelHeight)
+  {
+    int groundY = HeaderHeight + ((levelHeight - 2) * TileSize) - cameraY;
+    for (int index = -1; index < 7; index++)
+    {
+      int farX = (index * 80) + 48 - ((cameraX / 2) % 80);
+      Frame.DrawTranslucent(_sprites["tombstone-cross"], farX, groundY - 32, 150);
+      int nearX = (index * 80) + 16 - (((cameraX * 3) / 4) % 80);
+      var stone = _sprites[index % 2 == 0 ? "tombstone" : "tombstone-cross"];
+      Frame.Draw(stone, nearX, groundY - stone.Height);
+    }
+  }
+
+  private void DrawBackground(int cameraX, bool night = false)
   {
     for (int y = 0; y < Height; y++)
     {
-      uint color = y < 70 ? 0xFF608CC8 : y < 125 ? 0xFF79ADD7 : 0xFF9BCEE1;
+      uint color = night
+        ? y < 70 ? 0xFF101B35 : y < 125 ? 0xFF1A2946 : 0xFF243A50
+        : y < 70 ? 0xFF608CC8 : y < 125 ? 0xFF79ADD7 : 0xFF9BCEE1;
       Frame.Fill(0, y, Width, 1, color);
     }
 
-    Frame.Fill(301, 45, 20, 20, 0xFFFFDF8A);
-    Frame.Fill(297, 49, 28, 12, 0xFFFFDF8A);
+    if (night)
+    {
+      for (int index = 0; index < 22; index++)
+      {
+        int x = ((index * 53) + 17) % Width;
+        int y = 34 + ((index * 29) % 66);
+        Frame.Fill(x, y, 1, 1, 0xFFBFD7E8);
+      }
+      Frame.Draw(_sprites["moon"], 295, 38);
+    }
+    else
+    {
+      Frame.Fill(301, 45, 20, 20, 0xFFFFDF8A);
+      Frame.Fill(297, 49, 28, 12, 0xFFFFDF8A);
+    }
 
     for (int i = -1; i < 5; i++)
     {
       int x = (i * 112) - ((cameraX / 5) % 112);
       int y = 55 + ((i & 1) * 17);
-      Frame.Fill(x + 8, y, 25, 6, 0xFFDEEFF4);
-      Frame.Fill(x, y + 6, 47, 9, 0xFFDEEFF4);
-      Frame.Fill(x + 5, y + 15, 35, 3, 0xFFB6DCEB);
+      Frame.Fill(x + 8, y, 25, 6, night ? 0xFF2D405A : 0xFFDEEFF4);
+      Frame.Fill(x, y + 6, 47, 9, night ? 0xFF2D405A : 0xFFDEEFF4);
+      Frame.Fill(x + 5, y + 15, 35, 3, night ? 0xFF23344E : 0xFFB6DCEB);
     }
 
     for (int x = 0; x < Width; x++)
@@ -539,8 +574,8 @@ internal sealed class PixelRenderer
       int near = Math.Abs(((x + (cameraX / 3) + 60) % 150) - 75);
       int farTop = 110 + (far / 2);
       int nearTop = 150 + (near / 2);
-      Frame.Fill(x, farTop, 1, Height - farTop, 0xFF679DA5);
-      Frame.Fill(x, nearTop, 1, Height - nearTop, 0xFF4A887D);
+      Frame.Fill(x, farTop, 1, Height - farTop, night ? 0xFF253854 : 0xFF679DA5);
+      Frame.Fill(x, nearTop, 1, Height - nearTop, night ? 0xFF1B3041 : 0xFF4A887D);
     }
   }
 
