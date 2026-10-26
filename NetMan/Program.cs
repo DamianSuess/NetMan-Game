@@ -43,6 +43,8 @@ try
   var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
   var game = new Game(files);
   var titleScreen = new TitleScreen();
+  var levelStart = new LevelStartScreen(Path.Combine(AppContext.BaseDirectory, "Assets", "uncle-quotes.txt"));
+  Level? presentedLevel = null;
 
   using IGameWindow window = new WindowsGameWindow(PixelRenderer.Width, PixelRenderer.Height);
 
@@ -72,6 +74,24 @@ try
         game = new Game(files, konamiCheat: titleScreen.KonamiCodeEnabled) { Character = titleScreen.SelectedCharacter };
       accumulator = 0;
       renderer.DrawTitle(titleScreen);
+      window.Present(renderer.Frame);
+      Thread.Sleep(16);
+      continue;
+    }
+
+    if (!ReferenceEquals(presentedLevel, game.Level))
+    {
+      presentedLevel = game.Level;
+      levelStart.Show(game);
+    }
+
+    if (levelStart.IsActive)
+    {
+      levelStart.Update(elapsed, window.AnyKeyPressed, window.Active);
+      if (!levelStart.IsActive)
+        game.CompleteLevelStart();
+      accumulator = 0;
+      renderer.DrawLevelStart(levelStart);
       window.Present(renderer.Frame);
       Thread.Sleep(16);
       continue;
@@ -109,12 +129,23 @@ try
         game.QueueJump();
     }
 
+    if (!ReferenceEquals(presentedLevel, game.Level))
+    {
+      accumulator = 0;
+      continue;
+    }
+
     int direction = wasDying ? 0 : (window.Down(GameKey.Right) ? 1 : 0) - (window.Down(GameKey.Left) ? 1 : 0);
 
     while (accumulator >= Game.Step)
     {
       game.Update(direction, !wasDying && window.Down(GameKey.Jump), !wasDying && window.Down(GameKey.Fire));
       accumulator -= Game.Step;
+      if (!ReferenceEquals(presentedLevel, game.Level))
+      {
+        accumulator = 0;
+        break;
+      }
     }
 
     renderer.Draw(game, direction, elapsed);

@@ -147,8 +147,63 @@ internal sealed class PixelRenderer
   private static string PlayerSprite(PlayerCharacter character, string name) =>
     character == PlayerCharacter.Ella ? name.Replace("player-", "ella-", StringComparison.Ordinal) : name;
 
+  public void DrawLevelStart(LevelStartScreen screen)
+  {
+    Frame.Clear(Ink);
+    Frame.Fill(12, 18, Width - 24, 1, Gold);
+    DrawTitleText($"LEVEL {screen.LevelNumber}", 32, Gold, 4);
+    DrawWrappedCentered(screen.LevelName, 66, White, maxLines: 2);
+    string pose = screen.IsLarge ? "player-large-idle" : "player-idle";
+    var player = _sprites[PlayerSprite(screen.Character, pose)];
+    Frame.Draw(player, 148, 142 - player.Height);
+    PixelFont.Draw(Frame, $"LIVES {screen.Lives}", 180, 125, White, 2);
+    DrawTitleText("UNCLE SAYS", 155, Gold, 1);
+    DrawWrappedCentered(screen.Quote, 170, White);
+    Frame.Fill(12, 218, Width - 24, 1, 0xFF355575);
+    DrawTitleText("PRESS ANY KEY TO BEGIN", 227, Gold, 1);
+  }
+
+  private void DrawGameOver(Game game)
+  {
+    Frame.Clear(Ink);
+    Frame.Fill(12, 22, Width - 24, 1, 0xFFFF6B6B);
+    DrawTitleText("GAME OVER", 38, 0xFFFF6B6B, 4);
+    DrawTitleText("OUT OF LIVES. OUT OF EXCUSES.", 70, Gold, 1);
+    DrawWrappedCentered(game.GameOverQuote, 96, White, maxLines: 4);
+    DrawTitleText($"LEVEL {game.LevelNumber}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 177, White, 1);
+    Frame.Fill(12, 198, Width - 24, 1, 0xFF355575);
+    DrawTitleText("PRESS ANY KEY TO TRY AGAIN", 213, Gold, 1);
+  }
+
+  private void DrawWrappedCentered(string text, int y, uint color, int maxLines = 3)
+  {
+    const int MaxCharacters = 42;
+    string remaining = text.Trim();
+    for (int index = 0; index < maxLines && remaining.Length > 0; index++)
+    {
+      int length = Math.Min(MaxCharacters, remaining.Length);
+      if (length < remaining.Length)
+      {
+        int space = remaining.LastIndexOf(' ', length - 1, length);
+        if (space > 0)
+          length = space;
+      }
+      string line = remaining[..length].Trim();
+      remaining = remaining[length..].TrimStart();
+      if (index == maxLines - 1 && remaining.Length > 0)
+        line = line[..Math.Min(line.Length, MaxCharacters - 3)] + "...";
+      DrawTitleText(line, y + (index * 12), color, 2);
+    }
+  }
+
   public void Draw(Game game, int direction, double elapsed = Game.Step)
   {
+    if (game.Lives == 0 && game.AwaitingRestart)
+    {
+      DrawGameOver(game);
+      return;
+    }
+
     bool moving = !game.Paused && !game.Won && !game.IsDying && game.Lives > 0;
 
     if (moving)
