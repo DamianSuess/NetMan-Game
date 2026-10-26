@@ -28,6 +28,7 @@ public sealed class Game
   private readonly string[] _files;
   private readonly string[] _deathQuotes;
   private readonly string[] _flamethrowerQuotes;
+  private readonly string[] _gameOverQuotes;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private readonly List<GrowthHeart> _growthHearts = [];
   private readonly List<PoopPile> _poopPiles = [];
@@ -43,7 +44,7 @@ public sealed class Game
   private int _flameAnimationTicks;
 
   public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null,
-    string? flamethrowerQuotesPath = null, bool konamiCheat = false)
+    string? flamethrowerQuotesPath = null, bool konamiCheat = false, string? gameOverQuotesPath = null)
   {
     this._files = files;
     KonamiCheatEnabled = konamiCheat;
@@ -64,6 +65,14 @@ public sealed class Game
       : [];
     if (_flamethrowerQuotes.Length == 0)
       _flamethrowerQuotes = ["Light Em' If you Got Em!"];
+
+    gameOverQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "game-over-quotes.txt");
+    _gameOverQuotes = File.Exists(gameOverQuotesPath)
+      ? File.ReadAllLines(gameOverQuotesPath).Select(line => line.Trim())
+        .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
+      : [];
+    if (_gameOverQuotes.Length == 0)
+      _gameOverQuotes = ["Bet you wish you could rewind? Nope."];
 
     LoadLevel();
     ApplyCheatStart();
@@ -86,6 +95,7 @@ public sealed class Game
   internal EndCredits? Credits { get; private set; }
   public int DeathTicksRemaining { get; private set; }
   public string DeathQuote { get; private set; } = string.Empty;
+  public string GameOverQuote { get; private set; } = string.Empty;
   public int DamageTicksRemaining { get; private set; }
   public List<Enemy> Enemies { get; private set; } = [];
   public bool Grounded { get; private set; }
@@ -127,6 +137,9 @@ public sealed class Game
     if (!Paused && !Won && !IsDying && Lives > 0)
       _jumpBuffer = 0.12;
   }
+
+  // The level-start page replaces the short in-game transition delay.
+  internal void CompleteLevelStart() => _transition = 0;
 
   public void Restart()
   {
@@ -629,6 +642,8 @@ public sealed class Game
       return;
 
     Lives--;
+    if (Lives == 0)
+      GameOverQuote = _gameOverQuotes[Random.Shared.Next(_gameOverQuotes.Length)];
     HasFlamethrower = false;
     Flame = null;
     BurnTicksRemaining = 0;
@@ -684,6 +699,7 @@ public sealed class Game
     DeathTicksRemaining = 0;
     AwaitingRestart = false;
     DeathQuote = string.Empty;
+    GameOverQuote = string.Empty;
 
     Grounded = false;
     _jumpBuffer = _coyoteTime = 0;

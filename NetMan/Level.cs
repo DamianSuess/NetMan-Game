@@ -5,6 +5,15 @@ public sealed class Level
   private readonly char[,] _tiles;
 
   public string Name { get; }
+  public string DisplayName
+  {
+    get
+    {
+      int separator = Name.IndexOf('-');
+      string name = separator > 0 && Name[..separator].All(char.IsDigit) ? Name[(separator + 1)..] : Name;
+      return name.Replace('-', ' ').Replace('_', ' ');
+    }
+  }
   public BackgroundTheme Background { get; }
 
   public int Width => _tiles.GetLength(0);
