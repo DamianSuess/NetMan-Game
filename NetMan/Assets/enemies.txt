@@ -28,3 +28,9 @@ HopVelocity=15
 Speed=12
 PowerLevel=2
 HopVelocity=15
+
+; Ground-patrolling dog; leaves a poop pile every three seconds on solid ground.
+[Dog]
+Speed=2
+PowerLevel=1
+HopVelocity=0

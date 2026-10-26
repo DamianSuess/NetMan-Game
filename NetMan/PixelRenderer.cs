@@ -43,6 +43,11 @@ internal sealed class PixelRenderer
       "zombie-walk-1",
       "zombie-walk-2",
       "zombie-squashed",
+      "dog-walk-1",
+      "dog-walk-2",
+      "dog-squashed",
+      "poop",
+      "poop-screen-splatter",
       "grass",
       "dirt",
       "brick",
@@ -107,6 +112,7 @@ internal sealed class PixelRenderer
     DrawCreditsRunner($"toaster-cat-run-{animationFrame}", ticks, 140, -45, false, 224);
     DrawCreditsRunner((int)(title.Elapsed * 4) % 2 == 0 ? "enemy-idle" : "enemy-walk", ticks, 290, -24, false, 224);
     DrawCreditsRunner($"zombie-walk-{(int)(title.Elapsed * 3) % 2 + 1}", ticks, 380, -12, false, 224);
+    DrawCreditsRunner($"dog-walk-{animationFrame}", ticks, 110, -28, false, 224);
     Frame.Fill(0, 224, Width, 2, Gold);
     Frame.Fill(0, 226, Width, 14, Ink);
     const string Copyright = "© 2026 XENO INNOVATIONS, INC.";
@@ -166,6 +172,9 @@ internal sealed class PixelRenderer
       }
     }
 
+    foreach (var pile in game.PoopPiles)
+      Frame.Draw(_sprites["poop"], (pile.X * TileSize) - cameraX, HeaderHeight + (pile.Y * TileSize) - TileSize - cameraY);
+
     foreach (var effect in game.BlockBreakEffects)
     {
       var sprite = _sprites[effect.FrameIndex == 0 ? "brick-rubble" : "brick-dust"];
@@ -182,6 +191,7 @@ internal sealed class PixelRenderer
       string name = enemy.Kind switch
       {
         EnemyKind.Zombie => $"zombie-walk-{(int)(_animationTime * 3) % 2 + 1}",
+        EnemyKind.Dog => $"dog-walk-{(int)(_animationTime * 6) % 2 + 1}",
         EnemyKind.ToasterCat => Math.Abs(enemy.VelocityY) > 0.01 ? "toaster-cat-jump" : $"toaster-cat-run-{animationFrame + 1}",
         _ => animationFrame == 0 ? "enemy-idle" : "enemy-walk",
       };
@@ -194,6 +204,7 @@ internal sealed class PixelRenderer
       string name = enemy.Kind switch
       {
         EnemyKind.Zombie => "zombie-squashed",
+        EnemyKind.Dog => "dog-squashed",
         EnemyKind.ToasterCat => "toaster-cat-squashed",
         _ => "enemy-squashed",
       };
@@ -238,6 +249,9 @@ internal sealed class PixelRenderer
     }
 
     DrawHud(game);
+
+    if (game.PoopSplatterTicksRemaining > 0)
+      Frame.DrawTranslucent(_sprites["poop-screen-splatter"], (Width - 128) / 2, 64, 140);
 
     if (game.IsDying)
     {
@@ -290,6 +304,7 @@ internal sealed class PixelRenderer
     DrawCreditsRunner(animationFrame == 0 ? "enemy-walk" : "enemy-idle", game.CreditsTicks, 80, 54, true);
     DrawCreditsRunner($"toaster-cat-run-{animationFrame + 1}", game.CreditsTicks, 380, -50, false);
     DrawCreditsRunner($"zombie-walk-{game.CreditsTicks / 20 % 2 + 1}", game.CreditsTicks, 220, -20, false);
+    DrawCreditsRunner($"dog-walk-{animationFrame + 1}", game.CreditsTicks, 110, -28, false);
 
     if (game.Paused)
       PixelFont.Draw(Frame, "PAUSED", Width - 30, 4, Gold);

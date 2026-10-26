@@ -12,6 +12,9 @@ public sealed class Game
   public const int ExplosionFrameCount = 4;
   public const int ExplosionDurationTicks = ExplosionFrameTicks * ExplosionFrameCount;
   public const double Step = 1.0 / 60;
+  public const int PoopSlowDurationTicks = 300;
+  public const int PoopSplatterDurationTicks = 120;
+  public const double PoopSpeedMultiplier = 0.5;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
   private const double SpikeTipOffset = 3.0 / 16;
@@ -21,6 +24,7 @@ public sealed class Game
   private readonly string[] _deathQuotes;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private readonly List<GrowthHeart> _growthHearts = [];
+  private readonly List<PoopPile> _poopPiles = [];
   private readonly HashSet<(int Level, int X, int Y)> _collectedItems = [];
   private readonly HashSet<(int X, int Y)> _levelItems = [];
   private readonly string _creditsAssetsPath;
@@ -48,6 +52,10 @@ public sealed class Game
 
   public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
   public IReadOnlyList<GrowthHeart> GrowthHearts => _growthHearts;
+  public IReadOnlyList<PoopPile> PoopPiles => _poopPiles;
+  public int SlowTicksRemaining { get; private set; }
+  public int PoopSplatterTicksRemaining { get; private set; }
+  public double PlayerSpeed => PlayerSettings.Speed * (SlowTicksRemaining > 0 ? PoopSpeedMultiplier : 1);
   public int Coins { get; private set; }
   public PlayerCharacter Character { get; init; } = PlayerCharacter.Sam;
   public long RunTicks { get; private set; }
@@ -137,6 +145,9 @@ public sealed class Game
     if (!AwaitingRestart)
       RunTicks++;
 
+    if (PoopSplatterTicksRemaining > 0)
+      PoopSplatterTicksRemaining--;
+
     for (int i = _blockBreakEffects.Count - 1; i >= 0; i--)
     {
       var effect = _blockBreakEffects[i] with { AgeTicks = _blockBreakEffects[i].AgeTicks + 1 };
@@ -202,7 +213,13 @@ public sealed class Game
 
     double x = X, y = Y;
     double previousFeet = Y + PlayerHeight;
-    Move(ref x, ref y, Math.Clamp(direction, -1, 1) * PlayerSettings.Speed * Step, true, false, out _, PlayerHeight);
+    Move(ref x, ref y, Math.Clamp(direction, -1, 1) * PlayerSpeed * Step, true, false, out _, PlayerHeight);
+    if (SlowTicksRemaining > 0)
+    {
+      SlowTicksRemaining--;
+      if (SlowTicksRemaining == 0)
+        Message = "Back to full speed!";
+    }
 
     var vertical = VelocityY * Step;
     Move(ref x, ref y, vertical, false, true, out bool hitY, PlayerHeight);
@@ -301,6 +318,8 @@ public sealed class Game
       }
 
       enemy.X = ex; enemy.Y = ey;
+      if (enemy.Kind == EnemyKind.Dog && floor && enemyVertical > 0 && !stunned)
+        LeavePoop(enemy);
 
       if (ey > Level.Height + 2)
       {
@@ -326,6 +345,46 @@ public sealed class Game
         if (IsDying)
           return;
       }
+    }
+
+    StepInPoop();
+  }
+
+  private void LeavePoop(Enemy dog)
+  {
+    if (--dog.PoopTicksRemaining > 0)
+      return;
+
+    dog.PoopTicksRemaining = Enemy.PoopIntervalTicks;
+    int x = (int)Math.Floor(dog.X + (BodyWidth / 2) - (dog.Direction * 0.65));
+    int y = (int)Math.Round(dog.Y + dog.BodyHeight);
+    if (x >= 0 && x < Level.Width && Level.Solid(x, y) && !Level.Solid(x, y - 1))
+    {
+      var pile = new PoopPile(x, y);
+      if (!_poopPiles.Contains(pile))
+        _poopPiles.Add(pile);
+    }
+  }
+
+  private void StepInPoop()
+  {
+    for (int i = _poopPiles.Count - 1; i >= 0; i--)
+    {
+      var pile = _poopPiles[i];
+      if (!Level.Solid(pile.X, pile.Y))
+      {
+        _poopPiles.RemoveAt(i);
+        continue;
+      }
+
+      if (!Grounded || Math.Abs(Y + PlayerHeight - pile.Y) > 0.05
+        || X + BodyWidth <= pile.X + 0.15 || X >= pile.X + 0.85)
+        continue;
+
+      _poopPiles.RemoveAt(i);
+      SlowTicksRemaining = PoopSlowDurationTicks;
+      PoopSplatterTicksRemaining = PoopSplatterDurationTicks;
+      Message = "Oh crap! Slowed for 5 seconds";
     }
   }
 
@@ -463,6 +522,8 @@ public sealed class Game
     IsLarge = false;
     _growthPending = keepGrowth;
     _growthHearts.Clear();
+    _poopPiles.Clear();
+    SlowTicksRemaining = PoopSplatterTicksRemaining = 0;
     _facingDirection = 1;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
@@ -491,6 +552,7 @@ public sealed class Game
     Enemies = Level.EnemySpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Walker, _enemyConfiguration.Walker))
       .Concat(Level.ToasterCatSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.ToasterCat, _enemyConfiguration.ToasterCat)))
       .Concat(Level.ZombieSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y - (LargeBodyHeight - BodyHeight), EnemyKind.Zombie, _enemyConfiguration.Zombie)))
+      .Concat(Level.DogSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Dog, _enemyConfiguration.Dog)))
       .ToList();
     TryGrow();
   }

@@ -5,6 +5,7 @@ public sealed class Enemy
   public const int SquashDurationTicks = 60;
   public const int HopIntervalTicks = 24;
   public const int StompStunTicks = 20;
+  public const int PoopIntervalTicks = 180;
 
   public Enemy(double x, double y, EnemyKind kind = EnemyKind.Walker, EnemySettings? settings = null)
   {
@@ -15,6 +16,7 @@ public sealed class Enemy
     {
       EnemyKind.ToasterCat => EnemyConfiguration.DefaultToasterCat,
       EnemyKind.Zombie => EnemyConfiguration.DefaultZombie,
+      EnemyKind.Dog => EnemyConfiguration.DefaultDog,
       _ => EnemyConfiguration.DefaultWalker,
     });
     Health = Settings.PowerLevel;
@@ -30,6 +32,7 @@ public sealed class Enemy
   public int SquashTicksRemaining { get; private set; }
   internal int HopTicksRemaining { get; set; }
   internal int StunTicksRemaining { get; set; }
+  internal int PoopTicksRemaining { get; set; } = PoopIntervalTicks;
 
   internal void AdvanceSquash()
   {
