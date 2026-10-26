@@ -57,6 +57,7 @@ internal sealed class WindowsGameWindow : IGameWindow
   public bool Active => _focused && !_minimized;
 
   public bool AnyKeyPressed => _keyboard.AnyKeyPressed;
+  public IReadOnlyList<int> KeyPresses => _keyboard.KeyPresses;
 
   public bool Closed { get; private set; }
 

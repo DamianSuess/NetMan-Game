@@ -43,9 +43,10 @@ public sealed class Game
   private int _flameAnimationTicks;
 
   public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null,
-    string? flamethrowerQuotesPath = null)
+    string? flamethrowerQuotesPath = null, bool konamiCheat = false)
   {
     this._files = files;
+    KonamiCheatEnabled = konamiCheat;
     _enemyConfiguration = EnemyConfiguration.Load(enemySettingsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets", "enemies.txt"));
     _creditsAssetsPath = creditsAssetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     deathQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "death-quotes.txt");
@@ -65,6 +66,7 @@ public sealed class Game
       _flamethrowerQuotes = ["Light Em' If you Got Em!"];
 
     LoadLevel();
+    ApplyCheatStart();
   }
 
   public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
@@ -75,6 +77,7 @@ public sealed class Game
   public double PlayerSpeed => PlayerSettings.Speed * (SlowTicksRemaining > 0 ? PoopSpeedMultiplier : 1);
   public int Coins { get; private set; }
   public PlayerCharacter Character { get; init; } = PlayerCharacter.Sam;
+  public bool KonamiCheatEnabled { get; }
   public long RunTicks { get; private set; }
   public TimeSpan CompletionTime => TimeSpan.FromTicks(RunTicks * TimeSpan.TicksPerSecond / 60);
   public int TotalDeaths { get; private set; }
@@ -139,6 +142,19 @@ public sealed class Game
 
     Message = "Let's go!";
     LoadLevel();
+    ApplyCheatStart();
+  }
+
+  private void ApplyCheatStart()
+  {
+    if (!KonamiCheatEnabled)
+      return;
+
+    Lives = 30;
+    HasFlamethrower = true;
+    _growthPending = true;
+    TryGrow();
+    Message = "Konami code! 30 lives and fire!";
   }
 
   public bool ContinueAfterDeath()

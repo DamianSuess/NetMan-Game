@@ -4,8 +4,10 @@ internal sealed class GameKeyboard
 {
   private readonly HashSet<int> _held = [];
   private readonly HashSet<GameKey> _pressed = [];
+  private readonly List<int> _keyPresses = [];
 
   public bool AnyKeyPressed { get; private set; }
+  public IReadOnlyList<int> KeyPresses => _keyPresses;
 
   public bool Down(GameKey key) => _held.Any(code => MapKey(code) == key);
 
@@ -15,6 +17,7 @@ internal sealed class GameKeyboard
   {
     AnyKeyPressed = false;
     _pressed.Clear();
+    _keyPresses.Clear();
   }
 
   public void Clear()
@@ -29,6 +32,7 @@ internal sealed class GameKeyboard
       return;
 
     AnyKeyPressed = true;
+    _keyPresses.Add(code);
     if (MapKey(code) is { } key)
       _pressed.Add(key);
   }

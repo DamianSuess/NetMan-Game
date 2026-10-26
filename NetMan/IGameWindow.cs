@@ -18,6 +18,7 @@ internal interface IGameWindow : IDisposable
   bool Active { get; }
 
   bool AnyKeyPressed { get; }
+  IReadOnlyList<int> KeyPresses { get; }
 
   bool Closed { get; }
 

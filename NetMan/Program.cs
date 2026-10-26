@@ -67,10 +67,9 @@ try
       if (window.Active && window.Pressed(GameKey.Escape))
         break;
 
-      int selectionDirection = (window.Pressed(GameKey.Right) ? 1 : 0) - (window.Pressed(GameKey.Left) ? 1 : 0);
-      titleScreen.Update(elapsed, window.Pressed(GameKey.Start) || window.Pressed(GameKey.Jump), window.Active, selectionDirection);
+      titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
       if (!titleScreen.IsActive)
-        game = new Game(files) { Character = titleScreen.SelectedCharacter };
+        game = new Game(files, konamiCheat: titleScreen.KonamiCodeEnabled) { Character = titleScreen.SelectedCharacter };
       accumulator = 0;
       renderer.DrawTitle(titleScreen);
       window.Present(renderer.Frame);
