@@ -6,11 +6,13 @@ internal sealed class EnemyConfiguration
 {
   public static EnemySettings DefaultWalker { get; } = new(3, 1, 0);
   public static EnemySettings DefaultToasterCat { get; } = new(6, 2, 7);
+  public static EnemySettings DefaultZombie { get; } = new(1, 3, 0);
   public static PlayerSettings DefaultPlayerPowerLevel1 { get; } = new(12, 1, 15);
   public static PlayerSettings DefaultPlayerPowerLevel2 { get; } = new(12, 2, 15);
 
   public EnemySettings Walker { get; private set; } = DefaultWalker;
   public EnemySettings ToasterCat { get; private set; } = DefaultToasterCat;
+  public EnemySettings Zombie { get; private set; } = DefaultZombie;
   public PlayerSettings PlayerPowerLevel1 { get; private set; } = DefaultPlayerPowerLevel1;
   public PlayerSettings PlayerPowerLevel2 { get; private set; } = DefaultPlayerPowerLevel2;
 
@@ -29,7 +31,7 @@ internal sealed class EnemyConfiguration
       if (line.Length == 0 || line.StartsWith(';'))
         continue;
 
-      if (line is "[Walker]" or "[ToasterCat]" or "[Player.PowerLevel1]" or "[Player.PowerLevel2]")
+      if (line is "[Walker]" or "[ToasterCat]" or "[Zombie]" or "[Player.PowerLevel1]" or "[Player.PowerLevel2]")
       {
         section = line[1..^1];
         continue;
@@ -43,6 +45,7 @@ internal sealed class EnemyConfiguration
       {
         "Walker" => (config.Walker.Speed, config.Walker.PowerLevel, config.Walker.HopVelocity),
         "ToasterCat" => (config.ToasterCat.Speed, config.ToasterCat.PowerLevel, config.ToasterCat.HopVelocity),
+        "Zombie" => (config.Zombie.Speed, config.Zombie.PowerLevel, config.Zombie.HopVelocity),
         "Player.PowerLevel1" => (config.PlayerPowerLevel1.Speed, config.PlayerPowerLevel1.PowerLevel, config.PlayerPowerLevel1.HopVelocity),
         _ => (config.PlayerPowerLevel2.Speed, config.PlayerPowerLevel2.PowerLevel, config.PlayerPowerLevel2.HopVelocity),
       };
@@ -73,6 +76,9 @@ internal sealed class EnemyConfiguration
             break;
           case "ToasterCat":
             config.ToasterCat = new EnemySettings(speed, power, hop);
+            break;
+          case "Zombie":
+            config.Zombie = new EnemySettings(speed, power, hop);
             break;
           case "Player.PowerLevel1":
             config.PlayerPowerLevel1 = new PlayerSettings(speed, power, hop);

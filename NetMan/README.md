@@ -43,10 +43,13 @@ Each character is one tile. Rows run from top to bottom; columns run left to rig
 | `o` | Coin |
 | `E` | Walking enemy |
 | `C` | Toaster Cat; runs faster and hops |
+| `Z` | Tall, slow-walking zombie; place in its bottom tile with clear space above |
 | `^` | Spike; blocks sideways movement and is deadly only when landing on its tip from above |
 | `G` | Green goal flag; at least one per map |
 
 Toaster Cats appear from Level 2 onward. Their metal toaster bodies have toast, cat faces, paws, and tails. They run a little faster than ordinary enemies and hop between short ground runs. Edit `Assets/enemies.txt` and relaunch to balance both types independently: `Speed` is tiles per second (0-30), `PowerLevel` is enemy health (1-10), and `HopVelocity` is hop strength (0-20; zero disables hopping). Defaults are speed 3 / health 1 / no hopping for walkers and speed 6 / health 2 / hop strength 7 for Toaster Cats. A nonfatal stomp briefly stuns the enemy and bounces the player safely away. Defeating an enemy by stomping awards 200 points per power level; pit falls defeat enemies regardless of power. Enemies regain full health when a level reloads. Side contact keeps the existing shrink-or-die behavior.
+
+Zombies appear from Level 4 onward. They match the powered-up player in height, shuffle with outstretched arms, and have torn clothing and a dangling eyeball. Put `Z` in the bottom tile of their two-tile space, leaving the tile above clear. Their editable `[Zombie]` settings default to speed 1 tile per second, health 3, and no hopping. That means three small-player stomps or two large-player stomps by default. Their blood, skin, and clothing splatter lasts one second.
 
 Player settings are in the same file under `[Player.PowerLevel1]` (small) and `[Player.PowerLevel2]` (large). For each form, `Speed` controls running, `HopVelocity` controls jump takeoff, and `PowerLevel` controls stomp damage (1-10). Defaults are speed 12 and jump velocity 15 for both forms, with power 1 when small and power 2 when large. Each stomp subtracts the current player power from enemy health, so a default Toaster Cat needs two small-player stomps or one large-player stomp. Growing and shrinking immediately switch the active settings. The growth-heart overload limit remains unchanged.
 

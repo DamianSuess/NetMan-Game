@@ -11,6 +11,12 @@ Speed=6
 PowerLevel=2
 HopVelocity=7
 
+; Tall, slow shambler. No hopping by default.
+[Zombie]
+Speed=1
+PowerLevel=3
+HopVelocity=0
+
 ; Small form. These values apply before growth and after shrinking.
 [Player.PowerLevel1]
 Speed=12

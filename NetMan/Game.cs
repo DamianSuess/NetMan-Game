@@ -275,14 +275,14 @@ public sealed class Game
       bool stunned = enemy.StunTicksRemaining > 0;
       if (stunned)
         enemy.StunTicksRemaining--;
-      Move(ref ex, ref ey, stunned ? 0 : enemy.Direction * enemy.Settings.Speed * Step, true, false, out bool wall);
+      Move(ref ex, ref ey, stunned ? 0 : enemy.Direction * enemy.Settings.Speed * Step, true, false, out bool wall, enemy.BodyHeight);
 
       if (wall)
         enemy.Direction *= -1;
 
       enemy.VelocityY = Math.Min(enemy.VelocityY + 40 * Step, 28);
       double enemyVertical = enemy.VelocityY * Step;
-      Move(ref ex, ref ey, enemyVertical, false, false, out bool floor);
+      Move(ref ex, ref ey, enemyVertical, false, false, out bool floor, enemy.BodyHeight);
 
       if (floor)
       {
@@ -303,11 +303,11 @@ public sealed class Game
 
       if (ey > Level.Height + 2)
       {
-        enemy.Y = Level.Height - BodyHeight;
+        enemy.Y = Level.Height - enemy.BodyHeight;
         enemy.Squash();
       }
 
-      if (!enemy.Alive || !Overlaps(X, Y, PlayerHeight, ex, ey))
+      if (!enemy.Alive || !Overlaps(X, Y, PlayerHeight, ex, ey, enemy.BodyHeight))
         continue;
 
       if (vertical > 0 && Y + PlayerHeight - vertical <= ey + 0.25)
@@ -338,8 +338,8 @@ public sealed class Game
     }
   }
 
-  private static bool Overlaps(double ax, double ay, double height, double bx, double by) =>
-    ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + BodyHeight && ay + height > by;
+  private static bool Overlaps(double ax, double ay, double height, double bx, double by, double otherHeight = BodyHeight) =>
+    ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + otherHeight && ay + height > by;
 
   private void AdvanceGrowthHearts()
   {
@@ -489,6 +489,7 @@ public sealed class Game
 
     Enemies = Level.EnemySpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Walker, _enemyConfiguration.Walker))
       .Concat(Level.ToasterCatSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.ToasterCat, _enemyConfiguration.ToasterCat)))
+      .Concat(Level.ZombieSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y - (LargeBodyHeight - BodyHeight), EnemyKind.Zombie, _enemyConfiguration.Zombie)))
       .ToList();
     TryGrow();
   }
