@@ -44,6 +44,7 @@ internal sealed class GameKeyboard
     0x52 => GameKey.Restart,
     0x1B => GameKey.Escape,
     0x0D => GameKey.Start,
+    0x58 or 0x11 => GameKey.Fire,
     _ => null,
   };
 }

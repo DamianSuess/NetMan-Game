@@ -56,6 +56,12 @@ internal sealed class PixelRenderer
       "bonus",
       "heart-1",
       "heart-2",
+      "flamethrower",
+      "flamethrower-pickup",
+      "flame-1",
+      "flame-2",
+      "flame-3",
+      "flame-4",
       "used",
       "pipe",
       "pipe-small-top",
@@ -157,7 +163,7 @@ internal sealed class PixelRenderer
         {
           '#' => game.Level.Tile(x, y - 1) == '#' ? "dirt" : "grass",
           'B' => "brick",
-          '?' or 'M' => "bonus",
+          '?' or 'M' or 'F' => "bonus",
           'X' => "used",
           'P' => PipeSprite(game.Level, x, y),
           'p' => SkinnyPipeSprite(game.Level, x, y),
@@ -182,7 +188,7 @@ internal sealed class PixelRenderer
     }
 
     foreach (var heart in game.GrowthHearts)
-      DrawActor(_sprites[$"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
+      DrawActor(_sprites[heart.IsFlamethrower ? "flamethrower-pickup" : $"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
 
     int animationFrame = (int)(_animationTime * 9) % 2;
 
@@ -228,6 +234,29 @@ internal sealed class PixelRenderer
       DrawActor(_sprites[PlayerSprite(game.Character, "player-splatter")], game.X, game.Y, cameraX, cameraY, _facingLeft, true);
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
       DrawActor(_sprites[PlayerSprite(game.Character, playerFrame)], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
+
+    if (game.HasFlamethrower && !game.IsDying && (game.DamageTicksRemaining / 5) % 2 == 0)
+    {
+      int weaponX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - 8 - cameraX;
+      int weaponY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.65) * TileSize) - 8 - cameraY;
+      Frame.Draw(_sprites["flamethrower"], weaponX, weaponY, game.FacingDirection < 0);
+    }
+
+    if (game.Flame is { } flame)
+    {
+      var sprite = _sprites[$"flame-{flame.FrameIndex + 1}"];
+      int originX = (int)Math.Round(flame.X * TileSize) - cameraX;
+      int originY = HeaderHeight + (int)Math.Round(flame.Y * TileSize) - 8 - cameraY;
+      for (int distance = 0; distance < (int)(flame.Length * TileSize); distance++)
+      {
+        for (int y = 0; y < sprite.Height; y++)
+        {
+          uint color = sprite.Pixel(distance % TileSize, y);
+          if (color != 0)
+            Frame.Fill(originX + (flame.Direction > 0 ? distance : -distance - 1), originY + y, 1, 1, color);
+        }
+      }
+    }
 
     foreach (var popup in game.RewardPopups)
     {
@@ -478,6 +507,6 @@ internal sealed class PixelRenderer
     PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
 
     Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
-    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  P PAUSE  R RESTART  ESC QUIT", 8, Height - 9, White);
+    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  X/CTRL FIRE  P PAUSE  R RESTART  ESC QUIT", 8, Height - 9, White);
   }
 }

@@ -114,7 +114,7 @@ try
 
     while (accumulator >= Game.Step)
     {
-      game.Update(direction, !wasDying && window.Down(GameKey.Jump));
+      game.Update(direction, !wasDying && window.Down(GameKey.Jump), !wasDying && window.Down(GameKey.Fire));
       accumulator -= Game.Step;
     }
 
