@@ -101,10 +101,11 @@ internal sealed class PixelRenderer
 
   public PixelBuffer Frame { get; } = new(Width, Height);
 
-  public void DrawTitle(TitleScreen title)
+  public void DrawTitle(TitleScreen title, string updateStatus = "")
   {
     DrawBackground((int)(title.Elapsed * 10) % (Width * 4));
     Frame.OverlayBlack(100);
+    DrawTitleText(updateStatus, 12, White, 1);
     DrawTitleText("NETMAN", 34, Gold, 5, shadow: true);
     if (title.KonamiCodeEnabled)
       DrawTitleText("KONAMI CODE ACTIVATED - 30 LIVES", 72, Gold, 1);

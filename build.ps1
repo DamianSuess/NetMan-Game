@@ -7,7 +7,8 @@ Builds and packages NetMan as a size-optimized, trimmed Native AOT executable.
 Run on Windows with the .NET 10 SDK and Visual Studio's Desktop development
 with C++ workload installed. Paths are based on this script, not the current
 directory. The first three FileVersion components determine the archive name.
-Output: Publish/NetMan-vX.Y.Z/ and Publish/NetMan-vX.Y.Z.zip.
+Output: Publish/NetMan-vX.Y.Z/, Publish/NetMan-vX.Y.Z.zip, and
+Publish/Velopack/<runtime>/ containing the installer, update feed, and packages.
 .EXAMPLE
 .\build.ps1
 .EXAMPLE
@@ -22,6 +23,8 @@ param(
   [string]$Runtime = 'win-x64',
 
   [switch]$SkipTests,
+
+  [switch]$SkipInstaller,
 
   [switch]$Run
 )
@@ -108,16 +111,21 @@ if ($fileVersion -notmatch '^\d+\.\d+\.\d+(\.\d+)?$')
 }
 
 $versionParts = $fileVersion.Split('.')
+. (Join-Path $PSScriptRoot 'scripts/Get-PackageVersion.ps1')
+$packageVersion = Get-NetManPackageVersion -FileVersion $fileVersion
 $releaseName = 'NetMan-v' + ($versionParts[0..2] -join '.')
 $releasePath = Join-Path $publishRoot $releaseName
 $archivePath = Join-Path $publishRoot ($releaseName + '.zip')
 $stagingRoot = Join-Path $publishRoot ('.staging-' + [Guid]::NewGuid().ToString('N'))
 $payloadPath = Join-Path $stagingRoot $releaseName
 $stagedArchive = Join-Path $stagingRoot ($releaseName + '.zip')
+$stagedInstaller = Join-Path $stagingRoot 'Velopack'
+$installerPath = Join-Path $publishRoot ("Velopack/" + $Runtime)
 $executableName = [string]$metadata.Properties.AssemblyName + '.exe'
 Assert-PublishChild $releasePath
 Assert-PublishChild $archivePath
 Assert-PublishChild $stagingRoot
+Assert-PublishChild $installerPath
 
 Write-Host "Building $releaseName for $Runtime..."
 Invoke-DotNet -Arguments @('build', $projectPath, '--configuration', 'Release', '--nologo')
@@ -195,6 +203,31 @@ try
     Remove-Item -LiteralPath $symbol.FullName -Force
   }
 
+  if (-not $SkipInstaller)
+  {
+    Push-Location $PSScriptRoot
+    try
+    {
+      Invoke-DotNet -Arguments @('tool', 'restore', '--tool-manifest', (Join-Path $PSScriptRoot '.config/dotnet-tools.json'))
+      # Native AOT has no managed entry-point metadata for vpk to inspect. The application
+      # calls VelopackApp.Run before normal startup; verify its fast-exit hook in native smoke tests.
+      Invoke-DotNet -Arguments @('tool', 'run', 'vpk', '--', 'pack',
+        '--packId', 'SuessLabs.NetMan', '--packTitle', 'NetMan',
+        '--packAuthors', 'Damian Suess, Xeno Innovations, (DBA) Suess Labs',
+        '--packVersion', $packageVersion, '--packDir', $payloadPath,
+        '--mainExe', $executableName, '--runtime', $Runtime,
+        '--channel', $Runtime, '--outputDir', $stagedInstaller, '--skipVeloAppCheck')
+    }
+    finally
+    {
+      Pop-Location
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $stagedInstaller ("releases." + $Runtime + '.json'))))
+    {
+      throw 'Velopack did not produce the expected update feed.'
+    }
+  }
+
   # Include one top-level versioned directory, ready to extract and run.
   Compress-Archive -LiteralPath $payloadPath -DestinationPath $stagedArchive -CompressionLevel Optimal
 
@@ -213,6 +246,18 @@ try
 
   Move-Item -LiteralPath $payloadPath -Destination $releasePath
   Move-Item -LiteralPath $stagedArchive -Destination $archivePath
+  if (-not $SkipInstaller)
+  {
+    if (Test-Path -LiteralPath $installerPath)
+    {
+      Assert-PublishChild $installerPath
+      Remove-Item -LiteralPath $installerPath -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path (Split-Path $installerPath -Parent) -Force | Out-Null
+    Move-Item -LiteralPath $stagedInstaller -Destination $installerPath
+    Write-Host "Velopack $packageVersion release assets: $installerPath"
+    Write-Host 'Upload all files in that directory as assets of the same GitHub Release.'
+  }
   $archive = Get-Item -LiteralPath $archivePath
   $executable = Get-Item -LiteralPath (Join-Path $releasePath $executableName)
   Write-Host ("Native executable: {0:N2} MB" -f ($executable.Length / 1MB))
@@ -231,5 +276,5 @@ finally
 if ($Run)
 {
   Write-Host "Launching $releaseName..."
-  Start-Process -FilePath (Join-Path $releasePath $executableName) -WorkingDirectory $releasePath
+  Start-Process -FilePath (Join-Path $releasePath $executableName) -WorkingDirectory $releasePath -WindowStyle Hidden
 }

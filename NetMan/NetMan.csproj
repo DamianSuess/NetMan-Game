@@ -20,9 +20,13 @@
     <InternalsVisibleTo Include="NetMan.Tests" />
     <Content Include="Levels\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ThirdPartyNotices.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(NetManDistribution)' == 'true'">
     <Compile Remove="ArtExporter.cs" />
     <Content Update="Assets\Previews\**\*;Assets\README.md" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="1.2.158" />
   </ItemGroup>
 </Project>

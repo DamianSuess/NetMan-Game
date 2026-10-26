@@ -1,8 +1,11 @@
 using System.Diagnostics;
 using NetMan;
+using Velopack;
 
 try
 {
+  VelopackApp.Build().Run();
+
 #if !NETMAN_DISTRIBUTION
   int exportOption = Array.IndexOf(args, "--export-art");
 
@@ -20,7 +23,27 @@ try
   if (!OperatingSystem.IsWindows())
     throw new PlatformNotSupportedException("NetMan currently has a Windows backend. Its game and pixel renderer are portable; other window backends can be added later.");
 
-  var levelsPath = Path.Combine(AppContext.BaseDirectory, "Levels");
+  using var updates = new AppUpdates(new VelopackUpdateBackend(), exception =>
+  {
+    try
+    {
+      string logs = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NetMan", "Logs");
+      Directory.CreateDirectory(logs);
+      File.AppendAllText(Path.Combine(logs, "updates.log"), $"{DateTimeOffset.UtcNow:u} {exception}\n");
+    }
+    catch (Exception logError) when (logError is IOException or UnauthorizedAccessException)
+    {
+      // An unavailable log folder must not prevent offline play.
+    }
+  });
+  string contentRoot = AppContext.BaseDirectory;
+  if (updates.IsInstalled)
+  {
+    contentRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NetMan", "Content");
+    UserContent.Synchronize(AppContext.BaseDirectory, contentRoot);
+  }
+  string assetsPath = Path.Combine(contentRoot, "Assets");
+  var levelsPath = Path.Combine(contentRoot, "Levels");
   var option = Array.IndexOf(args, "--levels");
 
   if (option >= 0)
@@ -40,13 +63,19 @@ try
   foreach (var file in files)
     Level.Load(file);
 
-  var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
-  var game = new Game(files);
+  Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam) => new(files,
+    deathQuotesPath: Path.Combine(assetsPath, "death-quotes.txt"), creditsAssetsPath: assetsPath,
+    enemySettingsPath: Path.Combine(assetsPath, "enemies.txt"),
+    flamethrowerQuotesPath: Path.Combine(assetsPath, "flamethrower-quotes.txt"), konamiCheat: cheat,
+    gameOverQuotesPath: Path.Combine(assetsPath, "game-over-quotes.txt")) { Character = character };
+  var renderer = new PixelRenderer(assetsPath);
+  var game = CreateGame();
   var titleScreen = new TitleScreen();
-  var levelStart = new LevelStartScreen(Path.Combine(AppContext.BaseDirectory, "Assets", "uncle-quotes.txt"));
+  var levelStart = new LevelStartScreen(Path.Combine(assetsPath, "uncle-quotes.txt"));
   Level? presentedLevel = null;
 
   using IGameWindow window = new WindowsGameWindow(PixelRenderer.Width, PixelRenderer.Height);
+  _ = Task.Run(updates.CheckAsync);
 
   var clock = Stopwatch.StartNew();
   double previous = clock.Elapsed.TotalSeconds;
@@ -66,14 +95,16 @@ try
 
     if (titleScreen.IsActive)
     {
+      if (window.Active && updates.TryScheduleApply(restart: true, args))
+        break;
       if (window.Active && window.Pressed(GameKey.Escape))
         break;
 
       titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
       if (!titleScreen.IsActive)
-        game = new Game(files, konamiCheat: titleScreen.KonamiCodeEnabled) { Character = titleScreen.SelectedCharacter };
+        game = CreateGame(titleScreen.KonamiCodeEnabled, titleScreen.SelectedCharacter);
       accumulator = 0;
-      renderer.DrawTitle(titleScreen);
+      renderer.DrawTitle(titleScreen, updates.Status);
       window.Present(renderer.Frame);
       Thread.Sleep(16);
       continue;
@@ -152,6 +183,7 @@ try
     window.Present(renderer.Frame);
     Thread.Sleep(16);
   }
+  updates.TryScheduleApply(restart: false, args);
 }
 catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException
   or PlatformNotSupportedException or System.ComponentModel.Win32Exception)
