@@ -9,7 +9,7 @@ namespace NetMan.Tests;
 public sealed class FlamethrowerTests : GameTestBase
 {
   [TestMethod]
-  public void WeaponBlockReleasesCollectibleAndEquipsSecondTier()
+  public void SmallPlayerCannotCollectFlamethrowerOrGrowFromIt()
   {
     var game = CreateGame();
     Tick(game, 10);
@@ -21,12 +21,21 @@ public sealed class FlamethrowerTests : GameTestBase
     Assert.IsFalse(game.HasFlamethrower);
     Assert.AreEqual(0, game.Score);
     TouchHeart(game);
-    Tick(game, 60);
-    Assert.IsTrue(game.HasFlamethrower);
-    Assert.IsTrue(game.IsLarge);
+    Assert.IsFalse(game.HasFlamethrower);
+    Assert.IsFalse(game.IsLarge);
+    Assert.HasCount(1, game.GrowthHearts);
+    Assert.AreEqual(0, game.Score);
+    game.Update(0, false, true);
+    Assert.IsNull(game.Flame);
+  }
+
+  [TestMethod]
+  public void LargePlayerCanCollectFlamethrowerAsSecondTier()
+  {
+    var game = Arm();
     Assert.AreEqual(2, game.PowerUpLevel);
     Assert.AreEqual(game.PlayerPowerLevel + 1, game.FlameDamage);
-    Assert.AreEqual(100, game.Score);
+    Assert.AreEqual(200, game.Score);
   }
 
   [TestMethod]
@@ -36,10 +45,10 @@ public sealed class FlamethrowerTests : GameTestBase
   {
     var game = Arm(character);
     var near = AddEnemy(game, 3, 10);
-    var far = AddEnemy(game, 7, 10);
+    var far = AddEnemy(game, 5, 10);
     game.Update(0, false, true);
     Assert.IsNotNull(game.Flame);
-    Assert.AreEqual(4, game.Flame.Length);
+    Assert.AreEqual(3, game.Flame.Length);
     Assert.AreEqual(7, near.Health);
     Assert.AreEqual(10, far.Health);
     Assert.AreEqual(0, game.Flame.FrameIndex);
@@ -65,7 +74,7 @@ public sealed class FlamethrowerTests : GameTestBase
     game.Update(0, false, true);
     Assert.IsFalse(enemy.Alive);
     Assert.AreEqual(Enemy.SquashDurationTicks, enemy.SquashTicksRemaining);
-    Assert.AreEqual(2100, game.Score);
+    Assert.AreEqual(2200, game.Score);
   }
 
   [TestMethod]
@@ -145,7 +154,7 @@ public sealed class FlamethrowerTests : GameTestBase
       var sprite = Sprite.Load(Path.Combine(assets, $"flame-{frameIndex + 1}.sprite"), palette);
       int left = (int)Math.Round(flame.X * 16);
       int top = 28 + (int)Math.Round(flame.Y * 16) - 8;
-      for (int distance = 0; distance < 64; distance++)
+      for (int distance = 0; distance < 48; distance++)
         for (int y = 0; y < 16; y++)
           if (sprite.Pixel(distance % 16, y) != 0)
             Assert.AreEqual(sprite.Pixel(distance % 16, y), renderer.Frame.Pixels[((top + y) * PixelRenderer.Width) + left + distance]);
@@ -158,7 +167,7 @@ public sealed class FlamethrowerTests : GameTestBase
   public void ExtraWeaponPickupCausesTheExistingPowerOverload()
   {
     Map("........................", "........................", "........................",
-      "........................", "........................", ".FF.....................",
+      "........................", "........................", ".FF.M...................",
       "........................", ".S....................G.", "########################");
     var game = ArmGame(new Game([LevelPath]));
     Tick(game, 5, 1);
@@ -208,7 +217,7 @@ public sealed class FlamethrowerTests : GameTestBase
 
   private Game CreateGame() => Map(
     "........................", "........................", "........................",
-    "........................", "........................", ".F......................",
+    "........................", "........................", ".F..M...................",
     "........................", ".S....................G.", "########################");
 
   private Game Arm(PlayerCharacter character = PlayerCharacter.Sam)
@@ -220,11 +229,20 @@ public sealed class FlamethrowerTests : GameTestBase
   private static Game ArmGame(Game game)
   {
     Tick(game, 10);
+    Tick(game, 15, 1);
+    game.QueueJump();
+    Tick(game, 30, jump: true);
+    TouchHeart(game);
+    Tick(game, 60);
+    Assert.IsTrue(game.IsLarge);
+    Assert.IsFalse(game.HasFlamethrower);
+    Tick(game, 15, -1);
     game.QueueJump();
     Tick(game, 30, jump: true);
     TouchHeart(game);
     Tick(game, 60);
     Assert.IsTrue(game.HasFlamethrower);
+    game.Update(1, false);
     return game;
   }
 

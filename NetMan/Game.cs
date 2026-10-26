@@ -15,7 +15,7 @@ public sealed class Game
   public const int PoopSlowDurationTicks = 300;
   public const int PoopSplatterDurationTicks = 120;
   public const double PoopSpeedMultiplier = 0.5;
-  public const double FlameRange = 4;
+  public const double FlameRange = 3;
   public const int FlameDamageIntervalTicks = 18;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
@@ -366,7 +366,7 @@ public sealed class Game
   {
     if (_flameDamageTicks > 0)
       _flameDamageTicks--;
-    if (!HasFlamethrower || !fireHeld)
+    if (!HasFlamethrower || !IsLarge || !fireHeld)
     {
       _flameAnimationTicks = 0;
       return;
@@ -490,6 +490,9 @@ public sealed class Game
       if (!Overlaps(X, Y, PlayerHeight, heart.X, heart.Y))
         continue;
 
+      if (heart.IsFlamethrower && !IsLarge)
+        continue;
+
       _growthHearts.RemoveAt(i);
       if (heart.SourceX >= 0 && heart.SourceY >= 0)
         _collectedItems.Add((_levelIndex, heart.SourceX, heart.SourceY));
@@ -503,8 +506,6 @@ public sealed class Game
         }
 
         HasFlamethrower = true;
-        if (!IsLarge)
-          _growthPending = true;
         Message = "Flamethrower! Hold X or CTRL";
         continue;
       }
