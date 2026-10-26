@@ -29,3 +29,4 @@
   * Enhanced level designer
   * Sloped ramps to walk up/down
 * Save game stats (sqlite?)
+* (Squirrel) Installer

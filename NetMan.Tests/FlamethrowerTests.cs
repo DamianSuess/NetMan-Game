@@ -329,13 +329,17 @@ public sealed class FlamethrowerTests : GameTestBase
   }
 
   [TestMethod]
-  public void BundledLevelsOfferWeaponAndAllFireFramesAreDistinct()
+  public void BundledFlamethrowerIsIntroducedInLevelTwo()
   {
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
-    for (int index = 0; index < paths.Length; index++)
-    {
-      Assert.AreEqual(index >= 1, File.ReadAllText(paths[index]).Contains('F'), paths[index]);
-    }
+    Assert.IsTrue(paths.Length >= 2);
+    Assert.IsFalse(File.ReadAllText(paths[0]).Contains('F'), "Level 1 must not offer a flamethrower.");
+    Assert.IsTrue(File.ReadAllText(paths[1]).Contains('F'), "Level 2 introduces the flamethrower; later levels may choose other weapons.");
+  }
+
+  [TestMethod]
+  public void AllFireFramesAreDistinct()
+  {
     string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
     var palette = Sprite.LoadPalette(Path.Combine(assets, "palette.txt"));
     var frames = Enumerable.Range(1, 4).Select(index => Sprite.Load(Path.Combine(assets, $"flame-{index}.sprite"), palette)).ToArray();

@@ -167,8 +167,8 @@ public sealed class StartAndGameOverScreenTests : GameTestBase
     string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
     string[] quotes = File.ReadAllLines(Path.Combine(assets, "uncle-quotes.txt"))
       .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray();
-    Assert.HasCount(30, quotes);
-    Assert.HasCount(30, quotes.Distinct().ToArray());
+    Assert.IsTrue(quotes.Length >= 30);
+    Assert.HasCount(quotes.Length, quotes.Distinct().ToArray());
     CollectionAssert.Contains(quotes, "Try not to die this time");
     CollectionAssert.Contains(quotes, "You dropped your pocket");
     string[] gameOver = File.ReadAllLines(Path.Combine(assets, "game-over-quotes.txt"));

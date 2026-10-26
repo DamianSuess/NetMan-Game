@@ -49,7 +49,7 @@ public sealed class Enemy
 
   internal bool Hit(int damage)
   {
-    if (damage is < 1 or > 11)
+    if (damage is < 1 or > 12)
       throw new ArgumentOutOfRangeException(nameof(damage));
 
     if (!Alive)
