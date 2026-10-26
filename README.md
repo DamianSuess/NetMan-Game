@@ -6,6 +6,8 @@ Active development lives in [NetMan](NetMan/README.md), a .NET pixel-art platfor
 
 ![Player collecting an extra heart and exploding](Docs/Player-Explosion.gif)
 
+![Graveyard Shift](Docs/Level-Graveyard.png)
+
 From this repository folder, run:
 
 ```powershell
