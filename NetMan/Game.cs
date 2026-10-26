@@ -49,6 +49,7 @@ public sealed class Game
   public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
   public IReadOnlyList<GrowthHeart> GrowthHearts => _growthHearts;
   public int Coins { get; private set; }
+  public PlayerCharacter Character { get; init; } = PlayerCharacter.Sam;
   public long RunTicks { get; private set; }
   public TimeSpan CompletionTime => TimeSpan.FromTicks(RunTicks * TimeSpan.TicksPerSecond / 60);
   public int TotalDeaths { get; private set; }

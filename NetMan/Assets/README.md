@@ -20,7 +20,7 @@ KTTK
 .KK.
 ```
 
-Colors use six hexadecimal RGB digits, such as `A=57C4B0`. The shared palette has 18 colors. Editing it changes every sprite that uses that symbol. The loader reports invalid dimensions, missing rows, and unknown colors at startup. Sprites may be up to 128 x 128, although tiles should remain 16 x 16 to match the map grid. Normal character and tile checks expect 16 x 16, enlarged player frames expect 16 x 32, overload explosion frames expect 64 x 64, both player and enemy death effects are 24 x 16, and the reward popup can use other dimensions.
+Colors use six hexadecimal RGB digits, such as `A=57C4B0`. The shared palette has 22 colors. Editing it changes every sprite that uses that symbol. The loader reports invalid dimensions, missing rows, and unknown colors at startup. Sprites may be up to 128 x 128, although tiles should remain 16 x 16 to match the map grid. Normal character and tile checks expect 16 x 16, enlarged player frames expect 16 x 32, overload explosion frames expect 64 x 64, both player and enemy death effects are 24 x 16, and the reward popup can use other dimensions.
 
 Player files: `player-idle.sprite`, `player-run-1.sprite`, `player-run-2.sprite`, `player-jump.sprite`.
 
@@ -84,3 +84,5 @@ dotnet run -- --export-art Assets/Previews
 `sprite-sheet.png` shows all sprites in alphabetical filename order, numbered from 1. `game-preview.png` is a frame produced by the same renderer used in the game window. PNG exports use only .NET compression, with no image library dependency.
 
 Player balancing is also in `enemies.txt` under `[Player.PowerLevel1]` (small) and `[Player.PowerLevel2]` (large). Each has `Speed`, `PowerLevel`, and `HopVelocity`. Player power is stomp damage, running speed uses tiles per second, and hop velocity controls normal jump takeoff. Small power defaults to 1 and large power to 2; both forms keep speed 12 and jump velocity 15. Thus a default Toaster Cat (health 2) takes two small-player stomps or one large-player stomp. Settings switch when growing or shrinking, and files without player sections retain these defaults.
+
+Ella files: `ella-idle.sprite`, `ella-run-1.sprite`, `ella-run-2.sprite`, and `ella-jump.sprite` are editable 16 x 16 images. Their `ella-large-*` variants are 16 x 32. Ella wears purple with a ponytail; palette symbols P/Q/U/J provide purple shades. Her separate `ella-splatter.sprite` and `ella-explosion-1.sprite` through `ella-explosion-4.sprite` mix purple clothing with the existing blood colors. Select Ella on the title screen with A/D or Left/Right, then press Enter or Space. Sam keeps the original `player-*` files. Both characters share physics and power settings.

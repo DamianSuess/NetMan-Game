@@ -9,6 +9,23 @@ namespace NetMan.Tests;
 public sealed class TitleScreenTests
 {
   [TestMethod]
+  public void PlayerSelectionRespondsToDirectionAndLocksAfterStarting()
+  {
+    var title = new TitleScreen();
+    Assert.AreEqual(PlayerCharacter.Sam, title.SelectedCharacter);
+    title.Update(0, false, true, 1);
+    Assert.AreEqual(PlayerCharacter.Ella, title.SelectedCharacter);
+    title.Update(0, false, false, -1);
+    Assert.AreEqual(PlayerCharacter.Ella, title.SelectedCharacter);
+    title.Update(0, false, true, -1);
+    Assert.AreEqual(PlayerCharacter.Sam, title.SelectedCharacter);
+    title.Update(0, true, true, 1);
+    Assert.AreEqual(PlayerCharacter.Ella, title.SelectedCharacter);
+    title.Update(0, false, true, -1);
+    Assert.AreEqual(PlayerCharacter.Ella, title.SelectedCharacter);
+  }
+
+  [TestMethod]
   public void TitleWaitsForStartAndFreezesWhenUnfocused()
   {
     var title = new TitleScreen();

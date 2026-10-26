@@ -17,3 +17,9 @@ L=82BD58
 V=C1DC79
 E=E83B3B
 F=981D3B
+
+; Ella's purple clothing and hair.
+P=8745B5
+Q=C58AE8
+U=61338B
+J=3B215C

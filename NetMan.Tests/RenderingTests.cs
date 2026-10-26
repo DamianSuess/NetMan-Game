@@ -132,7 +132,7 @@ public sealed class RenderingTests
     foreach (string file in Directory.GetFiles(assets, "*.sprite"))
     {
       var asset = Sprite.Load(file, gamePalette);
-      bool validSize = Path.GetFileName(file) switch
+      bool validSize = Path.GetFileName(file).Replace("ella-", "player-", StringComparison.Ordinal) switch
       {
         "player-splatter.sprite" => asset.Width == 24 && asset.Height == 16,
         "enemy-squashed.sprite" => asset.Width == 24 && asset.Height == 16,
