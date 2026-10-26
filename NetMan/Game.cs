@@ -20,7 +20,7 @@ public sealed class Game
   public const int FlameMaxDurationTicks = 120;
   public const int BurnDurationTicks = 180;
   public const int FlamethrowerQuoteDurationTicks = 180;
-  public const double ShotgunRange = 4;
+  public const double ShotgunRange = 3;
   public const int ShotgunReloadTicks = 30;
   public const int BoomStickQuoteDurationTicks = 180;
   public const string BoomStickPickupQuote = "This here is my BOOM STICK!";
@@ -694,10 +694,10 @@ public sealed class Game
     {
       HasBoomStick = false;
       BoomStickQuoteTicksRemaining = 0;
-      HasFlamethrower = true;
+      HasFlamethrower = false;
       ShotgunBlast = null;
       DamageTicksRemaining = DamageProtectionTicks;
-      Message = "Lost Boom-Stick! Back to fire!";
+      Message = "Lost Boom-Stick! Keep moving!";
       return;
     }
 

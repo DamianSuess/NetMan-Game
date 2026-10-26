@@ -20,6 +20,43 @@ public sealed class BoomStickTests : GameTestBase
   }
 
   [TestMethod]
+  [DataRow("06-ruins-crossing.txt")]
+  [DataRow("07-brick-summit.txt")]
+  public void LaterLevelShotgunBlocksCanBeHitFromUnderneath(string filename)
+  {
+    string source = Path.Combine(AppContext.BaseDirectory, "Levels", filename);
+    var level = Level.Load(source);
+    var blocks = Enumerable.Range(0, level.Height).SelectMany(y => Enumerable.Range(0, level.Width)
+      .Where(x => level.Tile(x, y) == 'Q').Select(x => (X: x, Y: y))).ToArray();
+    Assert.HasCount(1, blocks);
+    var block = blocks[0];
+    Assert.AreEqual('.', level.Tile(block.X, block.Y + 1));
+    Assert.AreEqual('.', level.Tile(block.X, block.Y + 2));
+    Assert.AreEqual('.', level.Tile(block.X, block.Y + 3));
+    Assert.IsTrue(level.Solid(block.X, block.Y + 4));
+
+    // Keep the actual level geometry, but start underneath the block to isolate jump reachability.
+    string[] rows = File.ReadAllLines(source);
+    int mapStart = rows.Length - level.Height;
+    for (int y = mapStart; y < rows.Length; y++)
+      rows[y] = rows[y].Replace('S', '.');
+    char[] spawnRow = rows[mapStart + block.Y + 3].ToCharArray();
+    spawnRow[block.X] = 'S';
+    rows[mapStart + block.Y + 3] = new string(spawnRow);
+    File.WriteAllLines(LevelPath, rows);
+    var game = new Game([LevelPath], konamiCheat: true);
+    game.Enemies.Clear();
+    Tick(game, 10);
+    game.QueueJump();
+    for (int tick = 0; tick < 60 && game.Level.Tile(block.X, block.Y) == 'Q'; tick++)
+      game.Update(0, true);
+    Assert.AreEqual('X', game.Level.Tile(block.X, block.Y));
+    Assert.IsTrue(game.GrowthHearts.Any(item => item.IsBoomStick));
+    TouchHeart(game);
+    Assert.IsTrue(game.HasBoomStick);
+  }
+
+  [TestMethod]
   public void PickupShowsBoomStickQuoteForThreeSecondsAndPauseFreezesIt()
   {
     CreateGame();
@@ -78,7 +115,7 @@ public sealed class BoomStickTests : GameTestBase
   [TestMethod]
   [DataRow(PlayerCharacter.Sam)]
   [DataRow(PlayerCharacter.Ella)]
-  public void LargePlayersCollectShotgunAndHitOnlyWithinFourTiles(PlayerCharacter character)
+  public void LargePlayersCollectShotgunAndHitOnlyWithinThreeTiles(PlayerCharacter character)
   {
     var game = Arm(character);
     Assert.IsTrue(game.HasBoomStick);
@@ -86,10 +123,10 @@ public sealed class BoomStickTests : GameTestBase
     Assert.AreEqual(3, game.PowerUpLevel);
     Assert.AreEqual(game.FlameDamage + 1, game.ShotgunDamage);
     var near = AddEnemy(game, 3, 10);
-    var far = AddEnemy(game, 6.2, 10);
+    var far = AddEnemy(game, 5.2, 10);
     game.Update(0, false, true);
     Assert.IsNotNull(game.ShotgunBlast);
-    Assert.AreEqual(4, game.ShotgunBlast.Length);
+    Assert.AreEqual(3, game.ShotgunBlast.Length);
     Assert.AreEqual(6, near.Health);
     Assert.AreEqual(10, far.Health);
     Assert.IsNull(game.Flame);
@@ -99,8 +136,8 @@ public sealed class BoomStickTests : GameTestBase
   public void ShotPassesThroughBricksAndLeavesExistingRubbleAnimation()
   {
     var game = Arm();
-    Tick(game, 10, 1);
-    var enemy = AddEnemy(game, 7.2, 10);
+    Tick(game, 11, 1);
+    var enemy = AddEnemy(game, 7, 10);
     game.Update(0, false, true);
     Assert.AreEqual('.', game.Level.Tile(6, 7));
     Assert.AreEqual('.', game.Level.Tile(7, 7));
@@ -119,7 +156,7 @@ public sealed class BoomStickTests : GameTestBase
   public void SolidWallsStopTheShotAndProtectBricksAndEnemiesBehindThem()
   {
     var game = Arm();
-    Tick(game, 10, 1);
+    Tick(game, 11, 1);
     game.Level.UseBlock(7, 7);
     var enemy = AddEnemy(game, 7.3, 10);
     game.Update(0, false, true);
@@ -192,7 +229,7 @@ public sealed class BoomStickTests : GameTestBase
     var sprite = Sprite.Load(Path.Combine(assets, $"shotgun-blast-{blast.FrameIndex + 1}.sprite"), palette);
     int left = (int)Math.Round(blast.X * 16);
     int top = 28 + (int)Math.Round(blast.Y * 16) - 8;
-    for (int distance = 0; distance < 64; distance++)
+    for (int distance = 0; distance < 48; distance++)
       for (int y = 0; y < 16; y++)
         if (sprite.Pixel(distance % 16, y) != 0)
           Assert.AreEqual(sprite.Pixel(distance % 16, y), renderer.Frame.Pixels[((top + y) * PixelRenderer.Width) + left + distance]);
@@ -202,15 +239,15 @@ public sealed class BoomStickTests : GameTestBase
   }
 
   [TestMethod]
-  public void DamageDowngradesShotgunToFlamethrowerAndRestartClearsIt()
+  public void DamageRemovesShotgunWithoutGrantingFlamethrowerAndKeepsPlayerLarge()
   {
     var game = Arm();
     game.Enemies.Add(new Enemy(game.X, game.Y, settings: new EnemySettings(0, 1, 0)) { Direction = 0 });
     game.Update(0, false);
     Assert.IsFalse(game.HasBoomStick);
-    Assert.IsTrue(game.HasFlamethrower);
+    Assert.IsFalse(game.HasFlamethrower);
     Assert.IsTrue(game.IsLarge);
-    Assert.AreEqual(2, game.PowerUpLevel);
+    Assert.AreEqual(1, game.PowerUpLevel);
     Assert.AreEqual(3, game.Lives);
     game.Restart();
     Assert.IsFalse(game.HasBoomStick);
