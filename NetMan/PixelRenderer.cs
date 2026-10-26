@@ -380,7 +380,9 @@ internal sealed class PixelRenderer
       Frame.DrawTranslucent(_sprites["poop-screen-splatter"], (Width - 128) / 2, 64, 140);
 
     if (!game.IsDying && game.FlamethrowerQuoteTicksRemaining > 0)
-      DrawFlamethrowerQuote(game.FlamethrowerQuote);
+      DrawWeaponQuote(game.FlamethrowerQuote, "FLAMETHROWER!");
+    if (!game.IsDying && game.BoomStickQuoteTicksRemaining > 0)
+      DrawWeaponQuote(game.BoomStickQuote, "BOOM-STICK!");
 
     if (game.IsDying)
     {
@@ -406,7 +408,7 @@ internal sealed class PixelRenderer
     }
   }
 
-  private void DrawFlamethrowerQuote(string quote)
+  private void DrawWeaponQuote(string quote, string title)
   {
     const int MaxCharacters = 42;
     var lines = new List<string>();
@@ -429,7 +431,7 @@ internal sealed class PixelRenderer
 
     Frame.Fill(12, 42, Width - 24, 22 + (lines.Count * 12), Ink);
     Frame.Fill(12, 42, Width - 24, 1, Gold);
-    DrawTitleText("FLAMETHROWER!", 48, Gold, 1);
+    DrawTitleText(title, 48, Gold, 1);
     for (int index = 0; index < lines.Count; index++)
       DrawTitleText(lines[index], 60 + (index * 12), White, 2);
   }

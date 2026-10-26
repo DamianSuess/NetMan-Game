@@ -22,6 +22,8 @@ public sealed class Game
   public const int FlamethrowerQuoteDurationTicks = 180;
   public const double ShotgunRange = 4;
   public const int ShotgunReloadTicks = 30;
+  public const int BoomStickQuoteDurationTicks = 180;
+  public const string BoomStickPickupQuote = "This here is my BOOM STICK!";
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
   private const double SpikeTipOffset = 3.0 / 16;
@@ -112,6 +114,8 @@ public sealed class Game
   public int FlameDamage => PlayerPowerLevel + 1;
   public int ShotgunDamage => FlameDamage + 1;
   public ShotgunBlast? ShotgunBlast { get; private set; }
+  public int BoomStickQuoteTicksRemaining { get; private set; }
+  public string BoomStickQuote => BoomStickQuoteTicksRemaining > 0 ? BoomStickPickupQuote : string.Empty;
   public int FacingDirection => _facingDirection;
   public FlameStream? Flame { get; private set; }
   public int BurnTicksRemaining { get; private set; }
@@ -259,14 +263,20 @@ public sealed class Game
 
     if (ShotgunBlast is { } blast)
       ShotgunBlast = blast.AgeTicks + 1 >= NetMan.ShotgunBlast.DurationTicks ? null : blast with { AgeTicks = blast.AgeTicks + 1 };
+
     if (_shotgunReloadTicks > 0)
       _shotgunReloadTicks--;
 
     _jumpBuffer -= Step;
+    if (BoomStickQuoteTicksRemaining > 0)
+      BoomStickQuoteTicksRemaining--;
+
     if (FlamethrowerQuoteTicksRemaining > 0 && --FlamethrowerQuoteTicksRemaining == 0)
       FlamethrowerQuote = string.Empty;
+
     if (BurnTicksRemaining > 0)
       BurnTicksRemaining--;
+
     if (direction != 0)
       _facingDirection = Math.Sign(direction);
 
@@ -620,6 +630,7 @@ public sealed class Game
       if (heart.IsBoomStick)
       {
         HasBoomStick = true;
+        BoomStickQuoteTicksRemaining = BoomStickQuoteDurationTicks;
         HasFlamethrower = false;
         Flame = null;
         ClearFlamethrowerQuote();
@@ -682,6 +693,7 @@ public sealed class Game
     if (HasBoomStick)
     {
       HasBoomStick = false;
+      BoomStickQuoteTicksRemaining = 0;
       HasFlamethrower = true;
       ShotgunBlast = null;
       DamageTicksRemaining = DamageProtectionTicks;
@@ -731,6 +743,7 @@ public sealed class Game
       GameOverQuote = _gameOverQuotes[Random.Shared.Next(_gameOverQuotes.Length)];
     HasFlamethrower = false;
     HasBoomStick = false;
+    BoomStickQuoteTicksRemaining = 0;
     ShotgunBlast = null;
     Flame = null;
     BurnTicksRemaining = 0;
@@ -756,6 +769,7 @@ public sealed class Game
     bool keepGrowth = preserveGrowth && (IsLarge || _growthPending);
     HasFlamethrower = preserveGrowth && HasFlamethrower;
     HasBoomStick = preserveGrowth && HasBoomStick;
+    BoomStickQuoteTicksRemaining = 0;
     ShotgunBlast = null;
     _shotgunReloadTicks = 0;
     _fireWasHeld = false;

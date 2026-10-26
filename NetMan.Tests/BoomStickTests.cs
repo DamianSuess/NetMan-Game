@@ -9,14 +9,53 @@ namespace NetMan.Tests;
 public sealed class BoomStickTests : GameTestBase
 {
   [TestMethod]
-  public void BundledBoomSticksStartAtLevelSix()
+  public void BundledBoomSticksStartAtLevelFour()
   {
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     for (int index = 0; index < paths.Length; index++)
     {
-      Assert.AreEqual(index >= 5, File.ReadAllText(paths[index]).Contains('Q'), paths[index]);
+      Assert.AreEqual(index >= 3, File.ReadAllText(paths[index]).Contains('Q'), paths[index]);
       Level.Load(paths[index]);
     }
+  }
+
+  [TestMethod]
+  public void PickupShowsBoomStickQuoteForThreeSecondsAndPauseFreezesIt()
+  {
+    CreateGame();
+    var game = ArmGame(new Game([LevelPath]), 0);
+    Assert.AreEqual("This here is my BOOM STICK!", game.BoomStickQuote);
+    Assert.AreEqual(180, game.BoomStickQuoteTicksRemaining);
+    var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
+    renderer.Draw(game, 0, 0);
+    var expected = new PixelBuffer(PixelRenderer.Width, PixelRenderer.Height);
+    int quoteX = (PixelRenderer.Width - (((game.BoomStickQuote.Length * 4) - 1) * 2)) / 2;
+    PixelFont.Draw(expected, game.BoomStickQuote, quoteX, 60, 0xFFF6F4DF, 2);
+    for (int index = 0; index < expected.Pixels.Length; index++)
+      if (expected.Pixels[index] != 0)
+        Assert.AreEqual(expected.Pixels[index], renderer.Frame.Pixels[index]);
+    game.Paused = true;
+    Tick(game, 300);
+    Assert.AreEqual(180, game.BoomStickQuoteTicksRemaining);
+    game.Paused = false;
+    Tick(game, 179);
+    Assert.AreEqual(1, game.BoomStickQuoteTicksRemaining);
+    Tick(game, 1);
+    Assert.AreEqual(0, game.BoomStickQuoteTicksRemaining);
+    Assert.AreEqual(string.Empty, game.BoomStickQuote);
+    renderer.Draw(game, 0, 0);
+    Assert.AreNotEqual(0xFFFFD56B, renderer.Frame.Pixels[(42 * PixelRenderer.Width) + 12]);
+    Assert.IsTrue(game.HasBoomStick);
+  }
+
+  [TestMethod]
+  public void RestartClearsBoomStickQuote()
+  {
+    var game = Arm();
+    Assert.IsGreaterThan(0, game.BoomStickQuoteTicksRemaining);
+    game.Restart();
+    Assert.AreEqual(0, game.BoomStickQuoteTicksRemaining);
+    Assert.AreEqual(string.Empty, game.BoomStickQuote);
   }
 
   [TestMethod]
@@ -30,6 +69,7 @@ public sealed class BoomStickTests : GameTestBase
     Assert.IsTrue(game.GrowthHearts[0].IsBoomStick);
     TouchHeart(game);
     Assert.IsFalse(game.HasBoomStick);
+    Assert.AreEqual(0, game.BoomStickQuoteTicksRemaining);
     Assert.IsFalse(game.IsLarge);
     Assert.HasCount(1, game.GrowthHearts);
     Assert.AreEqual(0, game.Score);
@@ -209,7 +249,7 @@ public sealed class BoomStickTests : GameTestBase
     return ArmGame(new Game([LevelPath]) { Character = character });
   }
 
-  private static Game ArmGame(Game game)
+  private static Game ArmGame(Game game, int ticksAfterPickup = 60)
   {
     Tick(game, 10);
     Tick(game, 15, 1);
@@ -222,9 +262,10 @@ public sealed class BoomStickTests : GameTestBase
     game.QueueJump();
     Tick(game, 30, jump: true);
     TouchHeart(game);
-    Tick(game, 60);
+    Tick(game, ticksAfterPickup);
     Assert.IsTrue(game.HasBoomStick);
-    game.Update(1, false);
+    if (ticksAfterPickup > 0)
+      game.Update(1, false);
     return game;
   }
 
