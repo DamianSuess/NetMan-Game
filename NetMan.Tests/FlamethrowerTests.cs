@@ -164,7 +164,7 @@ public sealed class FlamethrowerTests : GameTestBase
   }
 
   [TestMethod]
-  public void ExtraWeaponPickupCausesTheExistingPowerOverload()
+  public void ExtraWeaponPickupBurnsForThreeSecondsAndLosesWeaponWithoutDying()
   {
     Map("........................", "........................", "........................",
       "........................", "........................", ".FF.M...................",
@@ -175,10 +175,28 @@ public sealed class FlamethrowerTests : GameTestBase
     Tick(game, 30, jump: true);
     Assert.HasCount(1, game.GrowthHearts);
     TouchHeart(game);
-    Assert.IsTrue(game.IsExploding);
+    Assert.IsFalse(game.IsExploding);
+    Assert.IsFalse(game.IsDying);
     Assert.IsFalse(game.HasFlamethrower);
-    Assert.AreEqual(2, game.Lives);
+    Assert.IsTrue(game.IsLarge);
+    Assert.AreEqual(3, game.Lives);
+    Assert.AreEqual(180, game.BurnTicksRemaining);
     Assert.IsNull(game.Flame);
+    game.Paused = true;
+    Tick(game, 240);
+    Assert.AreEqual(180, game.BurnTicksRemaining);
+    game.Paused = false;
+    for (int tick = 0; tick < 6; tick++)
+      game.Update(0, false, true);
+    Assert.AreEqual(1, game.BurnFrameIndex);
+    Assert.IsNull(game.Flame);
+    Tick(game, 173);
+    Assert.AreEqual(1, game.BurnTicksRemaining);
+    Tick(game, 1);
+    Assert.IsFalse(game.IsBurning);
+    Assert.IsTrue(game.IsLarge);
+    Assert.AreEqual(3, game.Lives);
+    Assert.IsFalse(game.HasFlamethrower);
   }
 
   [TestMethod]
@@ -197,10 +215,10 @@ public sealed class FlamethrowerTests : GameTestBase
   [TestMethod]
   public void BundledLevelsOfferWeaponAndAllFireFramesAreDistinct()
   {
-    foreach (string path in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt"))
+    string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
+    for (int index = 0; index < paths.Length; index++)
     {
-      var level = Level.Load(path);
-      Assert.IsTrue(File.ReadAllText(path).Contains('F'), path);
+      Assert.AreEqual(index >= 1, File.ReadAllText(paths[index]).Contains('F'), paths[index]);
     }
     string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
     var palette = Sprite.LoadPalette(Path.Combine(assets, "palette.txt"));

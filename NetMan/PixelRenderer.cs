@@ -62,6 +62,10 @@ internal sealed class PixelRenderer
       "flame-2",
       "flame-3",
       "flame-4",
+      "player-burning-1",
+      "player-burning-2",
+      "player-burning-3",
+      "player-burning-4",
       "used",
       "pipe",
       "pipe-small-top",
@@ -80,7 +84,8 @@ internal sealed class PixelRenderer
     })
       _sprites.Add(name, Sprite.Load(Path.Combine(assetsPath, name + ".sprite"), palette));
 
-    foreach (string name in _sprites.Keys.Where(name => name.StartsWith("player-", StringComparison.Ordinal)).ToArray())
+    foreach (string name in _sprites.Keys.Where(name => name.StartsWith("player-", StringComparison.Ordinal)
+      && !name.StartsWith("player-burning-", StringComparison.Ordinal)).ToArray())
     {
       string ellaName = PlayerSprite(PlayerCharacter.Ella, name);
       _sprites.Add(ellaName, Sprite.Load(Path.Combine(assetsPath, ellaName + ".sprite"), palette));
@@ -240,6 +245,14 @@ internal sealed class PixelRenderer
       int weaponX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - 8 - cameraX;
       int weaponY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.65) * TileSize) - 8 - cameraY;
       Frame.Draw(_sprites["flamethrower"], weaponX, weaponY, game.FacingDirection < 0);
+    }
+
+    if (game.IsBurning && !game.IsDying)
+    {
+      var burning = _sprites[$"player-burning-{game.BurnFrameIndex + 1}"];
+      int burnX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - (burning.Width / 2) - cameraX;
+      int burnY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight) * TileSize) - burning.Height - cameraY;
+      Frame.DrawTranslucent(burning, burnX, burnY, 200);
     }
 
     if (game.Flame is { } flame)

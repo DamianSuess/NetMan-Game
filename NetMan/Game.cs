@@ -17,6 +17,7 @@ public sealed class Game
   public const double PoopSpeedMultiplier = 0.5;
   public const double FlameRange = 3;
   public const int FlameDamageIntervalTicks = 18;
+  public const int BurnDurationTicks = 180;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
   private const double SpikeTipOffset = 3.0 / 16;
@@ -81,6 +82,9 @@ public sealed class Game
   public int FlameDamage => PlayerPowerLevel + 1;
   public int FacingDirection => _facingDirection;
   public FlameStream? Flame { get; private set; }
+  public int BurnTicksRemaining { get; private set; }
+  public bool IsBurning => BurnTicksRemaining > 0;
+  public int BurnFrameIndex => (BurnDurationTicks - BurnTicksRemaining) / 6 % 4;
   public bool IsExploding { get; private set; }
   public bool IsExplosionVisible => IsExploding && DeathDurationTicks - DeathTicksRemaining < ExplosionDurationTicks;
   public int ExplosionFrameIndex => IsExploding
@@ -203,6 +207,8 @@ public sealed class Game
     }
 
     _jumpBuffer -= Step;
+    if (BurnTicksRemaining > 0)
+      BurnTicksRemaining--;
     if (direction != 0)
       _facingDirection = Math.Sign(direction);
 
@@ -490,7 +496,7 @@ public sealed class Game
       if (!Overlaps(X, Y, PlayerHeight, heart.X, heart.Y))
         continue;
 
-      if (heart.IsFlamethrower && !IsLarge)
+      if (heart.IsFlamethrower && (!IsLarge || IsBurning))
         continue;
 
       _growthHearts.RemoveAt(i);
@@ -501,8 +507,11 @@ public sealed class Game
       {
         if (HasFlamethrower)
         {
-          Explode();
-          return true;
+          HasFlamethrower = false;
+          Flame = null;
+          BurnTicksRemaining = BurnDurationTicks;
+          Message = "On fire! Lost flamethrower!";
+          continue;
         }
 
         HasFlamethrower = true;
@@ -583,6 +592,7 @@ public sealed class Game
     Lives--;
     HasFlamethrower = false;
     Flame = null;
+    BurnTicksRemaining = 0;
     TotalDeaths++;
     AwaitingRestart = false;
     DeathQuote = _deathQuotes[Random.Shared.Next(_deathQuotes.Length)];
@@ -603,6 +613,7 @@ public sealed class Game
   {
     bool keepGrowth = preserveGrowth && (IsLarge || _growthPending);
     HasFlamethrower = preserveGrowth && HasFlamethrower;
+    BurnTicksRemaining = 0;
     Flame = null;
     _flameDamageTicks = _flameAnimationTicks = 0;
     IsExploding = false;
