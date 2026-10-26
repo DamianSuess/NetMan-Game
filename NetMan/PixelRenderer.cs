@@ -99,6 +99,8 @@ internal sealed class PixelRenderer
     DrawBackground((int)(title.Elapsed * 10) % (Width * 4));
     Frame.OverlayBlack(100);
     DrawTitleText("NETMAN", 34, Gold, 5, shadow: true);
+    if (title.KonamiCodeEnabled)
+      DrawTitleText("KONAMI CODE ACTIVATED - 30 LIVES", 72, Gold, 1);
     DrawTitleText("PLAYER SELECT", 86, White, 2);
 
     int animationFrame = (int)(title.Elapsed * 6) % 2 + 1;

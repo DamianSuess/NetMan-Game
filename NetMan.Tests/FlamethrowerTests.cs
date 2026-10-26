@@ -312,7 +312,7 @@ public sealed class FlamethrowerTests : GameTestBase
     Assert.HasCount(10, quotes);
     Assert.HasCount(10, quotes.Distinct().ToArray());
     CollectionAssert.Contains(quotes, "Light Em' If you Got Em!");
-    CollectionAssert.Contains(quotes, "Make Flamethrowers Great Again");
+    CollectionAssert.Contains(quotes, "Make Flamethrowers Great Again!");
   }
 
   [TestMethod]
