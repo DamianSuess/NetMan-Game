@@ -56,6 +56,16 @@ internal sealed class PixelRenderer
       "bonus",
       "heart-1",
       "heart-2",
+      "flamethrower",
+      "flamethrower-pickup",
+      "flame-1",
+      "flame-2",
+      "flame-3",
+      "flame-4",
+      "player-burning-1",
+      "player-burning-2",
+      "player-burning-3",
+      "player-burning-4",
       "used",
       "pipe",
       "pipe-small-top",
@@ -74,7 +84,8 @@ internal sealed class PixelRenderer
     })
       _sprites.Add(name, Sprite.Load(Path.Combine(assetsPath, name + ".sprite"), palette));
 
-    foreach (string name in _sprites.Keys.Where(name => name.StartsWith("player-", StringComparison.Ordinal)).ToArray())
+    foreach (string name in _sprites.Keys.Where(name => name.StartsWith("player-", StringComparison.Ordinal)
+      && !name.StartsWith("player-burning-", StringComparison.Ordinal)).ToArray())
     {
       string ellaName = PlayerSprite(PlayerCharacter.Ella, name);
       _sprites.Add(ellaName, Sprite.Load(Path.Combine(assetsPath, ellaName + ".sprite"), palette));
@@ -157,7 +168,7 @@ internal sealed class PixelRenderer
         {
           '#' => game.Level.Tile(x, y - 1) == '#' ? "dirt" : "grass",
           'B' => "brick",
-          '?' or 'M' => "bonus",
+          '?' or 'M' or 'F' => "bonus",
           'X' => "used",
           'P' => PipeSprite(game.Level, x, y),
           'p' => SkinnyPipeSprite(game.Level, x, y),
@@ -182,7 +193,7 @@ internal sealed class PixelRenderer
     }
 
     foreach (var heart in game.GrowthHearts)
-      DrawActor(_sprites[$"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
+      DrawActor(_sprites[heart.IsFlamethrower ? "flamethrower-pickup" : $"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
 
     int animationFrame = (int)(_animationTime * 9) % 2;
 
@@ -229,6 +240,37 @@ internal sealed class PixelRenderer
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
       DrawActor(_sprites[PlayerSprite(game.Character, playerFrame)], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
 
+    if (game.HasFlamethrower && !game.IsDying && (game.DamageTicksRemaining / 5) % 2 == 0)
+    {
+      int weaponX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - 8 - cameraX;
+      int weaponY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.65) * TileSize) - 8 - cameraY;
+      Frame.Draw(_sprites["flamethrower"], weaponX, weaponY, game.FacingDirection < 0);
+    }
+
+    if (game.IsBurning && !game.IsDying)
+    {
+      var burning = _sprites[$"player-burning-{game.BurnFrameIndex + 1}"];
+      int burnX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - (burning.Width / 2) - cameraX;
+      int burnY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight) * TileSize) - burning.Height - cameraY;
+      Frame.DrawTranslucent(burning, burnX, burnY, 200);
+    }
+
+    if (game.Flame is { } flame)
+    {
+      var sprite = _sprites[$"flame-{flame.FrameIndex + 1}"];
+      int originX = (int)Math.Round(flame.X * TileSize) - cameraX;
+      int originY = HeaderHeight + (int)Math.Round(flame.Y * TileSize) - 8 - cameraY;
+      for (int distance = 0; distance < (int)(flame.Length * TileSize); distance++)
+      {
+        for (int y = 0; y < sprite.Height; y++)
+        {
+          uint color = sprite.Pixel(distance % TileSize, y);
+          if (color != 0)
+            Frame.Fill(originX + (flame.Direction > 0 ? distance : -distance - 1), originY + y, 1, 1, color);
+        }
+      }
+    }
+
     foreach (var popup in game.RewardPopups)
     {
       var rewardSprite = _sprites["reward-plus-one"];
@@ -253,6 +295,9 @@ internal sealed class PixelRenderer
     if (game.PoopSplatterTicksRemaining > 0)
       Frame.DrawTranslucent(_sprites["poop-screen-splatter"], (Width - 128) / 2, 64, 140);
 
+    if (!game.IsDying && game.FlamethrowerQuoteTicksRemaining > 0)
+      DrawFlamethrowerQuote(game.FlamethrowerQuote);
+
     if (game.IsDying)
     {
       DrawDeathMessage(game.DeathQuote);
@@ -274,6 +319,34 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
       PixelFont.Draw(Frame, hint, (Width - (hint.Length * 4)) / 2, 130, White);
     }
+  }
+
+  private void DrawFlamethrowerQuote(string quote)
+  {
+    const int MaxCharacters = 42;
+    var lines = new List<string>();
+    string remaining = quote.Trim();
+    while (remaining.Length > 0 && lines.Count < 3)
+    {
+      int length = Math.Min(MaxCharacters, remaining.Length);
+      if (length < remaining.Length)
+      {
+        int space = remaining.LastIndexOf(' ', length - 1, length);
+        if (space > 0)
+          length = space;
+      }
+      string line = remaining[..length].Trim();
+      remaining = remaining[length..].TrimStart();
+      if (lines.Count == 2 && remaining.Length > 0)
+        line = line[..Math.Min(line.Length, MaxCharacters - 3)] + "...";
+      lines.Add(line);
+    }
+
+    Frame.Fill(12, 42, Width - 24, 22 + (lines.Count * 12), Ink);
+    Frame.Fill(12, 42, Width - 24, 1, Gold);
+    DrawTitleText("FLAMETHROWER!", 48, Gold, 1);
+    for (int index = 0; index < lines.Count; index++)
+      DrawTitleText(lines[index], 60 + (index * 12), White, 2);
   }
 
   private void DrawCredits(Game game, EndCredits credits)
@@ -478,6 +551,6 @@ internal sealed class PixelRenderer
     PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
 
     Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
-    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  P PAUSE  R RESTART  ESC QUIT", 8, Height - 9, White);
+    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  X/CTRL FIRE  P PAUSE  R RESTART  ESC QUIT", 8, Height - 9, White);
   }
 }

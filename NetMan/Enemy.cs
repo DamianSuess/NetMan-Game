@@ -44,6 +44,13 @@ public sealed class Enemy
   {
     if (damage is < 1 or > 10)
       throw new ArgumentOutOfRangeException(nameof(damage));
+    return Hit(damage);
+  }
+
+  internal bool Hit(int damage)
+  {
+    if (damage is < 1 or > 11)
+      throw new ArgumentOutOfRangeException(nameof(damage));
 
     if (!Alive)
       return false;

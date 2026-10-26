@@ -15,6 +15,11 @@ public sealed class Game
   public const int PoopSlowDurationTicks = 300;
   public const int PoopSplatterDurationTicks = 120;
   public const double PoopSpeedMultiplier = 0.5;
+  public const double FlameRange = 3;
+  public const int FlameDamageIntervalTicks = 18;
+  public const int FlameMaxDurationTicks = 120;
+  public const int BurnDurationTicks = 180;
+  public const int FlamethrowerQuoteDurationTicks = 180;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
   private const double SpikeTipOffset = 3.0 / 16;
@@ -22,6 +27,7 @@ public sealed class Game
   private readonly List<BlockBreakEffect> _blockBreakEffects = [];
   private readonly string[] _files;
   private readonly string[] _deathQuotes;
+  private readonly string[] _flamethrowerQuotes;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private readonly List<GrowthHeart> _growthHearts = [];
   private readonly List<PoopPile> _poopPiles = [];
@@ -33,8 +39,11 @@ public sealed class Game
   private int _levelIndex;
   private bool _growthPending;
   private int _facingDirection = 1;
+  private int _flameDamageTicks;
+  private int _flameAnimationTicks;
 
-  public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null)
+  public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null,
+    string? flamethrowerQuotesPath = null)
   {
     this._files = files;
     _enemyConfiguration = EnemyConfiguration.Load(enemySettingsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets", "enemies.txt"));
@@ -46,6 +55,14 @@ public sealed class Game
       : [];
     if (_deathQuotes.Length == 0)
       _deathQuotes = ["Gravity wins again."];
+
+    flamethrowerQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "flamethrower-quotes.txt");
+    _flamethrowerQuotes = File.Exists(flamethrowerQuotesPath)
+      ? File.ReadAllLines(flamethrowerQuotesPath).Select(line => line.Trim())
+        .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
+      : [];
+    if (_flamethrowerQuotes.Length == 0)
+      _flamethrowerQuotes = ["Light Em' If you Got Em!"];
 
     LoadLevel();
   }
@@ -72,6 +89,16 @@ public sealed class Game
   public bool AwaitingRestart { get; private set; }
   public bool IsDying => DeathTicksRemaining > 0 || AwaitingRestart;
   public bool IsLarge { get; private set; }
+  public bool HasFlamethrower { get; private set; }
+  public int PowerUpLevel => HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
+  public int FlameDamage => PlayerPowerLevel + 1;
+  public int FacingDirection => _facingDirection;
+  public FlameStream? Flame { get; private set; }
+  public int BurnTicksRemaining { get; private set; }
+  public int FlamethrowerQuoteTicksRemaining { get; private set; }
+  public string FlamethrowerQuote { get; private set; } = string.Empty;
+  public bool IsBurning => BurnTicksRemaining > 0;
+  public int BurnFrameIndex => (BurnDurationTicks - BurnTicksRemaining) / 6 % 4;
   public bool IsExploding { get; private set; }
   public bool IsExplosionVisible => IsExploding && DeathDurationTicks - DeathTicksRemaining < ExplosionDurationTicks;
   public int ExplosionFrameIndex => IsExploding
@@ -131,10 +158,12 @@ public sealed class Game
     return true;
   }
 
-  public void Update(int direction, bool jumpHeld)
+  public void Update(int direction, bool jumpHeld, bool fireHeld = false)
   {
     if (Paused)
       return;
+
+    Flame = null;
 
     if (Won)
     {
@@ -192,6 +221,10 @@ public sealed class Game
     }
 
     _jumpBuffer -= Step;
+    if (FlamethrowerQuoteTicksRemaining > 0 && --FlamethrowerQuoteTicksRemaining == 0)
+      FlamethrowerQuote = string.Empty;
+    if (BurnTicksRemaining > 0)
+      BurnTicksRemaining--;
     if (direction != 0)
       _facingDirection = Math.Sign(direction);
 
@@ -247,6 +280,7 @@ public sealed class Game
       return;
 
     TryGrow();
+    UpdateFlame(fireHeld);
 
     foreach (var (tx, ty) in Cells(X, Y, PlayerHeight))
     {
@@ -350,6 +384,55 @@ public sealed class Game
     StepInPoop();
   }
 
+  private void UpdateFlame(bool fireHeld)
+  {
+    if (_flameDamageTicks > 0)
+      _flameDamageTicks--;
+    if (!HasFlamethrower || !IsLarge || !fireHeld)
+    {
+      _flameAnimationTicks = 0;
+      return;
+    }
+
+    if (_flameAnimationTicks >= FlameMaxDurationTicks)
+      return;
+
+    double originX = _facingDirection > 0 ? X + BodyWidth : X;
+    double originY = Y + PlayerHeight - 0.65;
+    double length = 0;
+    // Trace the full flame thickness so it cannot pass through a wall or a pipe.
+    for (int pixel = 0; pixel < (int)(FlameRange * 16); pixel++)
+    {
+      double checkX = originX + (_facingDirection * ((pixel + 0.5) / 16));
+      int tileX = (int)Math.Floor(checkX);
+      if (Level.Solid(tileX, (int)Math.Floor(originY - 0.25))
+        || Level.Solid(tileX, (int)Math.Floor(originY + 0.25)))
+      {
+        double boundaryDistance = _facingDirection > 0 ? tileX - originX : originX - (tileX + 1);
+        length = Math.Clamp(boundaryDistance, 0, length);
+        break;
+      }
+      length = (pixel + 1) / 16.0;
+    }
+
+    Flame = new FlameStream(originX, originY, _facingDirection, length, _flameAnimationTicks / 6 % 4);
+    _flameAnimationTicks++;
+    if (_flameDamageTicks > 0 || length == 0)
+      return;
+
+    _flameDamageTicks = FlameDamageIntervalTicks;
+    double left = _facingDirection > 0 ? originX : originX - length;
+    double right = _facingDirection > 0 ? originX + length : originX;
+    foreach (var enemy in Enemies.Where(enemy => enemy.Alive))
+    {
+      if (enemy.X >= right || enemy.X + BodyWidth <= left
+        || enemy.Y >= originY + 0.25 || enemy.Y + enemy.BodyHeight <= originY - 0.25)
+        continue;
+      if (enemy.Hit(FlameDamage))
+        Score += 200 * enemy.Settings.PowerLevel;
+    }
+  }
+
   private void LeavePoop(Enemy dog)
   {
     if (--dog.PoopTicksRemaining > 0)
@@ -432,10 +515,31 @@ public sealed class Game
       if (!Overlaps(X, Y, PlayerHeight, heart.X, heart.Y))
         continue;
 
+      if (heart.IsFlamethrower && (!IsLarge || IsBurning))
+        continue;
+
       _growthHearts.RemoveAt(i);
       if (heart.SourceX >= 0 && heart.SourceY >= 0)
         _collectedItems.Add((_levelIndex, heart.SourceX, heart.SourceY));
       Score += 100;
+      if (heart.IsFlamethrower)
+      {
+        if (HasFlamethrower)
+        {
+          HasFlamethrower = false;
+          Flame = null;
+          BurnTicksRemaining = BurnDurationTicks;
+          ClearFlamethrowerQuote();
+          Message = "On fire! Lost flamethrower!";
+          continue;
+        }
+
+        HasFlamethrower = true;
+        FlamethrowerQuote = _flamethrowerQuotes[Random.Shared.Next(_flamethrowerQuotes.Length)];
+        FlamethrowerQuoteTicksRemaining = FlamethrowerQuoteDurationTicks;
+        Message = "Flamethrower! Hold X or CTRL";
+        continue;
+      }
       if (IsLarge || _growthPending)
       {
         Explode();
@@ -463,13 +567,23 @@ public sealed class Game
     Y = grownY;
     IsLarge = true;
     _growthPending = false;
-    Message = "Powered up!";
+    Message = HasFlamethrower ? "Flamethrower! Hold X or CTRL" : "Powered up!";
   }
 
   private void TakeDamage()
   {
     if (DamageTicksRemaining > 0)
       return;
+
+    if (HasFlamethrower)
+    {
+      HasFlamethrower = false;
+      Flame = null;
+      DamageTicksRemaining = DamageProtectionTicks;
+      Message = "Lost flamethrower!";
+      ClearFlamethrowerQuote();
+      return;
+    }
 
     if (!IsLarge)
     {
@@ -499,6 +613,10 @@ public sealed class Game
       return;
 
     Lives--;
+    HasFlamethrower = false;
+    Flame = null;
+    BurnTicksRemaining = 0;
+    ClearFlamethrowerQuote();
     TotalDeaths++;
     AwaitingRestart = false;
     DeathQuote = _deathQuotes[Random.Shared.Next(_deathQuotes.Length)];
@@ -518,6 +636,11 @@ public sealed class Game
   private void LoadLevel(bool preserveGrowth = false)
   {
     bool keepGrowth = preserveGrowth && (IsLarge || _growthPending);
+    HasFlamethrower = preserveGrowth && HasFlamethrower;
+    ClearFlamethrowerQuote();
+    BurnTicksRemaining = 0;
+    Flame = null;
+    _flameDamageTicks = _flameAnimationTicks = 0;
     IsExploding = false;
     IsLarge = false;
     _growthPending = keepGrowth;
@@ -532,7 +655,7 @@ public sealed class Game
     {
       for (int x = 0; x < Level.Width; x++)
       {
-        if (Level.Tile(x, y) is 'o' or '?' or 'M')
+        if (Level.Tile(x, y) is 'o' or '?' or 'M' or 'F')
           _levelItems.Add((x, y));
       }
     }
@@ -555,6 +678,12 @@ public sealed class Game
       .Concat(Level.DogSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Dog, _enemyConfiguration.Dog)))
       .ToList();
     TryGrow();
+  }
+
+  private void ClearFlamethrowerQuote()
+  {
+    FlamethrowerQuote = string.Empty;
+    FlamethrowerQuoteTicksRemaining = 0;
   }
 
   private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit, double height = BodyHeight)
@@ -591,11 +720,12 @@ public sealed class Game
       {
         if (bump && distance < 0)
         {
-          if (Level.Tile(cell.X, cell.Y) == 'M')
+          if (Level.Tile(cell.X, cell.Y) is 'M' or 'F')
           {
+            bool flamethrower = Level.Tile(cell.X, cell.Y) == 'F';
             Level.UseBlock(cell.X, cell.Y);
-            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection, cell.X, cell.Y));
-            Message = "Catch the heart!";
+            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection, cell.X, cell.Y, flamethrower));
+            Message = flamethrower ? "Catch the flamethrower!" : "Catch the heart!";
           }
           else if (Level.Tile(cell.X, cell.Y) == '?')
           {

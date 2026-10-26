@@ -1,6 +1,6 @@
 namespace NetMan;
 
-public sealed class GrowthHeart(double x, double y, int direction, int sourceX = -1, int sourceY = -1)
+public sealed class GrowthHeart(double x, double y, int direction, int sourceX = -1, int sourceY = -1, bool isFlamethrower = false)
 {
   public const double Speed = 4;
   public const int BeatCycleTicks = 36;
@@ -10,6 +10,7 @@ public sealed class GrowthHeart(double x, double y, int direction, int sourceX =
   public double VelocityY { get; internal set; } = -6;
   public int Direction { get; internal set; } = direction;
   public int AgeTicks { get; internal set; }
+  public bool IsFlamethrower { get; } = isFlamethrower;
   internal int SourceX { get; } = sourceX;
   internal int SourceY { get; } = sourceY;
 
