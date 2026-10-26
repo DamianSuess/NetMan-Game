@@ -19,6 +19,7 @@ public sealed class Game
   public const int FlameDamageIntervalTicks = 18;
   public const int FlameMaxDurationTicks = 120;
   public const int BurnDurationTicks = 180;
+  public const int FlamethrowerQuoteDurationTicks = 180;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
   private const double SpikeTipOffset = 3.0 / 16;
@@ -26,6 +27,7 @@ public sealed class Game
   private readonly List<BlockBreakEffect> _blockBreakEffects = [];
   private readonly string[] _files;
   private readonly string[] _deathQuotes;
+  private readonly string[] _flamethrowerQuotes;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private readonly List<GrowthHeart> _growthHearts = [];
   private readonly List<PoopPile> _poopPiles = [];
@@ -40,7 +42,8 @@ public sealed class Game
   private int _flameDamageTicks;
   private int _flameAnimationTicks;
 
-  public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null)
+  public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null,
+    string? flamethrowerQuotesPath = null)
   {
     this._files = files;
     _enemyConfiguration = EnemyConfiguration.Load(enemySettingsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets", "enemies.txt"));
@@ -52,6 +55,14 @@ public sealed class Game
       : [];
     if (_deathQuotes.Length == 0)
       _deathQuotes = ["Gravity wins again."];
+
+    flamethrowerQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "flamethrower-quotes.txt");
+    _flamethrowerQuotes = File.Exists(flamethrowerQuotesPath)
+      ? File.ReadAllLines(flamethrowerQuotesPath).Select(line => line.Trim())
+        .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
+      : [];
+    if (_flamethrowerQuotes.Length == 0)
+      _flamethrowerQuotes = ["Light Em' If you Got Em!"];
 
     LoadLevel();
   }
@@ -84,6 +95,8 @@ public sealed class Game
   public int FacingDirection => _facingDirection;
   public FlameStream? Flame { get; private set; }
   public int BurnTicksRemaining { get; private set; }
+  public int FlamethrowerQuoteTicksRemaining { get; private set; }
+  public string FlamethrowerQuote { get; private set; } = string.Empty;
   public bool IsBurning => BurnTicksRemaining > 0;
   public int BurnFrameIndex => (BurnDurationTicks - BurnTicksRemaining) / 6 % 4;
   public bool IsExploding { get; private set; }
@@ -208,6 +221,8 @@ public sealed class Game
     }
 
     _jumpBuffer -= Step;
+    if (FlamethrowerQuoteTicksRemaining > 0 && --FlamethrowerQuoteTicksRemaining == 0)
+      FlamethrowerQuote = string.Empty;
     if (BurnTicksRemaining > 0)
       BurnTicksRemaining--;
     if (direction != 0)
@@ -514,11 +529,14 @@ public sealed class Game
           HasFlamethrower = false;
           Flame = null;
           BurnTicksRemaining = BurnDurationTicks;
+          ClearFlamethrowerQuote();
           Message = "On fire! Lost flamethrower!";
           continue;
         }
 
         HasFlamethrower = true;
+        FlamethrowerQuote = _flamethrowerQuotes[Random.Shared.Next(_flamethrowerQuotes.Length)];
+        FlamethrowerQuoteTicksRemaining = FlamethrowerQuoteDurationTicks;
         Message = "Flamethrower! Hold X or CTRL";
         continue;
       }
@@ -563,6 +581,7 @@ public sealed class Game
       Flame = null;
       DamageTicksRemaining = DamageProtectionTicks;
       Message = "Lost flamethrower!";
+      ClearFlamethrowerQuote();
       return;
     }
 
@@ -597,6 +616,7 @@ public sealed class Game
     HasFlamethrower = false;
     Flame = null;
     BurnTicksRemaining = 0;
+    ClearFlamethrowerQuote();
     TotalDeaths++;
     AwaitingRestart = false;
     DeathQuote = _deathQuotes[Random.Shared.Next(_deathQuotes.Length)];
@@ -617,6 +637,7 @@ public sealed class Game
   {
     bool keepGrowth = preserveGrowth && (IsLarge || _growthPending);
     HasFlamethrower = preserveGrowth && HasFlamethrower;
+    ClearFlamethrowerQuote();
     BurnTicksRemaining = 0;
     Flame = null;
     _flameDamageTicks = _flameAnimationTicks = 0;
@@ -657,6 +678,12 @@ public sealed class Game
       .Concat(Level.DogSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Dog, _enemyConfiguration.Dog)))
       .ToList();
     TryGrow();
+  }
+
+  private void ClearFlamethrowerQuote()
+  {
+    FlamethrowerQuote = string.Empty;
+    FlamethrowerQuoteTicksRemaining = 0;
   }
 
   private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit, double height = BodyHeight)

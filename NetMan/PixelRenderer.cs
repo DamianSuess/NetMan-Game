@@ -295,6 +295,9 @@ internal sealed class PixelRenderer
     if (game.PoopSplatterTicksRemaining > 0)
       Frame.DrawTranslucent(_sprites["poop-screen-splatter"], (Width - 128) / 2, 64, 140);
 
+    if (!game.IsDying && game.FlamethrowerQuoteTicksRemaining > 0)
+      DrawFlamethrowerQuote(game.FlamethrowerQuote);
+
     if (game.IsDying)
     {
       DrawDeathMessage(game.DeathQuote);
@@ -316,6 +319,34 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
       PixelFont.Draw(Frame, hint, (Width - (hint.Length * 4)) / 2, 130, White);
     }
+  }
+
+  private void DrawFlamethrowerQuote(string quote)
+  {
+    const int MaxCharacters = 42;
+    var lines = new List<string>();
+    string remaining = quote.Trim();
+    while (remaining.Length > 0 && lines.Count < 3)
+    {
+      int length = Math.Min(MaxCharacters, remaining.Length);
+      if (length < remaining.Length)
+      {
+        int space = remaining.LastIndexOf(' ', length - 1, length);
+        if (space > 0)
+          length = space;
+      }
+      string line = remaining[..length].Trim();
+      remaining = remaining[length..].TrimStart();
+      if (lines.Count == 2 && remaining.Length > 0)
+        line = line[..Math.Min(line.Length, MaxCharacters - 3)] + "...";
+      lines.Add(line);
+    }
+
+    Frame.Fill(12, 42, Width - 24, 22 + (lines.Count * 12), Ink);
+    Frame.Fill(12, 42, Width - 24, 1, Gold);
+    DrawTitleText("FLAMETHROWER!", 48, Gold, 1);
+    for (int index = 0; index < lines.Count; index++)
+      DrawTitleText(lines[index], 60 + (index * 12), White, 2);
   }
 
   private void DrawCredits(Game game, EndCredits credits)

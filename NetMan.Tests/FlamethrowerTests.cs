@@ -24,6 +24,8 @@ public sealed class FlamethrowerTests : GameTestBase
     Assert.IsFalse(game.HasFlamethrower);
     Assert.IsFalse(game.IsLarge);
     Assert.HasCount(1, game.GrowthHearts);
+    Assert.AreEqual(string.Empty, game.FlamethrowerQuote);
+    Assert.AreEqual(0, game.FlamethrowerQuoteTicksRemaining);
     Assert.AreEqual(0, game.Score);
     game.Update(0, false, true);
     Assert.IsNull(game.Flame);
@@ -183,6 +185,7 @@ public sealed class FlamethrowerTests : GameTestBase
     Assert.IsTrue(game.IsLarge);
     Assert.AreEqual(3, game.Lives);
     Assert.AreEqual(180, game.BurnTicksRemaining);
+    Assert.AreEqual(string.Empty, game.FlamethrowerQuote);
     Assert.IsNull(game.Flame);
     game.Paused = true;
     Tick(game, 240);
@@ -237,10 +240,79 @@ public sealed class FlamethrowerTests : GameTestBase
       game.Update(0, false);
       game.Update(0, false, true);
     }
+
     Assert.AreEqual(7, enemy.Health);
     game.Update(0, false);
     game.Update(0, false, true);
     Assert.AreEqual(4, enemy.Health);
+  }
+
+  [TestMethod]
+  public void PickupQuoteIsChosenOnceShownForThreeSecondsAndPausesWithGame()
+  {
+    CreateGame();
+    string[] quotes = ["Light Em' If you Got Em!", "Make Flamethrowers Great Again"];
+    File.WriteAllLines(NextPath, new[] { "; comment", "", "   " }.Concat(quotes));
+    var game = ArmGame(new Game([LevelPath], flamethrowerQuotesPath: NextPath), 0);
+    string selected = game.FlamethrowerQuote;
+    CollectionAssert.Contains(quotes, selected);
+    Assert.AreEqual(180, game.FlamethrowerQuoteTicksRemaining);
+
+    var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
+    renderer.Draw(game, 0, 0);
+    Assert.AreEqual(0xFFFFD56B, renderer.Frame.Pixels[(42 * PixelRenderer.Width) + 12]);
+
+    game.Paused = true;
+    Tick(game, 240);
+    Assert.AreEqual(180, game.FlamethrowerQuoteTicksRemaining);
+    Assert.AreEqual(selected, game.FlamethrowerQuote);
+
+    game.Paused = false;
+    Tick(game, 179);
+    Assert.AreEqual(1, game.FlamethrowerQuoteTicksRemaining);
+    Assert.AreEqual(selected, game.FlamethrowerQuote);
+
+    Tick(game, 1);
+    Assert.AreEqual(0, game.FlamethrowerQuoteTicksRemaining);
+    Assert.AreEqual(string.Empty, game.FlamethrowerQuote);
+
+    renderer.Draw(game, 0, 0);
+    Assert.AreNotEqual(0xFFFFD56B, renderer.Frame.Pixels[(42 * PixelRenderer.Width) + 12]);
+  }
+
+  [TestMethod]
+  [DataRow(true)]
+  [DataRow(false)]
+  public void MissingOrEmptyWeaponQuotesHaveFallback(bool createFile)
+  {
+    CreateGame();
+    if (createFile)
+      File.WriteAllLines(NextPath, ["", " ; comment only"]);
+
+    var game = ArmGame(new Game([LevelPath], flamethrowerQuotesPath: NextPath), 0);
+    Assert.AreEqual("Light Em' If you Got Em!", game.FlamethrowerQuote);
+  }
+
+  [TestMethod]
+  public void RestartClearsPickupQuote()
+  {
+    var game = Arm();
+    Assert.IsGreaterThan(0, game.FlamethrowerQuoteTicksRemaining);
+    game.Restart();
+    Assert.AreEqual(string.Empty, game.FlamethrowerQuote);
+    Assert.AreEqual(0, game.FlamethrowerQuoteTicksRemaining);
+  }
+
+  [TestMethod]
+  public void BundledWeaponQuotesIncludeTheTwoRequestedAndEightMore()
+  {
+    string[] quotes = File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Assets", "flamethrower-quotes.txt"))
+      .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray();
+
+    Assert.HasCount(10, quotes);
+    Assert.HasCount(10, quotes.Distinct().ToArray());
+    CollectionAssert.Contains(quotes, "Light Em' If you Got Em!");
+    CollectionAssert.Contains(quotes, "Make Flamethrowers Great Again");
   }
 
   [TestMethod]
@@ -288,7 +360,7 @@ public sealed class FlamethrowerTests : GameTestBase
     return ArmGame(new Game([LevelPath]) { Character = character });
   }
 
-  private static Game ArmGame(Game game)
+  private static Game ArmGame(Game game, int ticksAfterPickup = 60)
   {
     Tick(game, 10);
     Tick(game, 15, 1);
@@ -302,9 +374,10 @@ public sealed class FlamethrowerTests : GameTestBase
     game.QueueJump();
     Tick(game, 30, jump: true);
     TouchHeart(game);
-    Tick(game, 60);
+    Tick(game, ticksAfterPickup);
     Assert.IsTrue(game.HasFlamethrower);
-    game.Update(1, false);
+    if (ticksAfterPickup > 0)
+      game.Update(1, false);
     return game;
   }
 
