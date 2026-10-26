@@ -157,7 +157,7 @@ internal sealed class PixelRenderer
     var player = _sprites[PlayerSprite(screen.Character, pose)];
     Frame.Draw(player, 148, 142 - player.Height);
     PixelFont.Draw(Frame, $"LIVES {screen.Lives}", 180, 125, White, 2);
-    DrawTitleText("UNCLE SAYS", 155, Gold, 1);
+    DrawTitleText("UNCLE QUOTE", 155, Gold, 1);
     DrawWrappedCentered(screen.Quote, 170, White);
     Frame.Fill(12, 218, Width - 24, 1, 0xFF355575);
     DrawTitleText("PRESS ANY KEY TO BEGIN", 227, Gold, 1);
@@ -365,13 +365,14 @@ internal sealed class PixelRenderer
     if (game.IsDying)
     {
       DrawDeathMessage(game.DeathQuote);
-      if (game.AwaitingRestart)
-      {
-        const string Prompt = "PRESS ANY KEY TO CONTINUE";
-        int promptX = (Width - (((Prompt.Length * 4) - 1) * 2)) / 2;
-        PixelFont.Draw(Frame, Prompt, promptX + 1, 113, Ink, 2);
-        PixelFont.Draw(Frame, Prompt, promptX, 112, Gold, 2);
-      }
+      const string Prompt = "PRESS ANY KEY TO CONTINUE";
+      int promptScale = game.AwaitingRestart ? 2 : 1;
+      int promptY = game.AwaitingRestart ? 112 : Height - 9;
+      if (!game.AwaitingRestart)
+        Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
+      int promptX = (Width - (((Prompt.Length * 4) - 1) * promptScale)) / 2;
+      PixelFont.Draw(Frame, Prompt, promptX + 1, promptY + 1, Ink, promptScale);
+      PixelFont.Draw(Frame, Prompt, promptX, promptY, Gold, promptScale);
     }
     else if (game.Paused || game.Won || game.Lives == 0)
     {

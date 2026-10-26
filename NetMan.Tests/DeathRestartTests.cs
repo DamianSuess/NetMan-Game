@@ -16,12 +16,11 @@ public sealed class DeathRestartTests : GameTestBase
       game.Update(0, false);
 
     Assert.IsTrue(game.IsDying);
-    Assert.IsFalse(game.ContinueAfterDeath(), "An early key must not skip the death animation.");
     var level = game.Level;
     string quote = game.DeathQuote;
     double x = game.X, y = game.Y;
     Tick(game, Game.DeathDurationTicks - 1);
-    Assert.IsFalse(game.ContinueAfterDeath());
+    Assert.AreEqual(1, game.DeathTicksRemaining);
     Tick(game, 1);
     Assert.IsTrue(game.AwaitingRestart);
     Tick(game, 600, 1, true);
@@ -38,6 +37,55 @@ public sealed class DeathRestartTests : GameTestBase
     Assert.AreNotSame(level, game.Level);
     Assert.AreEqual(2, game.Lives);
     Assert.IsFalse(game.ContinueAfterDeath());
+  }
+
+  [TestMethod]
+  [DataRow(0)]
+  [DataRow(30)]
+  [DataRow(119)]
+  public void FreshKeyCanRestartAtAnyPointDuringDeath(int elapsed)
+  {
+    var game = Map(
+      "....................",
+      "....................",
+      "....................",
+      ".S................G.",
+      "....................");
+
+    for (int tick = 0; tick < 120 && !game.IsDying; tick++)
+      game.Update(0, false);
+
+    var oldLevel = game.Level;
+    Tick(game, elapsed);
+    Assert.IsGreaterThan(0, game.DeathTicksRemaining);
+    Assert.IsTrue(game.ContinueAfterDeath());
+    Assert.AreNotSame(oldLevel, game.Level);
+    Assert.IsFalse(game.IsDying);
+    Assert.AreEqual(0, game.DeathTicksRemaining);
+    Assert.AreEqual(2, game.Lives);
+  }
+
+  [TestMethod]
+  public void EarlyKeyAfterLastLifeRestartsGameImmediately()
+  {
+    var game = Map(
+      "....................",
+      "....................",
+      "....................",
+      ".S................G.",
+      "....................");
+
+    for (int life = 0; life < 3; life++)
+    {
+      for (int tick = 0; tick < 120 && !game.IsDying; tick++)
+        game.Update(0, false);
+      Assert.AreEqual(2 - life, game.Lives);
+      Assert.IsTrue(game.ContinueAfterDeath());
+    }
+
+    Assert.AreEqual(3, game.Lives);
+    Assert.AreEqual(0, game.TotalDeaths);
+    Assert.IsFalse(game.IsDying);
   }
 
   [TestMethod]
