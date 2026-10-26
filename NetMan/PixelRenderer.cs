@@ -72,6 +72,43 @@ internal sealed class PixelRenderer
 
   public PixelBuffer Frame { get; } = new(Width, Height);
 
+  public void DrawTitle(TitleScreen title)
+  {
+    DrawBackground((int)(title.Elapsed * 10) % (Width * 4));
+    Frame.OverlayBlack(100);
+    DrawTitleText("NETMAN", 34, Gold, 5, shadow: true);
+    DrawTitleText("PLAYER SELECT", 86, White, 2);
+
+    // One selectable character today; leave the selection centered as the roster grows.
+    Frame.Fill(139, 97, 106, 69, Gold);
+    Frame.Fill(141, 99, 102, 65, Ink);
+    int animationFrame = (int)(title.Elapsed * 6) % 2 + 1;
+    Frame.Draw(_sprites[$"player-large-run-{animationFrame}"], (Width - 16) / 2, 108);
+    DrawTitleText("SAM", 149, White, 1);
+    PixelFont.Draw(Frame, ">", 149, 126, Gold);
+    DrawTitleText("1 PLAYER", 173, Gold, 1);
+    DrawTitleText("ENTER / SPACE TO START", 186, White, 1);
+
+    long ticks = (long)(title.Elapsed * 60);
+    DrawCreditsRunner($"player-run-{animationFrame}", ticks, 0, 38, false, 224);
+    DrawCreditsRunner($"toaster-cat-run-{animationFrame}", ticks, 140, -45, false, 224);
+    DrawCreditsRunner((int)(title.Elapsed * 4) % 2 == 0 ? "enemy-idle" : "enemy-walk", ticks, 290, -24, false, 224);
+    DrawCreditsRunner($"zombie-walk-{(int)(title.Elapsed * 3) % 2 + 1}", ticks, 380, -12, false, 224);
+    Frame.Fill(0, 224, Width, 2, Gold);
+    Frame.Fill(0, 226, Width, 14, Ink);
+    const string Copyright = "© 2026 XENO INNOVATIONS, INC.";
+    PixelFont.Draw(Frame, Copyright, Width - (Copyright.Length * 4) - 5, Height - 9, White);
+  }
+
+  private void DrawTitleText(string text, int y, uint color, int scale, bool shadow = false)
+  {
+    int x = (Width - (((text.Length * 4) - 1) * scale)) / 2;
+    if (shadow)
+      PixelFont.Draw(Frame, text, x + 2, y + 3, Ink, scale);
+
+    PixelFont.Draw(Frame, text, x, y, color, scale);
+  }
+
   public void Draw(Game game, int direction, double elapsed = Game.Step)
   {
     bool moving = !game.Paused && !game.Won && !game.IsDying && game.Lives > 0;
@@ -241,13 +278,13 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, "PAUSED", Width - 30, 4, Gold);
   }
 
-  private void DrawCreditsRunner(string name, long ticks, int phase, int speed, bool flip)
+  private void DrawCreditsRunner(string name, long ticks, int phase, int speed, bool flip, int bottom = 238)
   {
     const int WrapWidth = Width + 64;
     long distance = (ticks * speed / 60) + phase;
     int x = (int)(((distance % WrapWidth) + WrapWidth) % WrapWidth) - 32;
     var sprite = _sprites[name];
-    Frame.Draw(sprite, x, 238 - sprite.Height, flip);
+    Frame.Draw(sprite, x, bottom - sprite.Height, flip);
   }
 
   private void DrawDeathMessage(string quote)

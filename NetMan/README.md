@@ -24,6 +24,10 @@ This version runs on Windows. The gameplay, text-level loader, sprite loader, pi
 
 You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter while gameplay freezes for two seconds of game time, then shows PRESS ANY KEY TO CONTINUE. A fresh keypress reloads the current level; holding a key does not dismiss the screen. After the last life, the same prompt restarts from level one with three lives and cleared rewards. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 
+## Title screen
+
+The animated title screen opens before Level 1. The current selection is Sam, shown in his powered-up size. Press Enter or Space to start, or Esc to quit. Gameplay begins at normal size; the selection preview does not grant a power-up. Characters move along the bottom beneath the selection, and the copyright appears in the bottom-right corner. Losing window focus freezes the title animation.
+
 ## Make levels
 
 Edit `Levels/*.txt` in any text editor, then restart the game. `dotnet run` copies them into the output directory. Files play in alphabetical order: use names such as `01-meadow.txt`, `02-ruins.txt`, `03-your-level.txt`. The game discovers additional `.txt` files automatically on startup.

@@ -42,7 +42,10 @@ try
 
   var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
   var game = new Game(files);
+  var titleScreen = new TitleScreen();
+
   using IGameWindow window = new WindowsGameWindow(PixelRenderer.Width, PixelRenderer.Height);
+
   var clock = Stopwatch.StartNew();
   double previous = clock.Elapsed.TotalSeconds;
   double accumulator = 0;
@@ -58,6 +61,19 @@ try
     double elapsed = Math.Min(now - previous, 0.1);
     accumulator += elapsed;
     previous = now;
+
+    if (titleScreen.IsActive)
+    {
+      if (window.Active && window.Pressed(GameKey.Escape))
+        break;
+
+      titleScreen.Update(elapsed, window.Pressed(GameKey.Start) || window.Pressed(GameKey.Jump), window.Active);
+      accumulator = 0;
+      renderer.DrawTitle(titleScreen);
+      window.Present(renderer.Frame);
+      Thread.Sleep(16);
+      continue;
+    }
 
     if (!window.Active)
     {
