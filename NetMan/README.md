@@ -1,8 +1,15 @@
 # NetMan
 
-A C# / .NET 10 pixel-art platformer with its own software renderer and native Windows game window. The game requires no third-party engine, graphics library, or NuGet packages. The separate MSTest project restores Microsoft test packages during development. Collect coins, stomp enemies, cross gaps, and reach the green flag at the end of each level.
+A C# / .NET 10 pixel-art platformer with its own software renderer and native Windows game window. The game requires no third-party engine or graphics library. Velopack provides its installer and automatic updates; the separate MSTest project restores Microsoft test packages during development. Collect coins, stomp enemies, cross gaps, and reach the green flag at the end of each level.
 
 ## Play
+
+Installer downloads and automatic updates use [GitHub Releases](https://github.com/DamianSuess/NetMan-Game/releases).
+Managed builds check for stable updates at launch, restart to apply them while still
+on the title screen, or apply them on exit after gameplay has begun. Update failures
+do not prevent play. Use `%LocalAppData%/NetMan/Content/Levels` and `.../Assets` to edit
+managed-build content; updates preserve your changes. The repository's root README
+describes packaging, release assets, and the original ZIP distribution.
 
 Install the .NET 10 SDK, open Windows Terminal in this folder, and run:
 

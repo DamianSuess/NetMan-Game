@@ -71,7 +71,7 @@ Brick break animation: `brick-rubble.sprite` shows broken chunks for 0.25 second
 
 Reward popup: `reward-plus-one.sprite` is an 8 x 6 pixel image containing the gold `+1` and its shadow. Edit its pixel grid to customize the reward artwork. You can also change its width and height; it stays centered above the rewarded block and floats upward for one second of game time. The popup uses the shared palette, including `Y` for gold and `K` for its shadow. Its dimensions are independent of the 16 x 16 map tiles.
 
-Restart `dotnet run` after editing source art. Running the project copies assets into its build output. For a published game, edit the `.sprite` files and palette inside the `Assets` directory beside `NetMan.exe`, then relaunch.
+Restart `dotnet run` after editing source art. Running the project copies assets into its build output. For the original plain ZIP, edit the `.sprite` files and palette inside the `Assets` directory beside `NetMan.exe`, then relaunch. Installer and Velopack-managed portable builds use `%LocalAppData%/NetMan/Content/Assets` instead; edits there are preserved during automatic updates. Relaunch after editing.
 
 ## PNG previews
 
