@@ -172,7 +172,7 @@ public sealed class Game
 
   public bool ContinueAfterDeath()
   {
-    if (!AwaitingRestart)
+    if (!IsDying)
       return false;
 
     if (Lives > 0)
