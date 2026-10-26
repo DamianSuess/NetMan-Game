@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NetMan.Tests;
@@ -6,12 +9,38 @@ namespace NetMan.Tests;
 public sealed class ToasterCatTests : GameTestBase
 {
   [TestMethod]
+  public void BundledLevelsIntroduceToasterCatsFromLevelTwoOnward()
+  {
+    string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
+    Assert.IsEmpty(Level.Load(paths[0]).ToasterCatSpawns);
+    foreach (string path in paths.Skip(1))
+    {
+      var level = Level.Load(path);
+      Assert.IsNotEmpty(level.ToasterCatSpawns, Path.GetFileName(path));
+      Assert.IsNotEmpty(level.EnemySpawns, "Existing enemies should remain in the level.");
+
+      foreach (var spawn in level.ToasterCatSpawns)
+      {
+        Assert.AreEqual('.', level.Tile(spawn.X, spawn.Y));
+        Assert.IsTrue(level.Solid(spawn.X, spawn.Y + 1));
+      }
+    }
+  }
+
+  [TestMethod]
   public void EnemyTypesLoadIndependentSpeedAndPowerSettings()
   {
     CreateMixedLevel();
-    File.WriteAllLines(NextPath,
-      ["; custom balance", "[Walker]", "Speed=2.5", "PowerLevel=3", "HopVelocity=0",
-       "[ToasterCat]", "Speed=4.5", "PowerLevel=7", "HopVelocity=8"]);
+    File.WriteAllLines(NextPath, [
+      "; custom balance",
+      "[Walker]",
+      "Speed=2.5",
+      "PowerLevel=3",
+      "HopVelocity=0",
+       "[ToasterCat]",
+      "Speed=4.5",
+      "PowerLevel=7",
+      "HopVelocity=8"]);
 
     var game = new Game([LevelPath], enemySettingsPath: NextPath);
     var walker = game.Enemies.Single(enemy => enemy.Kind == EnemyKind.Walker);
@@ -58,40 +87,6 @@ public sealed class ToasterCatTests : GameTestBase
     Assert.IsGreaterThan(config.Walker.Speed, config.ToasterCat.Speed);
     Assert.AreEqual(2, config.ToasterCat.PowerLevel);
     Assert.IsGreaterThan(0, config.ToasterCat.HopVelocity);
-  }
-
-  [TestMethod]
-  public void ToasterCatRunsFasterAndHopsBetweenGroundRuns()
-  {
-    var game = CreateMixedLevel();
-    var cat = game.Enemies.Single(enemy => enemy.Kind == EnemyKind.ToasterCat);
-    var walker = game.Enemies.Single(enemy => enemy.Kind == EnemyKind.Walker);
-
-    double catX = cat.X, walkerX = walker.X;
-    bool hopped = false, ranOnGround = false;
-    double highestY = cat.Y;
-
-    for (int tick = 0; tick < 60; tick++)
-    {
-      game.Update(0, false);
-      hopped |= cat.VelocityY < 0;
-      ranOnGround |= cat.VelocityY == 0;
-      highestY = Math.Min(highestY, cat.Y);
-    }
-
-    Assert.AreEqual(cat.Settings.Speed, catX - cat.X, 0.00001);
-    Assert.AreEqual(walker.Settings.Speed, walkerX - walker.X, 0.00001);
-    Assert.IsTrue(hopped);
-    Assert.IsTrue(ranOnGround);
-    Assert.IsLessThan(3.9, highestY);
-
-    double x = cat.X, y = cat.Y, velocity = cat.VelocityY;
-    game.Paused = true;
-
-    Tick(game, 120);
-    Assert.AreEqual(x, cat.X);
-    Assert.AreEqual(y, cat.Y);
-    Assert.AreEqual(velocity, cat.VelocityY);
   }
 
   [TestMethod]
@@ -185,6 +180,7 @@ public sealed class ToasterCatTests : GameTestBase
     // The map is 32 tiles wide, but the player is still at the left edge: camera X/Y remain zero.
     int left = (int)Math.Round((cat.X + (Game.BodyWidth / 2)) * 16) - (sprite.Width / 2);
     int top = 28 + (int)Math.Round((cat.Y + Game.BodyHeight) * 16) - sprite.Height;
+
     for (int y = 0; y < sprite.Height; y++)
     {
       for (int x = 0; x < sprite.Width; x++)
@@ -196,22 +192,37 @@ public sealed class ToasterCatTests : GameTestBase
   }
 
   [TestMethod]
-  public void BundledLevelsIntroduceToasterCatsFromLevelTwoOnward()
+  public void ToasterCatRunsFasterAndHopsBetweenGroundRuns()
   {
-    string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
-    Assert.IsEmpty(Level.Load(paths[0]).ToasterCatSpawns);
-    foreach (string path in paths.Skip(1))
-    {
-      var level = Level.Load(path);
-      Assert.IsNotEmpty(level.ToasterCatSpawns, Path.GetFileName(path));
-      Assert.IsNotEmpty(level.EnemySpawns, "Existing enemies should remain in the level.");
+    var game = CreateMixedLevel();
+    var cat = game.Enemies.Single(enemy => enemy.Kind == EnemyKind.ToasterCat);
+    var walker = game.Enemies.Single(enemy => enemy.Kind == EnemyKind.Walker);
 
-      foreach (var spawn in level.ToasterCatSpawns)
-      {
-        Assert.AreEqual('.', level.Tile(spawn.X, spawn.Y));
-        Assert.IsTrue(level.Solid(spawn.X, spawn.Y + 1));
-      }
+    double catX = cat.X, walkerX = walker.X;
+    bool hopped = false, ranOnGround = false;
+    double highestY = cat.Y;
+
+    for (int tick = 0; tick < 60; tick++)
+    {
+      game.Update(0, false);
+      hopped |= cat.VelocityY < 0;
+      ranOnGround |= cat.VelocityY == 0;
+      highestY = Math.Min(highestY, cat.Y);
     }
+
+    Assert.AreEqual(cat.Settings.Speed, catX - cat.X, 0.00001);
+    Assert.AreEqual(walker.Settings.Speed, walkerX - walker.X, 0.00001);
+    Assert.IsTrue(hopped);
+    Assert.IsTrue(ranOnGround);
+    Assert.IsLessThan(3.9, highestY);
+
+    double x = cat.X, y = cat.Y, velocity = cat.VelocityY;
+    game.Paused = true;
+
+    Tick(game, 120);
+    Assert.AreEqual(x, cat.X);
+    Assert.AreEqual(y, cat.Y);
+    Assert.AreEqual(velocity, cat.VelocityY);
   }
 
   private Game CreateMixedLevel() => Map(

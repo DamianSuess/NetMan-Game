@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NetMan.Tests;
@@ -15,12 +17,14 @@ public sealed class GrowthHeartTests : GameTestBase
     Assert.AreEqual(0, game.Coins);
     Assert.AreEqual('X', game.Level.Tile(1, 2));
     Assert.AreEqual(0, heart.AgeTicks);
+
     double x = heart.X, y = heart.Y;
     game.Paused = true;
     Tick(game, 120);
     Assert.AreEqual(x, heart.X);
     Assert.AreEqual(y, heart.Y);
     Assert.AreEqual(0, heart.AgeTicks);
+
     game.Paused = false;
     Tick(game, 12);
     Assert.IsGreaterThan(x, heart.X);
@@ -29,47 +33,23 @@ public sealed class GrowthHeartTests : GameTestBase
   }
 
   [TestMethod]
-  public void PlayerMustChaseAndTouchHeartToGrow()
+  public void DeathFreezesHeartAndConfirmedRespawnClearsIt()
   {
     var game = CreateGame();
-    Release(game);
-    Tick(game, 30);
-    Assert.IsFalse(game.IsLarge, "Standing under the block must not grant growth.");
-    Assert.HasCount(1, game.GrowthHearts);
-
-    for (int tick = 0; tick < 180 && !game.IsLarge; tick++)
-    {
-      double distance = game.GrowthHearts[0].X - game.X;
-      game.Update(Math.Abs(distance) < 0.1 ? 0 : Math.Sign(distance), false);
-    }
-
-    Assert.IsTrue(game.IsLarge);
+    var heart = Release(game);
+    game.Enemies.Add(new Enemy(game.X + 0.4, game.Y) { Direction = 0 });
+    game.Update(0, false);
+    Assert.IsTrue(game.IsDying);
+    double x = heart.X, y = heart.Y;
+    int age = heart.AgeTicks;
+    Tick(game, 240);
+    Assert.AreEqual(x, heart.X);
+    Assert.AreEqual(y, heart.Y);
+    Assert.AreEqual(age, heart.AgeTicks);
+    Assert.IsTrue(game.ContinueAfterDeath());
     Assert.IsEmpty(game.GrowthHearts);
-    Assert.IsGreaterThan(1, game.X);
-    Assert.AreEqual(100, game.Score);
-    Assert.AreEqual(3, game.Lives);
-    Tick(game, 120);
-    Assert.AreEqual(100, game.Score, "A collected heart must not award points again.");
-  }
-
-  [TestMethod]
-  public void OpeningExtraGrowthBlockDoesNotOverloadUntilHeartIsCollected()
-  {
-    var game = Map("....................", "....................", "....................", "....................",
-      ".M.....M............", "....................", "....................",
-      ".S................G.", "####################");
     Release(game);
-    TouchHeart(game);
-    Tick(game, 60);
-    Assert.IsTrue(game.IsLarge);
-    Tick(game, 30, 1);
-    Release(game);
-    Assert.IsTrue(game.IsLarge);
-    Assert.IsFalse(game.IsDying);
-    Assert.AreEqual(100, game.Score);
-    TouchHeart(game);
-    Assert.IsTrue(game.IsExploding);
-    Assert.AreEqual(200, game.Score);
+    game.Restart();
     Assert.IsEmpty(game.GrowthHearts);
   }
 
@@ -100,56 +80,6 @@ public sealed class GrowthHeartTests : GameTestBase
   }
 
   [TestMethod]
-  public void MissedHeartFallsIntoPitWithoutAwardingPower()
-  {
-    var game = Map("....................", "....................", ".M..................",
-      "....................", ".S................G.", "########.....#######");
-    var heart = Release(game);
-    heart.X = 9;
-    heart.Y = 4.1;
-    heart.Direction = 0;
-    heart.VelocityY = 28;
-    Tick(game, 60);
-    Assert.IsEmpty(game.GrowthHearts);
-    Assert.IsFalse(game.IsLarge);
-    Assert.AreEqual(0, game.Score);
-  }
-
-  [TestMethod]
-  public void DeathFreezesHeartAndConfirmedRespawnClearsIt()
-  {
-    var game = CreateGame();
-    var heart = Release(game);
-    game.Enemies.Add(new Enemy(game.X + 0.4, game.Y) { Direction = 0 });
-    game.Update(0, false);
-    Assert.IsTrue(game.IsDying);
-    double x = heart.X, y = heart.Y;
-    int age = heart.AgeTicks;
-    Tick(game, 240);
-    Assert.AreEqual(x, heart.X);
-    Assert.AreEqual(y, heart.Y);
-    Assert.AreEqual(age, heart.AgeTicks);
-    Assert.IsTrue(game.ContinueAfterDeath());
-    Assert.IsEmpty(game.GrowthHearts);
-    Release(game);
-    game.Restart();
-    Assert.IsEmpty(game.GrowthHearts);
-  }
-
-  [TestMethod]
-  [DataRow(0, 1)]
-  [DataRow(6, 0)]
-  [DataRow(12, 1)]
-  [DataRow(18, 0)]
-  [DataRow(35, 0)]
-  [DataRow(36, 1)]
-  public void HeartUsesDoubleBeatAnimation(int age, int expectedFrame)
-  {
-    var heart = new GrowthHeart(0, 0, 1) { AgeTicks = age };
-    Assert.AreEqual(expectedFrame, heart.FrameIndex);
-  }
-
-  [TestMethod]
   [DataRow(0, 2)]
   [DataRow(6, 1)]
   public void HeartRendersItsEditableBeatSprite(int ticks, int spriteNumber)
@@ -174,8 +104,96 @@ public sealed class GrowthHeartTests : GameTestBase
     }
   }
 
-  private Game CreateGame() => Map("....................", "....................", ".M..................",
-    "....................", ".S................G.", "####################");
+  [TestMethod]
+  [DataRow(0, 1)]
+  [DataRow(6, 0)]
+  [DataRow(12, 1)]
+  [DataRow(18, 0)]
+  [DataRow(35, 0)]
+  [DataRow(36, 1)]
+  public void HeartUsesDoubleBeatAnimation(int age, int expectedFrame)
+  {
+    var heart = new GrowthHeart(0, 0, 1) { AgeTicks = age };
+    Assert.AreEqual(expectedFrame, heart.FrameIndex);
+  }
+
+  [TestMethod]
+  public void MissedHeartFallsIntoPitWithoutAwardingPower()
+  {
+    var game = Map(
+      "....................",
+      "....................",
+      ".M..................",
+      "....................",
+      ".S................G.",
+      "########.....#######");
+
+    var heart = Release(game);
+    heart.X = 9;
+    heart.Y = 4.1;
+    heart.Direction = 0;
+    heart.VelocityY = 28;
+    Tick(game, 60);
+    Assert.IsEmpty(game.GrowthHearts);
+    Assert.IsFalse(game.IsLarge);
+    Assert.AreEqual(0, game.Score);
+  }
+
+  [TestMethod]
+  public void OpeningExtraGrowthBlockDoesNotOverloadUntilHeartIsCollected()
+  {
+    var game = Map(
+      "....................",
+      "....................",
+      "....................",
+      "....................",
+      ".M.....M............",
+      "....................",
+      "....................",
+      ".S................G.",
+      "####################");
+
+    Release(game);
+    TouchHeart(game);
+    Tick(game, 60);
+    Assert.IsTrue(game.IsLarge);
+
+    Tick(game, 30, 1);
+    Release(game);
+    Assert.IsTrue(game.IsLarge);
+    Assert.IsFalse(game.IsDying);
+    Assert.AreEqual(100, game.Score);
+
+    TouchHeart(game);
+    Assert.IsTrue(game.IsExploding);
+    Assert.AreEqual(200, game.Score);
+    Assert.IsEmpty(game.GrowthHearts);
+  }
+
+  [TestMethod]
+  public void PlayerMustChaseAndTouchHeartToGrow()
+  {
+    var game = CreateGame();
+    Release(game);
+    Tick(game, 30);
+    Assert.IsFalse(game.IsLarge, "Standing under the block must not grant growth.");
+    Assert.HasCount(1, game.GrowthHearts);
+
+    for (int tick = 0; tick < 180 && !game.IsLarge; tick++)
+    {
+      double distance = game.GrowthHearts[0].X - game.X;
+      game.Update(Math.Abs(distance) < 0.1 ? 0 : Math.Sign(distance), false);
+    }
+
+    Assert.IsTrue(game.IsLarge);
+    Assert.IsEmpty(game.GrowthHearts);
+    Assert.IsGreaterThan(1, game.X);
+    Assert.AreEqual(100, game.Score);
+    Assert.AreEqual(3, game.Lives);
+
+    Tick(game, 120);
+    Assert.AreEqual(100, game.Score, "A collected heart must not award points again.");
+  }
 
   private static GrowthHeart Release(Game game)
   {
@@ -183,7 +201,16 @@ public sealed class GrowthHeartTests : GameTestBase
     game.QueueJump();
     for (int tick = 0; tick < 90 && game.GrowthHearts.Count == 0; tick++)
       game.Update(0, true);
+
     Assert.HasCount(1, game.GrowthHearts);
     return game.GrowthHearts[0];
   }
+
+  private Game CreateGame() => Map(
+    "....................",
+    "....................",
+    ".M..................",
+    "....................",
+    ".S................G.",
+    "####################");
 }
