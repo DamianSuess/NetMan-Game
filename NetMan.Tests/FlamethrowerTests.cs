@@ -34,7 +34,7 @@ public sealed class FlamethrowerTests : GameTestBase
   {
     var game = Arm();
     Assert.AreEqual(2, game.PowerUpLevel);
-    Assert.AreEqual(1, game.FlameDamage);
+    Assert.AreEqual(game.PlayerPowerLevel + 1, game.FlameDamage);
     Assert.AreEqual(200, game.Score);
   }
 
@@ -49,34 +49,34 @@ public sealed class FlamethrowerTests : GameTestBase
     game.Update(0, false, true);
     Assert.IsNotNull(game.Flame);
     Assert.AreEqual(3, game.Flame.Length);
-    Assert.AreEqual(9, near.Health);
+    Assert.AreEqual(7, near.Health);
     Assert.AreEqual(10, far.Health);
     Assert.AreEqual(0, game.Flame.FrameIndex);
     for (int tick = 0; tick < 6; tick++)
       game.Update(0, false, true);
     Assert.AreEqual(1, game.Flame!.FrameIndex);
-    Assert.AreEqual(9, near.Health, "Flames must not inflict damage every simulation tick.");
-    for (int tick = 0; tick < 53; tick++)
+    Assert.AreEqual(7, near.Health, "Flames must not inflict damage every simulation tick.");
+    for (int tick = 0; tick < 11; tick++)
       game.Update(0, false, true);
-    Assert.AreEqual(9, near.Health);
+    Assert.AreEqual(7, near.Health);
     game.Update(0, false, true);
-    Assert.AreEqual(8, near.Health);
+    Assert.AreEqual(4, near.Health);
     game.Update(0, false);
     Assert.IsNull(game.Flame);
   }
 
   [TestMethod]
-  public void FireKillsWithNormalScoreAndSplatterRegardlessOfStompPower()
+  public void FireKillsWithNormalScoreAndSplatterAndSupportsMaximumPower()
   {
     CreateGame();
     File.WriteAllLines(NextPath, ["[Player.PowerLevel2]", "PowerLevel=10"]);
     var game = ArmGame(new Game([LevelPath], enemySettingsPath: NextPath));
-    Assert.AreEqual(1, game.FlameDamage);
-    var enemy = AddEnemy(game, 3, 1);
+    Assert.AreEqual(11, game.FlameDamage);
+    var enemy = AddEnemy(game, 3, 10);
     game.Update(0, false, true);
     Assert.IsFalse(enemy.Alive);
     Assert.AreEqual(Enemy.SquashDurationTicks, enemy.SquashTicksRemaining);
-    Assert.AreEqual(400, game.Score);
+    Assert.AreEqual(2200, game.Score);
   }
 
   [TestMethod]
@@ -126,7 +126,7 @@ public sealed class FlamethrowerTests : GameTestBase
     for (int tick = 0; tick < 120; tick++)
       game.Update(0, false, true);
     Assert.AreEqual(flame, game.Flame);
-    Assert.AreEqual(9, enemy.Health);
+    Assert.AreEqual(7, enemy.Health);
     game.Paused = false;
     game.Enemies.Clear();
 
@@ -202,44 +202,45 @@ public sealed class FlamethrowerTests : GameTestBase
   }
 
   [TestMethod]
-  public void BurstStopsAfterThreeSecondsAndNeedsReleaseBeforeRestarting()
+  public void BurstStopsAfterTwoSecondsAndNeedsReleaseBeforeRestarting()
   {
     var game = Arm();
     var enemy = AddEnemy(game, 3, 10);
-    for (int tick = 0; tick < 180; tick++)
+    for (int tick = 0; tick < 120; tick++)
       game.Update(0, false, true);
     Assert.IsNotNull(game.Flame);
-    Assert.AreEqual(7, enemy.Health, "A three-second burst deals three one-point hits.");
+    Assert.IsFalse(enemy.Alive);
+    var nextEnemy = AddEnemy(game, 3, 10);
     game.Update(0, false, true);
     Assert.IsNull(game.Flame);
     for (int tick = 0; tick < 120; tick++)
       game.Update(0, false, true);
     Assert.IsNull(game.Flame);
-    Assert.AreEqual(7, enemy.Health);
+    Assert.AreEqual(10, nextEnemy.Health);
     Assert.IsTrue(game.HasFlamethrower);
     game.Update(0, false);
     game.Update(0, false, true);
     Assert.IsNotNull(game.Flame);
     Assert.AreEqual(0, game.Flame.FrameIndex);
-    Assert.AreEqual(6, enemy.Health);
+    Assert.AreEqual(7, nextEnemy.Health);
   }
 
   [TestMethod]
-  public void TappingFireDoesNotBypassOneSecondDamageInterval()
+  public void TappingFireDoesNotBypassDamageInterval()
   {
     var game = Arm();
     var enemy = AddEnemy(game, 3, 10);
     game.Update(0, false, true);
-    Assert.AreEqual(9, enemy.Health);
-    for (int tick = 0; tick < 29; tick++)
+    Assert.AreEqual(7, enemy.Health);
+    for (int tick = 0; tick < 8; tick++)
     {
       game.Update(0, false);
       game.Update(0, false, true);
     }
-    Assert.AreEqual(9, enemy.Health);
+    Assert.AreEqual(7, enemy.Health);
     game.Update(0, false);
     game.Update(0, false, true);
-    Assert.AreEqual(8, enemy.Health);
+    Assert.AreEqual(4, enemy.Health);
   }
 
   [TestMethod]

@@ -16,8 +16,8 @@ public sealed class Game
   public const int PoopSplatterDurationTicks = 120;
   public const double PoopSpeedMultiplier = 0.5;
   public const double FlameRange = 3;
-  public const int FlameDamageIntervalTicks = 60;
-  public const int FlameMaxDurationTicks = 180;
+  public const int FlameDamageIntervalTicks = 18;
+  public const int FlameMaxDurationTicks = 120;
   public const int BurnDurationTicks = 180;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
@@ -80,7 +80,7 @@ public sealed class Game
   public bool IsLarge { get; private set; }
   public bool HasFlamethrower { get; private set; }
   public int PowerUpLevel => HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
-  public int FlameDamage => 1;
+  public int FlameDamage => PlayerPowerLevel + 1;
   public int FacingDirection => _facingDirection;
   public FlameStream? Flame { get; private set; }
   public int BurnTicksRemaining { get; private set; }
