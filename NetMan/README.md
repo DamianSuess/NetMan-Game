@@ -30,13 +30,23 @@ The animated title screen opens before Level 1. Choose Sam or Ella with A/D or t
 
 On the title screen, enter the Konami code with fresh keypresses: Up, Up, Down, Down, Left, Right, Left, Right, B, A. A confirmation appears when it activates. You can then press Left or Right again to choose Sam or Ella before pressing Enter. The cheat starts the game with 30 lives, growth, and the flamethrower, including in Level 1. Holding a key does not count as repeated code entries. Normal damage and deaths still apply; respawning does not refill lives or restore lost powers. R starts a fresh cheat run with the original 30 lives and starting powers. Ordinary runs keep their usual three lives and small starting size.
 
-Levels 4 and 5 use a night sky with stars, a moon, and tombstones in the background. Two layers of gravestones scroll at different speeds as the player walks past; they are scenery and do not block movement. Daytime returns from Level 6 onward. The theme follows the level position in the campaign, so the fourth and fifth files receive the night background.
+Levels 4 and 5 use a night sky with stars, a moon, and tombstones in the background. Two layers of gravestones scroll at different speeds as the player walks past; they are scenery and do not block movement. Daytime returns from Level 6 onward. Each level selects its own theme through the Background header; moving or renaming the file does not change its scenery.
 
 ## Make levels
 
 Edit `Levels/*.txt` in any text editor, then restart the game. `dotnet run` copies them into the output directory. Files play in alphabetical order: use names such as `01-meadow.txt`, `02-ruins.txt`, `03-your-level.txt`. The game discovers additional `.txt` files automatically on startup.
 
-Each character is one tile. Rows run from top to bottom; columns run left to right. No header or comments are used inside a map.
+Choose the scenery with an optional first-line header, `Background=Day` or `Background=Night`. A blank separator before the map is optional. Files without a header use Day. The header is case-insensitive; invalid values report an error. Night includes the moon, stars, and scrolling tombstones.
+
+```text
+Background=Night
+
+........................
+...S................G...
+########################
+```
+
+Within the map, each character is one tile. Rows run from top to bottom; columns run left to right. The header and separator do not count as map rows. Comments are not supported inside the map.
 
 | Character | Meaning |
 | --- | --- |

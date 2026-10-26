@@ -163,7 +163,7 @@ internal sealed class PixelRenderer
     int cameraX = Math.Clamp((int)(game.X * TileSize) - (Width / 3), 0, Math.Max(0, (game.Level.Width * TileSize) - Width));
     int cameraY = Math.Clamp((int)(game.Y * TileSize) - ((viewHeight * 2) / 3), 0, Math.Max(0, (game.Level.Height * TileSize) - viewHeight));
 
-    bool night = game.LevelNumber is >= 4 and < 6;
+    bool night = game.Level.Background == BackgroundTheme.Night;
     DrawBackground(cameraX, night);
 
     if (night)
