@@ -1,0 +1,237 @@
+using System;
+using System.IO;
+using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace NetMan.Tests;
+
+[TestClass]
+public sealed class BoomStickTests : GameTestBase
+{
+  [TestMethod]
+  public void BundledBoomSticksStartAtLevelSix()
+  {
+    string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
+    for (int index = 0; index < paths.Length; index++)
+    {
+      Assert.AreEqual(index >= 5, File.ReadAllText(paths[index]).Contains('Q'), paths[index]);
+      Level.Load(paths[index]);
+    }
+  }
+
+  [TestMethod]
+  public void SmallPlayerCannotCollectBoomStick()
+  {
+    var game = CreateGame();
+    Tick(game, 10);
+    game.QueueJump();
+    Tick(game, 30, jump: true);
+    Assert.HasCount(1, game.GrowthHearts);
+    Assert.IsTrue(game.GrowthHearts[0].IsBoomStick);
+    TouchHeart(game);
+    Assert.IsFalse(game.HasBoomStick);
+    Assert.IsFalse(game.IsLarge);
+    Assert.HasCount(1, game.GrowthHearts);
+    Assert.AreEqual(0, game.Score);
+  }
+
+  [TestMethod]
+  [DataRow(PlayerCharacter.Sam)]
+  [DataRow(PlayerCharacter.Ella)]
+  public void LargePlayersCollectShotgunAndHitOnlyWithinFourTiles(PlayerCharacter character)
+  {
+    var game = Arm(character);
+    Assert.IsTrue(game.HasBoomStick);
+    Assert.IsFalse(game.HasFlamethrower);
+    Assert.AreEqual(3, game.PowerUpLevel);
+    Assert.AreEqual(game.FlameDamage + 1, game.ShotgunDamage);
+    var near = AddEnemy(game, 3, 10);
+    var far = AddEnemy(game, 6.2, 10);
+    game.Update(0, false, true);
+    Assert.IsNotNull(game.ShotgunBlast);
+    Assert.AreEqual(4, game.ShotgunBlast.Length);
+    Assert.AreEqual(6, near.Health);
+    Assert.AreEqual(10, far.Health);
+    Assert.IsNull(game.Flame);
+  }
+
+  [TestMethod]
+  public void ShotPassesThroughBricksAndLeavesExistingRubbleAnimation()
+  {
+    var game = Arm();
+    Tick(game, 10, 1);
+    var enemy = AddEnemy(game, 7.2, 10);
+    game.Update(0, false, true);
+    Assert.AreEqual('.', game.Level.Tile(6, 7));
+    Assert.AreEqual('.', game.Level.Tile(7, 7));
+    Assert.AreEqual('B', game.Level.Tile(9, 7));
+    Assert.HasCount(2, game.BlockBreakEffects);
+    Assert.AreEqual(300, game.Score);
+    Assert.AreEqual(6, enemy.Health);
+    Assert.IsTrue(game.BlockBreakEffects.All(effect => effect.FrameIndex == 0));
+    Tick(game, 15);
+    Assert.IsTrue(game.BlockBreakEffects.All(effect => effect.FrameIndex == 1));
+    Tick(game, 15);
+    Assert.IsEmpty(game.BlockBreakEffects);
+  }
+
+  [TestMethod]
+  public void SolidWallsStopTheShotAndProtectBricksAndEnemiesBehindThem()
+  {
+    var game = Arm();
+    Tick(game, 10, 1);
+    game.Level.UseBlock(7, 7);
+    var enemy = AddEnemy(game, 7.3, 10);
+    game.Update(0, false, true);
+    Assert.AreEqual('.', game.Level.Tile(6, 7));
+    Assert.AreEqual('X', game.Level.Tile(7, 7));
+    Assert.AreEqual('B', game.Level.Tile(9, 7));
+    Assert.AreEqual(10, enemy.Health);
+    Assert.AreEqual(7 - (game.X + Game.BodyWidth), game.ShotgunBlast!.Length, 0.00001);
+  }
+
+  [TestMethod]
+  public void HoldingFireShootsOnceAndRapidTappingCannotSkipReload()
+  {
+    var game = Arm();
+    var enemy = AddEnemy(game, 3, 10);
+    for (int tick = 0; tick < 60; tick++)
+      game.Update(0, false, true);
+    Assert.AreEqual(6, enemy.Health);
+    game.Update(0, false);
+    game.Update(0, false, true);
+    Assert.AreEqual(2, enemy.Health);
+    game.Update(0, false);
+    game.Update(0, false, true);
+    Assert.AreEqual(2, enemy.Health);
+  }
+
+  [TestMethod]
+  public void BlastAnimationAndReloadFreezeWhenPaused()
+  {
+    var game = Arm();
+    game.Update(0, false, true);
+    var blast = game.ShotgunBlast;
+    game.Paused = true;
+    Tick(game, 100);
+    Assert.AreEqual(blast, game.ShotgunBlast);
+    game.Paused = false;
+    Tick(game, 6);
+    Assert.AreEqual(1, game.ShotgunBlast!.FrameIndex);
+    Tick(game, 6);
+    Assert.IsNull(game.ShotgunBlast);
+  }
+
+  [TestMethod]
+  public void HighPowerShotKillsWithNormalScoreAndSplatter()
+  {
+    CreateGame();
+    File.WriteAllLines(NextPath, ["[Player.PowerLevel2]", "PowerLevel=10"]);
+    var game = ArmGame(new Game([LevelPath], enemySettingsPath: NextPath));
+    var enemy = AddEnemy(game, 3, 10);
+    Assert.AreEqual(12, game.ShotgunDamage);
+    game.Update(0, false, true);
+    Assert.IsFalse(enemy.Alive);
+    Assert.AreEqual(60, enemy.SquashTicksRemaining);
+    Assert.AreEqual(2200, game.Score);
+  }
+
+  [TestMethod]
+  [DataRow(0)]
+  [DataRow(6)]
+  public void ShotgunRendersItsOwnWeaponAndBothBlastFrames(int elapsed)
+  {
+    var game = Arm();
+    game.Update(0, false, true);
+    Tick(game, elapsed);
+    var blast = game.ShotgunBlast!;
+    string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
+    var palette = Sprite.LoadPalette(Path.Combine(assets, "palette.txt"));
+    var renderer = new PixelRenderer(assets);
+    renderer.Draw(game, 0, 0);
+    var sprite = Sprite.Load(Path.Combine(assets, $"shotgun-blast-{blast.FrameIndex + 1}.sprite"), palette);
+    int left = (int)Math.Round(blast.X * 16);
+    int top = 28 + (int)Math.Round(blast.Y * 16) - 8;
+    for (int distance = 0; distance < 64; distance++)
+      for (int y = 0; y < 16; y++)
+        if (sprite.Pixel(distance % 16, y) != 0)
+          Assert.AreEqual(sprite.Pixel(distance % 16, y), renderer.Frame.Pixels[((top + y) * PixelRenderer.Width) + left + distance]);
+    var weapon = Sprite.Load(Path.Combine(assets, "boom-stick.sprite"), palette);
+    int weaponX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * 16) - 8;
+    Assert.AreEqual(weapon.Pixel(3, 8), renderer.Frame.Pixels[((top + 8) * PixelRenderer.Width) + weaponX + 3]);
+  }
+
+  [TestMethod]
+  public void DamageDowngradesShotgunToFlamethrowerAndRestartClearsIt()
+  {
+    var game = Arm();
+    game.Enemies.Add(new Enemy(game.X, game.Y, settings: new EnemySettings(0, 1, 0)) { Direction = 0 });
+    game.Update(0, false);
+    Assert.IsFalse(game.HasBoomStick);
+    Assert.IsTrue(game.HasFlamethrower);
+    Assert.IsTrue(game.IsLarge);
+    Assert.AreEqual(2, game.PowerUpLevel);
+    Assert.AreEqual(3, game.Lives);
+    game.Restart();
+    Assert.IsFalse(game.HasBoomStick);
+    Assert.IsFalse(game.HasFlamethrower);
+  }
+
+  [TestMethod]
+  public void ShotgunSurvivesLevelTransitionAndCanShootLeft()
+  {
+    CreateGame();
+    File.Copy(LevelPath, NextPath);
+    var game = ArmGame(new Game([LevelPath, NextPath]));
+    // Remove test obstacles so this fixture can reach its goal on foot.
+    foreach (int x in new[] { 6, 7, 9 })
+      game.Level.Clear(x, 7);
+    Tick(game, 120, 1);
+    Assert.AreEqual(2, game.LevelNumber);
+    Assert.IsTrue(game.HasBoomStick);
+    game.CompleteLevelStart();
+    Tick(game, 15, 1);
+    game.Update(-1, false);
+    var enemy = AddEnemy(game, game.X - 2, 10);
+    game.Update(0, false, true);
+    Assert.AreEqual(-1, game.ShotgunBlast!.Direction);
+    Assert.AreEqual(6, enemy.Health);
+  }
+
+  private Game CreateGame() => Map(
+    "........................", "........................", "........................",
+    "........................", "........................", ".Q..M...................",
+    "........................", ".S....BB.B............G.", "########################");
+
+  private Game Arm(PlayerCharacter character = PlayerCharacter.Sam)
+  {
+    CreateGame();
+    return ArmGame(new Game([LevelPath]) { Character = character });
+  }
+
+  private static Game ArmGame(Game game)
+  {
+    Tick(game, 10);
+    Tick(game, 15, 1);
+    game.QueueJump();
+    Tick(game, 30, jump: true);
+    TouchHeart(game);
+    Tick(game, 60);
+    Assert.IsTrue(game.IsLarge);
+    Tick(game, 15, -1);
+    game.QueueJump();
+    Tick(game, 30, jump: true);
+    TouchHeart(game);
+    Tick(game, 60);
+    Assert.IsTrue(game.HasBoomStick);
+    game.Update(1, false);
+    return game;
+  }
+
+  private static Enemy AddEnemy(Game game, double x, int health)
+  {
+    var enemy = new Enemy(x, 7.1, settings: new EnemySettings(0, health, 0));
+    game.Enemies.Add(enemy);
+    return enemy;
+  }
+}

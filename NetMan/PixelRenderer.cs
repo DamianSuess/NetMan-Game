@@ -58,6 +58,10 @@ internal sealed class PixelRenderer
       "heart-2",
       "flamethrower",
       "flamethrower-pickup",
+      "boom-stick",
+      "boom-stick-pickup",
+      "shotgun-blast-1",
+      "shotgun-blast-2",
       "flame-1",
       "flame-2",
       "flame-3",
@@ -232,7 +236,7 @@ internal sealed class PixelRenderer
         {
           '#' => game.Level.Tile(x, y - 1) == '#' ? "dirt" : "grass",
           'B' => "brick",
-          '?' or 'M' or 'F' => "bonus",
+          '?' or 'M' or 'F' or 'Q' => "bonus",
           'X' => "used",
           'P' => PipeSprite(game.Level, x, y),
           'p' => SkinnyPipeSprite(game.Level, x, y),
@@ -257,7 +261,7 @@ internal sealed class PixelRenderer
     }
 
     foreach (var heart in game.GrowthHearts)
-      DrawActor(_sprites[heart.IsFlamethrower ? "flamethrower-pickup" : $"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
+      DrawActor(_sprites[heart.IsBoomStick ? "boom-stick-pickup" : heart.IsFlamethrower ? "flamethrower-pickup" : $"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
 
     int animationFrame = (int)(_animationTime * 9) % 2;
 
@@ -304,11 +308,11 @@ internal sealed class PixelRenderer
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
       DrawActor(_sprites[PlayerSprite(game.Character, playerFrame)], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
 
-    if (game.HasFlamethrower && !game.IsDying && (game.DamageTicksRemaining / 5) % 2 == 0)
+    if ((game.HasFlamethrower || game.HasBoomStick) && !game.IsDying && (game.DamageTicksRemaining / 5) % 2 == 0)
     {
       int weaponX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - 8 - cameraX;
       int weaponY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.65) * TileSize) - 8 - cameraY;
-      Frame.Draw(_sprites["flamethrower"], weaponX, weaponY, game.FacingDirection < 0);
+      Frame.Draw(_sprites[game.HasBoomStick ? "boom-stick" : "flamethrower"], weaponX, weaponY, game.FacingDirection < 0);
     }
 
     if (game.IsBurning && !game.IsDying)
@@ -331,6 +335,22 @@ internal sealed class PixelRenderer
           uint color = sprite.Pixel(distance % TileSize, y);
           if (color != 0)
             Frame.Fill(originX + (flame.Direction > 0 ? distance : -distance - 1), originY + y, 1, 1, color);
+        }
+      }
+    }
+
+    if (game.ShotgunBlast is { } blast)
+    {
+      var sprite = _sprites[$"shotgun-blast-{blast.FrameIndex + 1}"];
+      int originX = (int)Math.Round(blast.X * TileSize) - cameraX;
+      int originY = HeaderHeight + (int)Math.Round(blast.Y * TileSize) - 8 - cameraY;
+      for (int distance = 0; distance < (int)(blast.Length * TileSize); distance++)
+      {
+        for (int y = 0; y < sprite.Height; y++)
+        {
+          uint color = sprite.Pixel(distance % TileSize, y);
+          if (color != 0)
+            Frame.Fill(originX + (blast.Direction > 0 ? distance : -distance - 1), originY + y, 1, 1, color);
         }
       }
     }

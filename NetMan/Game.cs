@@ -20,6 +20,8 @@ public sealed class Game
   public const int FlameMaxDurationTicks = 120;
   public const int BurnDurationTicks = 180;
   public const int FlamethrowerQuoteDurationTicks = 180;
+  public const double ShotgunRange = 4;
+  public const int ShotgunReloadTicks = 30;
 
   // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
   private const double SpikeTipOffset = 3.0 / 16;
@@ -42,6 +44,8 @@ public sealed class Game
   private int _facingDirection = 1;
   private int _flameDamageTicks;
   private int _flameAnimationTicks;
+  private int _shotgunReloadTicks;
+  private bool _fireWasHeld;
 
   public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null,
     string? flamethrowerQuotesPath = null, bool konamiCheat = false, string? gameOverQuotesPath = null)
@@ -103,8 +107,11 @@ public sealed class Game
   public bool IsDying => DeathTicksRemaining > 0 || AwaitingRestart;
   public bool IsLarge { get; private set; }
   public bool HasFlamethrower { get; private set; }
-  public int PowerUpLevel => HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
+  public bool HasBoomStick { get; private set; }
+  public int PowerUpLevel => HasBoomStick ? 3 : HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
   public int FlameDamage => PlayerPowerLevel + 1;
+  public int ShotgunDamage => FlameDamage + 1;
+  public ShotgunBlast? ShotgunBlast { get; private set; }
   public int FacingDirection => _facingDirection;
   public FlameStream? Flame { get; private set; }
   public int BurnTicksRemaining { get; private set; }
@@ -196,6 +203,7 @@ public sealed class Game
 
     if (Won)
     {
+      ShotgunBlast = null;
       CreditsTicks++;
       return;
     }
@@ -248,6 +256,11 @@ public sealed class Game
       _transition -= Step;
       return;
     }
+
+    if (ShotgunBlast is { } blast)
+      ShotgunBlast = blast.AgeTicks + 1 >= NetMan.ShotgunBlast.DurationTicks ? null : blast with { AgeTicks = blast.AgeTicks + 1 };
+    if (_shotgunReloadTicks > 0)
+      _shotgunReloadTicks--;
 
     _jumpBuffer -= Step;
     if (FlamethrowerQuoteTicksRemaining > 0 && --FlamethrowerQuoteTicksRemaining == 0)
@@ -309,7 +322,14 @@ public sealed class Game
       return;
 
     TryGrow();
-    UpdateFlame(fireHeld);
+    if (HasBoomStick)
+    {
+      if (IsLarge && fireHeld && !_fireWasHeld && _shotgunReloadTicks == 0)
+        FireShotgun();
+    }
+    else
+      UpdateFlame(fireHeld);
+    _fireWasHeld = fireHeld;
 
     foreach (var (tx, ty) in Cells(X, Y, PlayerHeight))
     {
@@ -462,6 +482,52 @@ public sealed class Game
     }
   }
 
+  private void FireShotgun()
+  {
+    double originX = _facingDirection > 0 ? X + BodyWidth : X;
+    double originY = Y + PlayerHeight - 0.65;
+    double length = 0;
+    for (int pixel = 0; pixel < (int)(ShotgunRange * 16); pixel++)
+    {
+      int tileX = (int)Math.Floor(originX + (_facingDirection * ((pixel + 0.5) / 16)));
+      int top = (int)Math.Floor(originY - 0.25);
+      int bottom = (int)Math.Floor(originY + 0.25);
+      // A brick breaks and lets the rest of this shot continue through it.
+      for (int tileY = top; tileY <= bottom; tileY++)
+        BreakBrick(tileX, tileY);
+      if (Level.Solid(tileX, top) || Level.Solid(tileX, bottom))
+      {
+        double distance = _facingDirection > 0 ? tileX - originX : originX - (tileX + 1);
+        length = Math.Clamp(distance, 0, length);
+        break;
+      }
+      length = (pixel + 1) / 16.0;
+    }
+
+    ShotgunBlast = new ShotgunBlast(originX, originY, _facingDirection, length);
+    _shotgunReloadTicks = ShotgunReloadTicks;
+    double left = _facingDirection > 0 ? originX : originX - length;
+    double right = _facingDirection > 0 ? originX + length : originX;
+    foreach (var enemy in Enemies.Where(enemy => enemy.Alive))
+    {
+      if (enemy.X >= right || enemy.X + BodyWidth <= left
+        || enemy.Y >= originY + 0.25 || enemy.Y + enemy.BodyHeight <= originY - 0.25)
+        continue;
+      if (enemy.Hit(ShotgunDamage))
+        Score += 200 * enemy.Settings.PowerLevel;
+    }
+    Message = "BOOM-STICK!";
+  }
+
+  private void BreakBrick(int x, int y)
+  {
+    if (Level.Tile(x, y) != 'B')
+      return;
+    Level.Clear(x, y);
+    Score += 50;
+    _blockBreakEffects.Add(new BlockBreakEffect(x, y));
+  }
+
   private void LeavePoop(Enemy dog)
   {
     if (--dog.PoopTicksRemaining > 0)
@@ -544,13 +610,22 @@ public sealed class Game
       if (!Overlaps(X, Y, PlayerHeight, heart.X, heart.Y))
         continue;
 
-      if (heart.IsFlamethrower && (!IsLarge || IsBurning))
+      if ((heart.IsFlamethrower || heart.IsBoomStick) && (!IsLarge || IsBurning || HasBoomStick))
         continue;
 
       _growthHearts.RemoveAt(i);
       if (heart.SourceX >= 0 && heart.SourceY >= 0)
         _collectedItems.Add((_levelIndex, heart.SourceX, heart.SourceY));
       Score += 100;
+      if (heart.IsBoomStick)
+      {
+        HasBoomStick = true;
+        HasFlamethrower = false;
+        Flame = null;
+        ClearFlamethrowerQuote();
+        Message = "Boom-Stick! X or CTRL to blast!";
+        continue;
+      }
       if (heart.IsFlamethrower)
       {
         if (HasFlamethrower)
@@ -604,6 +679,16 @@ public sealed class Game
     if (DamageTicksRemaining > 0)
       return;
 
+    if (HasBoomStick)
+    {
+      HasBoomStick = false;
+      HasFlamethrower = true;
+      ShotgunBlast = null;
+      DamageTicksRemaining = DamageProtectionTicks;
+      Message = "Lost Boom-Stick! Back to fire!";
+      return;
+    }
+
     if (HasFlamethrower)
     {
       HasFlamethrower = false;
@@ -645,6 +730,8 @@ public sealed class Game
     if (Lives == 0)
       GameOverQuote = _gameOverQuotes[Random.Shared.Next(_gameOverQuotes.Length)];
     HasFlamethrower = false;
+    HasBoomStick = false;
+    ShotgunBlast = null;
     Flame = null;
     BurnTicksRemaining = 0;
     ClearFlamethrowerQuote();
@@ -668,6 +755,10 @@ public sealed class Game
   {
     bool keepGrowth = preserveGrowth && (IsLarge || _growthPending);
     HasFlamethrower = preserveGrowth && HasFlamethrower;
+    HasBoomStick = preserveGrowth && HasBoomStick;
+    ShotgunBlast = null;
+    _shotgunReloadTicks = 0;
+    _fireWasHeld = false;
     ClearFlamethrowerQuote();
     BurnTicksRemaining = 0;
     Flame = null;
@@ -686,7 +777,7 @@ public sealed class Game
     {
       for (int x = 0; x < Level.Width; x++)
       {
-        if (Level.Tile(x, y) is 'o' or '?' or 'M' or 'F')
+        if (Level.Tile(x, y) is 'o' or '?' or 'M' or 'F' or 'Q')
           _levelItems.Add((x, y));
       }
     }
@@ -752,12 +843,13 @@ public sealed class Game
       {
         if (bump && distance < 0)
         {
-          if (Level.Tile(cell.X, cell.Y) is 'M' or 'F')
+          if (Level.Tile(cell.X, cell.Y) is 'M' or 'F' or 'Q')
           {
             bool flamethrower = Level.Tile(cell.X, cell.Y) == 'F';
+            bool shotgun = Level.Tile(cell.X, cell.Y) == 'Q';
             Level.UseBlock(cell.X, cell.Y);
-            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection, cell.X, cell.Y, flamethrower));
-            Message = flamethrower ? "Catch the flamethrower!" : "Catch the heart!";
+            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection, cell.X, cell.Y, flamethrower, shotgun));
+            Message = shotgun ? "Catch the Boom-Stick!" : flamethrower ? "Catch the flamethrower!" : "Catch the heart!";
           }
           else if (Level.Tile(cell.X, cell.Y) == '?')
           {
@@ -771,9 +863,7 @@ public sealed class Game
           }
           else if (Level.Tile(cell.X, cell.Y) == 'B')
           {
-            Level.Clear(cell.X, cell.Y);
-            Score += 50;
-            _blockBreakEffects.Add(new BlockBreakEffect(cell.X, cell.Y));
+            BreakBrick(cell.X, cell.Y);
           }
         }
       }
