@@ -45,7 +45,7 @@ This runs the same Release build, tests, Native AOT publish, and ZIP packaging, 
 
 ## Install and automatically update
 
-Install `XenoInnovations.NetMan-win-x64-Setup.exe` from the project's
+Install `SuessLabs.NetMan-win-x64-Setup.exe` from the project's
 [GitHub Releases](https://github.com/DamianSuess/NetMan-Game/releases).
 Velopack-managed installations and its generated portable ZIP check that repository's
 stable releases at launch. Updates download without blocking the game. If a download
