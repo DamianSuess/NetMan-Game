@@ -16,7 +16,7 @@ public sealed class LevelTests
   [TestMethod]
   public void UnknownTileIsRejected()
   {
-    Assert.ThrowsExactly<InvalidDataException>(() => Level.Parse("test", ["S.........", "........ZG", "##########"]));
+    Assert.ThrowsExactly<InvalidDataException>(() => Level.Parse("test", ["S.........", "........@G", "##########"]));
   }
 
   [TestMethod]

@@ -11,7 +11,12 @@ public sealed class Enemy
     X = x;
     Y = y;
     Kind = kind;
-    Settings = settings ?? (kind == EnemyKind.ToasterCat ? EnemyConfiguration.DefaultToasterCat : EnemyConfiguration.DefaultWalker);
+    Settings = settings ?? (kind switch
+    {
+      EnemyKind.ToasterCat => EnemyConfiguration.DefaultToasterCat,
+      EnemyKind.Zombie => EnemyConfiguration.DefaultZombie,
+      _ => EnemyConfiguration.DefaultWalker,
+    });
     Health = Settings.PowerLevel;
   }
 
@@ -19,6 +24,7 @@ public sealed class Enemy
   public double X, Y, VelocityY;
   public EnemyKind Kind { get; }
   public EnemySettings Settings { get; }
+  public double BodyHeight => Kind == EnemyKind.Zombie ? Game.LargeBodyHeight : Game.BodyHeight;
   public int Health { get; private set; }
   public bool Alive { get; private set; } = true;
   public int SquashTicksRemaining { get; private set; }

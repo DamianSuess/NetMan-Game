@@ -40,6 +40,9 @@ internal sealed class PixelRenderer
       "toaster-cat-run-2",
       "toaster-cat-jump",
       "toaster-cat-squashed",
+      "zombie-walk-1",
+      "zombie-walk-2",
+      "zombie-squashed",
       "grass",
       "dirt",
       "brick",
@@ -123,15 +126,27 @@ internal sealed class PixelRenderer
 
     foreach (var enemy in game.Enemies.Where(enemy => enemy.Alive))
     {
-      string name = enemy.Kind == EnemyKind.ToasterCat
-        ? Math.Abs(enemy.VelocityY) > 0.01 ? "toaster-cat-jump" : $"toaster-cat-run-{animationFrame + 1}"
-        : animationFrame == 0 ? "enemy-idle" : "enemy-walk";
-      DrawActor(_sprites[name], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
+      string name = enemy.Kind switch
+      {
+        EnemyKind.Zombie => $"zombie-walk-{(int)(_animationTime * 3) % 2 + 1}",
+        EnemyKind.ToasterCat => Math.Abs(enemy.VelocityY) > 0.01 ? "toaster-cat-jump" : $"toaster-cat-run-{animationFrame + 1}",
+        _ => animationFrame == 0 ? "enemy-idle" : "enemy-walk",
+      };
+
+      DrawActor(_sprites[name], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0, bodyHeight: enemy.BodyHeight);
     }
 
     foreach (var enemy in game.Enemies.Where(enemy => enemy.SquashTicksRemaining > 0))
-      DrawActor(_sprites[enemy.Kind == EnemyKind.ToasterCat ? "toaster-cat-squashed" : "enemy-squashed"],
-        enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0);
+    {
+      string name = enemy.Kind switch
+      {
+        EnemyKind.Zombie => "zombie-squashed",
+        EnemyKind.ToasterCat => "toaster-cat-squashed",
+        _ => "enemy-squashed",
+      };
+
+      DrawActor(_sprites[name], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0, bodyHeight: enemy.BodyHeight);
+    }
 
     string playerFrame = !game.Grounded ? "player-jump"
       : moving && direction != 0 ? $"player-run-{animationFrame + 1}" : "player-idle";
@@ -220,6 +235,7 @@ internal sealed class PixelRenderer
     DrawCreditsRunner(animationFrame == 0 ? "enemy-idle" : "enemy-walk", game.CreditsTicks, 290, -32, false);
     DrawCreditsRunner(animationFrame == 0 ? "enemy-walk" : "enemy-idle", game.CreditsTicks, 80, 54, true);
     DrawCreditsRunner($"toaster-cat-run-{animationFrame + 1}", game.CreditsTicks, 380, -50, false);
+    DrawCreditsRunner($"zombie-walk-{game.CreditsTicks / 20 % 2 + 1}", game.CreditsTicks, 220, -20, false);
 
     if (game.Paused)
       PixelFont.Draw(Frame, "PAUSED", Width - 30, 4, Gold);

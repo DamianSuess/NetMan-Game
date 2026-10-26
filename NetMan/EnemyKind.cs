@@ -4,4 +4,5 @@ public enum EnemyKind
 {
   Walker,
   ToasterCat,
+  Zombie,
 }
