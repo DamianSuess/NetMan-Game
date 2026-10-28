@@ -4,7 +4,8 @@ namespace NetMan.Screens;
 
 internal sealed class LevelStartScreen
 {
-  public const double DurationSeconds = 5;
+  public const double DurationSeconds = 3;
+
   private readonly string[] _quotes;
 
   public LevelStartScreen(string quotesPath)
@@ -13,6 +14,7 @@ internal sealed class LevelStartScreen
       ? File.ReadAllLines(quotesPath).Select(line => line.Trim())
         .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
       : [];
+
     if (_quotes.Length == 0)
       _quotes = ["Try not to die this time"];
   }
