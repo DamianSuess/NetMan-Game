@@ -99,6 +99,8 @@ try
   {
     window.PumpEvents();
     audio.Update();
+    audio.SetMusicPaused(!window.Active || (!titleScreen.IsActive && game.Paused));
+    audio.SetMusic(GameMusicTracks.ForScreen(titleScreen.IsActive, game));
     audio.SetFlamethrowerActive(window.Active && !titleScreen.IsActive && !levelStart.IsActive
       && !game.Paused && !game.IsDying && !game.Won && game.Flame is not null);
 
@@ -122,6 +124,7 @@ try
       if (!titleScreen.IsActive)
       {
         game = CreateGame(titleScreen.KonamiCodeEnabled, titleScreen.SelectedCharacter);
+        audio.SetMusic(GameMusic.None);
         audio.Play(GameSound.PowerUp);
       }
 

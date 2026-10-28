@@ -16,6 +16,12 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     nuint callback, nuint instance, uint flags);
 
   [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutPause(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
+  private static extern uint waveOutRestart(nint device);
+
+  [DllImport("winmm.dll", ExactSpelling = true)]
   private static extern uint waveOutPrepareHeader(nint device, WaveHeader* header, uint size);
 
   [DllImport("winmm.dll", ExactSpelling = true)]
@@ -50,10 +56,15 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     .ToDictionary(sound => sound, GameSounds.Create);
 
   private readonly List<Voice> _voices = [];
+  private readonly Dictionary<GameMusic, short[]> _musicSamples = Enum.GetValues<GameMusic>()
+    .Where(music => music != GameMusic.None).ToDictionary(music => music, GameMusicTracks.Create);
 
   private bool _disposed;
   private Voice? _flamethrower;
   private bool _flamethrowerRequested;
+  private Voice? _music;
+  private GameMusic _requestedMusic;
+  private bool _musicPaused;
 
   public void Dispose()
   {
@@ -94,7 +105,35 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
 
   }
 
-  private Voice? CreateVoice(GameSound sound, bool loop = false)
+  public void SetMusic(GameMusic music)
+  {
+    if (_disposed || music == _requestedMusic)
+      return;
+
+    _music?.Dispose();
+    _music = null;
+    _requestedMusic = music;
+    if (music != GameMusic.None)
+    {
+      _music = CreateVoice(_musicSamples[music], GameMusicTracks.Loops(music));
+      if (_musicPaused)
+        _music?.SetPaused(true);
+    }
+
+  }
+
+  public void SetMusicPaused(bool paused)
+  {
+    if (_disposed || paused == _musicPaused)
+      return;
+
+    _musicPaused = paused;
+    _music?.SetPaused(paused);
+  }
+
+  private Voice? CreateVoice(GameSound sound, bool loop = false) => CreateVoice(_samples[sound], loop);
+
+  private Voice? CreateVoice(short[] samples, bool loop = false)
   {
     var format = new WaveFormat
     {
@@ -110,7 +149,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     if (waveOutOpen(out nint device, uint.MaxValue, ref format, 0, 0, 0) != 0)
       return null;
 
-    var voice = new Voice(device, _samples[sound]);
+    var voice = new Voice(device, samples);
     if (waveOutPrepareHeader(device, voice.Header, (uint)sizeof(WaveHeader)) != 0)
     {
       voice.Dispose();
@@ -135,6 +174,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
   public void Stop()
   {
     SetFlamethrowerActive(false);
+    SetMusic(GameMusic.None);
     foreach (var voice in _voices)
       voice.Dispose();
     _voices.Clear();
@@ -142,6 +182,13 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
 
   public void Update()
   {
+    if (_music is not null && (_music.Header->Flags & 1) != 0)
+    {
+      _music.Dispose();
+      _music = null;
+      // Keep the requested track so Game Over cannot restart after completion.
+    }
+
     for (int i = _voices.Count - 1; i >= 0; i--)
     {
       if ((_voices[i].Header->Flags & 1) == 0) // WHDR_DONE
@@ -165,6 +212,15 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     }
 
     public WaveHeader* Header { get; }
+
+    public void SetPaused(bool paused)
+    {
+      if (paused)
+        waveOutPause(_device);
+      else
+        waveOutRestart(_device);
+    }
+
 
     public void Dispose()
     {

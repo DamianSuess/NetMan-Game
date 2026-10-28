@@ -11,7 +11,7 @@ namespace NetMan.Tests;
 public sealed class StartAndGameOverScreenTests : GameTestBase
 {
   [TestMethod]
-  public void LevelStartSnapshotsNumberNameLivesAndRandomQuoteForFiveSeconds()
+  public void LevelStartSnapshotsNumberNameLivesAndRandomQuoteForThreeSeconds()
   {
     var game = CreateMap();
     string[] quotes = ["Try not to die this time", "You dropped your pocket"];
@@ -22,11 +22,11 @@ public sealed class StartAndGameOverScreenTests : GameTestBase
     Assert.AreEqual(1, screen.LevelNumber);
     Assert.AreEqual(game.Level.DisplayName, screen.LevelName);
     Assert.AreEqual(3, screen.Lives);
-    Assert.AreEqual(5, screen.RemainingSeconds);
+    Assert.AreEqual(3, screen.RemainingSeconds);
 
     CollectionAssert.Contains(quotes, screen.Quote);
     string quote = screen.Quote;
-    screen.Update(4.9, false, true);
+    screen.Update(2.9, false, true);
     Assert.IsTrue(screen.IsActive);
     Assert.AreEqual(quote, screen.Quote);
 
@@ -42,7 +42,7 @@ public sealed class StartAndGameOverScreenTests : GameTestBase
     screen.Show(CreateMap());
     screen.Update(10, true, false);
     Assert.IsTrue(screen.IsActive);
-    Assert.AreEqual(5, screen.RemainingSeconds);
+    Assert.AreEqual(3, screen.RemainingSeconds);
 
     var keyboard = new GameKeyboard();
     keyboard.KeyDown(0x20);
@@ -92,7 +92,7 @@ public sealed class StartAndGameOverScreenTests : GameTestBase
     screen.Show(game);
     Assert.AreEqual(2, screen.LevelNumber);
     Assert.AreEqual(2, screen.Lives);
-    Assert.AreEqual(5, screen.RemainingSeconds);
+    Assert.AreEqual(3, screen.RemainingSeconds);
   }
 
   [TestMethod]
