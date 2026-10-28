@@ -118,8 +118,13 @@ try
         break;
 
       titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
+
       if (!titleScreen.IsActive)
+      {
         game = CreateGame(titleScreen.KonamiCodeEnabled, titleScreen.SelectedCharacter);
+        audio.Play(GameSound.PowerUp);
+      }
+
       accumulator = 0;
       renderer.DrawTitle(titleScreen, updates.Status);
       window.Present(renderer.Frame);
