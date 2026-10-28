@@ -99,6 +99,8 @@ try
   {
     window.PumpEvents();
     audio.Update();
+    audio.SetFlamethrowerActive(window.Active && !titleScreen.IsActive && !levelStart.IsActive
+      && !game.Paused && !game.IsDying && !game.Won && game.Flame is not null);
 
     if (window.Closed)
       break;

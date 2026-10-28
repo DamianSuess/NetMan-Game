@@ -1,14 +1,44 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetMan.Actors;
+using NetMan.Audio;
 
 namespace NetMan.Tests;
 
 [TestClass]
 public sealed class BoomStickTests : GameTestBase
 {
+  [TestMethod]
+  public void ShotgunSoundPlaysOnlyForShotsThatFire()
+  {
+    var game = Arm();
+    var sounds = new List<GameSound>();
+    game.SoundRequested += sounds.Add;
+    game.Paused = true;
+    game.Update(0, false, true);
+    Assert.IsEmpty(sounds);
+
+    game.Paused = false;
+    game.Update(0, false, true);
+    CollectionAssert.AreEqual(new[] { GameSound.Shotgun }, sounds);
+
+    for (int tick = 0; tick < Game.ShotgunReloadTicks + 10; tick++)
+      game.Update(0, false, true);
+
+    Assert.HasCount(1, sounds, "Holding fire must not repeat the blast sound.");
+
+    game.Update(0, false, false);
+    game.Update(0, false, true);
+    CollectionAssert.AreEqual(new[] { GameSound.Shotgun, GameSound.Shotgun }, sounds);
+
+    game.Update(0, false, false);
+    game.Update(0, false, true);
+    Assert.HasCount(2, sounds, "Reloading must not produce another blast sound.");
+  }
+
   [TestMethod]
   public void BundledBoomSticksStartAtLevelFour()
   {

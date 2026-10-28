@@ -654,6 +654,7 @@ public sealed class Game
     }
 
     Message = "BOOM-STICK!";
+    SoundRequested?.Invoke(GameSound.Shotgun);
   }
 
   private void LeavePoop(Enemy dog)

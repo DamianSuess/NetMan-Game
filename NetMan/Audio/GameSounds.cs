@@ -8,6 +8,9 @@ internal static class GameSounds
 
   public static short[] Create(GameSound sound)
   {
+    if (sound is GameSound.Flamethrower or GameSound.Shotgun)
+      return CreateWeapon(sound);
+
     double duration = sound switch
     {
       GameSound.Jump => 0.18,
@@ -78,4 +81,40 @@ internal static class GameSounds
 
     return samples;
   }
+
+  private static short[] CreateWeapon(GameSound sound)
+  {
+    bool flame = sound == GameSound.Flamethrower;
+    double duration = flame ? 0.4 : 0.3;
+
+    var samples = new short[(int)(SampleRate * duration)];
+    uint noiseState = flame ? 0xF1A4Eu : 0xB0057u;
+    double filteredNoise = 0, phase = 0;
+
+    for (int i = 0; i < samples.Length; i++)
+    {
+      double time = (double)i / SampleRate;
+      noiseState ^= noiseState << 13;
+      noiseState ^= noiseState >> 17;
+      noiseState ^= noiseState << 5;
+
+      double noise = (noiseState & 0xFFFF) / 32767.5 - 1;
+      filteredNoise += (noise - filteredNoise) * (flame ? 0.18 : 0.55);
+
+      double frequency = flame ? 80 : 160 * Math.Pow(0.2, time / duration);
+      phase = (phase + frequency / SampleRate) % 1;
+      double bass = 1 - 4 * Math.Abs(phase - 0.5);
+      double envelope = Math.Min(1, time / 0.002)
+        * Math.Min(1, (duration - time) / 0.004);
+
+      double value = flame
+        ? (filteredNoise * 0.8 + bass * 0.2) * (0.8 + 0.2 * Math.Sin(2 * Math.PI * 25 * time))
+        : (filteredNoise * 0.7 + bass * 0.3) * Math.Exp(-14 * time);
+
+      samples[i] = (short)(value * envelope * short.MaxValue * 0.6);
+    }
+
+    return samples;
+  }
+
 }

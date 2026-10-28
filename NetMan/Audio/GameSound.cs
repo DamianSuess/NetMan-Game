@@ -12,4 +12,6 @@ internal enum GameSound
   Died,
   EnemySmash,
   EnemyDied,
+  Flamethrower,
+  Shotgun,
 }
