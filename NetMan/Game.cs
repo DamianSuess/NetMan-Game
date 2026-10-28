@@ -132,6 +132,7 @@ public sealed class Game
   public Level Level { get; private set; } = null!;
   public int LevelCount => _files.Length;
   public int LevelNumber => _levelIndex + 1;
+  internal int ThemeLevelNumber { get; private set; }
   public int Lives { get; private set; } = 3;
   public string Message { get; private set; } = "Let's effn' go!";
   public bool Paused { get; set; }
@@ -701,6 +702,14 @@ public sealed class Game
     _facingDirection = 1;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
+    ThemeLevelNumber = 1;
+
+    for (int index = 0; index < _levelIndex; index++)
+    {
+      if (Level.Load(_files[index]).Background == Level.Background)
+        ThemeLevelNumber++;
+    }
+
     _levelItems.Clear();
     for (int y = 0; y < Level.Height; y++)
     {
