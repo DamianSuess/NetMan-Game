@@ -5,9 +5,7 @@ namespace NetMan;
 internal sealed class TitleScreen
 {
   private static readonly int[] KonamiCode = [0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x42, 0x41];
-  private static readonly int[] LevelSelectCode = [0x44, 0x45, 0x41, 0x44, 0x42, 0x45, 0x45, 0x46];
   private readonly Queue<int> _recentKeys = new();
-  private bool _levelSelectRequested;
 
   public bool IsActive { get; private set; } = true;
   public bool KonamiCodeEnabled { get; private set; }
@@ -24,15 +22,6 @@ internal sealed class TitleScreen
       _recentKeys.Dequeue();
     if (_recentKeys.SequenceEqual(KonamiCode))
       KonamiCodeEnabled = true;
-    if (_recentKeys.TakeLast(LevelSelectCode.Length).SequenceEqual(LevelSelectCode))
-      _levelSelectRequested = true;
-  }
-
-  public bool TakeLevelSelectRequest()
-  {
-    bool requested = _levelSelectRequested;
-    _levelSelectRequested = false;
-    return requested;
   }
 
   public void HandleInput(double elapsed, IReadOnlyList<int> keyPresses, bool windowActive)
@@ -46,7 +35,7 @@ internal sealed class TitleScreen
     int selectionDirection = (keyPresses.Any(code => code is 0x27 or 0x44) ? 1 : 0)
       - (keyPresses.Any(code => code is 0x25 or 0x41) ? 1 : 0);
 
-    bool startPressed = !_levelSelectRequested && keyPresses.Any(code => code is 0x0D or 0x20);
+    bool startPressed = keyPresses.Any(code => code is 0x0D or 0x20);
     Update(elapsed, startPressed, windowActive, selectionDirection);
   }
 

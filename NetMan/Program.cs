@@ -85,6 +85,7 @@ try
   var game = CreateGame();
   var titleScreen = new TitleScreen();
   LevelSelectScreen? levelSelect = null;
+  var levelSelectCheat = new LevelSelectCheat();
   var levelStart = new LevelStartScreen(Path.Combine(assetsPath, "uncle-quotes.txt"));
   Level? presentedLevel = null;
 
@@ -99,9 +100,9 @@ try
   {
     window.PumpEvents();
     audio.Update();
-    audio.SetMusicPaused(!window.Active || (!titleScreen.IsActive && game.Paused));
+    audio.SetMusicPaused(levelSelect is not null || !window.Active || (!titleScreen.IsActive && game.Paused));
     audio.SetMusic(GameMusicTracks.ForScreen(titleScreen.IsActive, game));
-    audio.SetFlamethrowerActive(window.Active && !titleScreen.IsActive && !levelStart.IsActive
+    audio.SetFlamethrowerActive(levelSelect is null && window.Active && !titleScreen.IsActive && !levelStart.IsActive
       && !game.Paused && !game.IsDying && !game.Won && game.Flame is not null);
 
     if (window.Closed)
@@ -112,50 +113,66 @@ try
     accumulator += elapsed;
     previous = now;
 
+    bool openedLevelSelect = levelSelect is null && levelSelectCheat.HandleInput(window.KeyPresses, window.Active);
+    if (openedLevelSelect)
+    {
+      files = LevelSelectScreen.Discover(levelsPath);
+      levelSelect = new LevelSelectScreen(files);
+      audio.SetFlamethrowerActive(false);
+      audio.SetMusicPaused(true);
+    }
+
+    if (levelSelect is not null)
+    {
+      // The final cheat key (or Enter in the same frame) must not act on the menu.
+      if (!openedLevelSelect)
+        levelSelect.HandleInput(window.KeyPresses, window.Active);
+
+      if (!levelSelect.IsActive)
+      {
+        if (levelSelect.Confirmed)
+        {
+          bool cheat = titleScreen.IsActive ? titleScreen.KonamiCodeEnabled : game.KonamiCheatEnabled;
+          var character = titleScreen.IsActive ? titleScreen.SelectedCharacter : game.Character;
+          game = CreateGame(cheat, character, levelSelect.SelectedIndex);
+          titleScreen.Update(0, startPressed: true, windowActive: true);
+          audio.Stop();
+          audio.Play(GameSound.PowerUp);
+        }
+
+        levelSelect = null;
+      }
+
+      accumulator = 0;
+      if (levelSelect is not null)
+      {
+        renderer.DrawLevelSelect(levelSelect);
+        window.Present(renderer.Frame);
+        Thread.Sleep(16);
+      }
+
+      continue;
+    }
+
     if (titleScreen.IsActive)
     {
       if (window.Active && updates.TryScheduleApply(restart: true, args))
         break;
-      int startingLevelIndex = 0;
-      if (levelSelect is null)
-      {
-        if (window.Active && window.Pressed(GameKey.Escape))
-          break;
 
-        titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
-        if (titleScreen.TakeLevelSelectRequest())
-        {
-          files = LevelSelectScreen.Discover(levelsPath);
-          levelSelect = new LevelSelectScreen(files);
-        }
-      }
-      else
-      {
-        levelSelect.HandleInput(window.KeyPresses, window.Active);
-        if (!levelSelect.IsActive)
-        {
-          if (levelSelect.Confirmed)
-          {
-            startingLevelIndex = levelSelect.SelectedIndex;
-            titleScreen.Update(0, startPressed: true, windowActive: true);
-          }
+      if (window.Active && window.Pressed(GameKey.Escape))
+        break;
 
-          levelSelect = null;
-        }
-      }
+      titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
 
       if (!titleScreen.IsActive)
       {
-        game = CreateGame(titleScreen.KonamiCodeEnabled, titleScreen.SelectedCharacter, startingLevelIndex);
+        game = CreateGame(titleScreen.KonamiCodeEnabled, titleScreen.SelectedCharacter);
         audio.SetMusic(GameMusic.None);
         audio.Play(GameSound.PowerUp);
       }
 
       accumulator = 0;
-      if (levelSelect is null)
-        renderer.DrawTitle(titleScreen, updates.Status);
-      else
-        renderer.DrawLevelSelect(levelSelect);
+      renderer.DrawTitle(titleScreen, updates.Status);
 
       window.Present(renderer.Frame);
       Thread.Sleep(16);

@@ -12,22 +12,20 @@ public sealed class TitleScreenTests
   [TestMethod]
   public void DeadbeefRequiresCorrectSequenceAndFocusAndRequestsOnlyOnce()
   {
-    var title = new TitleScreen();
+    var cheat = new LevelSelectCheat();
     int[] code = "DEADBEEF".Select(letter => (int)letter).ToArray();
-    title.HandleInput(0, code, false);
-    Assert.IsFalse(title.TakeLevelSelectRequest());
+    Assert.IsFalse(cheat.HandleInput(code, false));
 
-    title.HandleInput(0, "DEADBEAF".Select(letter => (int)letter).ToArray(), true);
-    Assert.IsFalse(title.TakeLevelSelectRequest());
+    Assert.IsFalse(cheat.HandleInput("DEADBEAF".Select(letter => (int)letter).ToArray(), true));
 
-    title.HandleInput(0, code.Concat(new[] { 0x0D }).ToArray(), true);
-    Assert.IsTrue(title.IsActive, "Completing the cheat must open selection before starting.");
-    Assert.IsTrue(title.TakeLevelSelectRequest());
-    Assert.IsFalse(title.TakeLevelSelectRequest());
+    Assert.IsTrue(cheat.HandleInput(code.Concat(new[] { 0x0D }).ToArray(), true));
+    Assert.IsFalse(cheat.HandleInput([], true));
 
+    var title = new TitleScreen();
     title.Update(0, true, true);
-    title.HandleInput(0, code, true);
-    Assert.IsFalse(title.TakeLevelSelectRequest());
+    Assert.IsFalse(title.IsActive);
+    Assert.IsTrue(cheat.HandleInput(code, true), "The cheat must also work after leaving the title.");
+    Assert.IsTrue(cheat.HandleInput(code, true), "The selector must be reopenable.");
   }
 
   [TestMethod]
@@ -36,13 +34,33 @@ public sealed class TitleScreenTests
   public void LevelSelectAndKonamiCodesCanBothBeUsed(bool konamiFirst)
   {
     var title = new TitleScreen();
+    var cheat = new LevelSelectCheat();
     int[] debug = "DEADBEEF".Select(letter => (int)letter).ToArray();
     int[] konami = [0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x42, 0x41];
     title.HandleInput(0, konamiFirst ? konami : debug, true);
+    bool requested = cheat.HandleInput(konamiFirst ? konami : debug, true);
     title.HandleInput(0, konamiFirst ? debug : konami, true);
+    requested |= cheat.HandleInput(konamiFirst ? debug : konami, true);
     Assert.IsTrue(title.KonamiCodeEnabled);
-    Assert.IsTrue(title.TakeLevelSelectRequest());
+    Assert.IsTrue(requested);
     Assert.IsTrue(title.IsActive);
+  }
+
+  [TestMethod]
+  public void GlobalDebugCheatWorksAcrossFramesAndClearsPartialCodeOnLostFocus()
+  {
+    var cheat = new LevelSelectCheat();
+    foreach (char letter in "DEAD")
+      Assert.IsFalse(cheat.HandleInput([(int)letter], true));
+
+    Assert.IsFalse(cheat.HandleInput([], false));
+    foreach (char letter in "BEEF")
+      Assert.IsFalse(cheat.HandleInput([(int)letter], true));
+
+    string code = "DEADBEEF";
+    for (int index = 0; index < code.Length; index++)
+      Assert.AreEqual(index == code.Length - 1, cheat.HandleInput([(int)code[index]], true));
+
   }
 
   [TestMethod]
