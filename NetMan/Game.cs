@@ -348,6 +348,7 @@ public sealed class Game
           _collectedItems.Add((_levelIndex, tx, ty));
           Coins++;
           Score += 100;
+          SoundRequested?.Invoke(GameSound.Coin);
           break;
 
         case 'G':
@@ -504,6 +505,7 @@ public sealed class Game
     Level.Clear(x, y);
     Score += 50;
     _blockBreakEffects.Add(new BlockBreakEffect(x, y));
+    SoundRequested?.Invoke(GameSound.BlockBreak);
   }
 
   private void ClearFlamethrowerQuote()
@@ -780,6 +782,7 @@ public sealed class Game
             Coins++;
             Score += 100;
             Message = "Bonus coin!";
+            SoundRequested?.Invoke(GameSound.Coin);
 
             _rewardPopups.Add(new CoinRewardPopup(cell.X, cell.Y));
           }

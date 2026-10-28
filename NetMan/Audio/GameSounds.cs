@@ -19,6 +19,8 @@ internal static class GameSounds
       GameSound.Died => 2.0,
       GameSound.EnemySmash => 0.14,
       GameSound.EnemyDied => 0.28,
+      GameSound.BlockBreak => 0.22,
+      GameSound.Coin => 0.18,
       _ => throw new ArgumentOutOfRangeException(nameof(sound)),
     };
 
@@ -28,7 +30,7 @@ internal static class GameSounds
     double[] rising = [523.25, 659.25, 783.99, 1046.50];
     double[] falling = [783.99, 659.25, 523.25, 329.63];
     double[] death = [659.25, 622.25, 587.33, 440, 349.23, 293.66, 220, 164.81];
-    double noteLength = sound == GameSound.Died ? 0.25 : duration / 4;
+    double noteLength = sound == GameSound.Died ? 0.25 : duration / (sound == GameSound.Coin ? 2 : 4);
 
     for (int i = 0; i < samples.Length; i++)
     {
@@ -41,6 +43,8 @@ internal static class GameSounds
         GameSound.PowerDown => falling[note] * (1 - 0.15 * time / duration),
         GameSound.EnemySmash => 180 * Math.Pow(0.15, time / duration),
         GameSound.EnemyDied => 320 * Math.Pow(0.10, time / duration),
+        GameSound.BlockBreak => 540 * Math.Pow(0.12, time / duration),
+        GameSound.Coin => note == 0 ? 1318.51 : 1975.53,
         _ => death[note],
       };
 
@@ -50,7 +54,7 @@ internal static class GameSounds
       double pulse = phase < 0.25 ? 0.75 : -0.25;
       double triangle = 1 - 4 * Math.Abs(bassPhase - 0.5);
       double fm = Math.Sin(2 * Math.PI * phase + 1.5 * Math.Sin(4 * Math.PI * phase));
-      bool continuous = sound is GameSound.Jump or GameSound.EnemySmash or GameSound.EnemyDied;
+      bool continuous = sound is GameSound.Jump or GameSound.EnemySmash or GameSound.EnemyDied or GameSound.BlockBreak;
       double localTime = continuous ? time : time % noteLength;
       double localLength = continuous ? duration : noteLength;
 
@@ -61,7 +65,7 @@ internal static class GameSounds
 
       double value = (pulse * 0.45 + triangle * 0.35 + fm * 0.20) * envelope;
 
-      if (sound is GameSound.EnemySmash or GameSound.EnemyDied)
+      if (sound is GameSound.EnemySmash or GameSound.EnemyDied or GameSound.BlockBreak)
       {
         // Seeded noise and a falling bass thud give the smash a crunchy impact.
         noiseState ^= noiseState << 13;
@@ -74,6 +78,10 @@ internal static class GameSounds
             * envelope * Math.Exp(-3 * time / duration)
           : (pulse * 0.35 + triangle * 0.35 + noise * 0.30)
             * envelope * Math.Exp(-5 * time / duration);
+
+        if (sound == GameSound.BlockBreak)
+          value = (noise * 0.65 + pulse * 0.20 + fm * 0.15)
+            * envelope * Math.Exp(-6 * time / duration);
       }
 
       samples[i] = (short)(value * short.MaxValue * 0.45);

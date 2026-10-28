@@ -11,6 +11,57 @@ namespace NetMan.Tests;
 public sealed class GameSoundTests : GameTestBase
 {
   [TestMethod]
+  [DataRow('B')]
+  [DataRow('?')]
+  public void BreakingBrickAndRewardingCoinUseDistinctSoundsOnce(char tile)
+  {
+    var game = Map(
+      "....................",
+      "....................",
+      $".{tile}..................",
+      "....................",
+      ".S................G.",
+      "####################");
+
+    var sounds = Listen(game);
+
+    Tick(game, 10);
+    game.QueueJump();
+    Tick(game, 60, jump: true);
+    GameSound expected = tile == 'B' ? GameSound.BlockBreak : GameSound.Coin;
+
+    Assert.AreEqual(1, sounds.Count(sound => sound == expected));
+    Assert.IsFalse(sounds.Contains(tile == 'B' ? GameSound.Coin : GameSound.BlockBreak));
+
+    game.QueueJump();
+    Tick(game, 60, jump: true);
+    Assert.AreEqual(1, sounds.Count(sound => sound == expected), "Used or destroyed blocks must not replay rewards.");
+  }
+
+  [TestMethod]
+  public void WalkingOverCoinPlaysCollectionSoundOnce()
+  {
+    var game = Map(
+      "....................",
+      "....................",
+      "....................",
+      "....................",
+      ".So...............G.",
+      "####################");
+
+    var sounds = Listen(game);
+
+    Tick(game, 10);
+    Tick(game, 10, 1);
+    Assert.AreEqual(1, game.Coins);
+
+    CollectionAssert.AreEqual(new[] { GameSound.Coin }, sounds);
+    Tick(game, 10, -1);
+    Tick(game, 10, 1);
+    CollectionAssert.AreEqual(new[] { GameSound.Coin }, sounds);
+  }
+
+  [TestMethod]
   public void EffectsHaveDistinctNonSilentPcmAndDeathLastsExactlyTwoSeconds()
   {
     var effects = Enum.GetValues<GameSound>().Select(GameSounds.Create).ToArray();

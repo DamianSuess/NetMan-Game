@@ -191,11 +191,14 @@ public sealed class BoomStickTests : GameTestBase
     var game = Arm();
     Tick(game, 11, 1);
     var enemy = AddEnemy(game, 7, 10);
+    var sounds = new List<GameSound>();
+    game.SoundRequested += sounds.Add;
     game.Update(0, false, true);
     Assert.AreEqual('.', game.Level.Tile(6, 7));
     Assert.AreEqual('.', game.Level.Tile(7, 7));
     Assert.AreEqual('B', game.Level.Tile(9, 7));
     Assert.HasCount(2, game.BlockBreakEffects);
+    Assert.AreEqual(2, sounds.Count(sound => sound == GameSound.BlockBreak));
     Assert.AreEqual(300, game.Score);
     Assert.AreEqual(6, enemy.Health);
     Assert.IsTrue(game.BlockBreakEffects.All(effect => effect.FrameIndex == 0));

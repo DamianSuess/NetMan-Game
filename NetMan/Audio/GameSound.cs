@@ -14,4 +14,6 @@ internal enum GameSound
   EnemyDied,
   Flamethrower,
   Shotgun,
+  BlockBreak,
+  Coin,
 }
