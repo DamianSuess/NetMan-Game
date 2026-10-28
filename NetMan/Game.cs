@@ -1,4 +1,8 @@
+using NetMan.Actors;
 using NetMan.Audio;
+using NetMan.Effects;
+using NetMan.Items;
+using NetMan.Screens;
 
 namespace NetMan;
 
@@ -149,7 +153,7 @@ public sealed class Game
   public bool Won { get; private set; }
   public double X { get; private set; }
   public double Y { get; private set; }
-  internal EndCredits? Credits { get; private set; }
+  internal EndCreditsScreen? Credits { get; private set; }
 
   public bool ContinueAfterDeath()
   {
@@ -255,7 +259,7 @@ public sealed class Game
     }
 
     if (ShotgunBlast is { } blast)
-      ShotgunBlast = blast.AgeTicks + 1 >= NetMan.ShotgunBlast.DurationTicks ? null : blast with { AgeTicks = blast.AgeTicks + 1 };
+      ShotgunBlast = blast.AgeTicks + 1 >= ShotgunBlast.DurationTicks ? null : blast with { AgeTicks = blast.AgeTicks + 1 };
 
     if (_shotgunReloadTicks > 0)
       _shotgunReloadTicks--;
@@ -353,7 +357,7 @@ public sealed class Game
           {
             Won = true;
             CreditsTicks = 0;
-            Credits = new EndCredits(_creditsAssetsPath, CompletionTime, TotalDeaths, Score, ItemsMissed);
+            Credits = new EndCreditsScreen(_creditsAssetsPath, CompletionTime, TotalDeaths, Score, ItemsMissed);
             Message = "YOU WIN! R to play again";
           }
           else

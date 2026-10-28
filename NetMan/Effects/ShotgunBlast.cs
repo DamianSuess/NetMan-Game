@@ -1,4 +1,4 @@
-namespace NetMan;
+namespace NetMan.Effects;
 
 public sealed record ShotgunBlast(double X, double Y, int Direction, double Length, int AgeTicks = 0)
 {

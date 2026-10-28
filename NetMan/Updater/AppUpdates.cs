@@ -1,7 +1,7 @@
 using Velopack;
 using Velopack.Sources;
 
-namespace NetMan;
+namespace NetMan.Updater;
 
 internal interface IAppUpdateBackend
 {

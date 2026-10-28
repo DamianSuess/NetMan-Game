@@ -1,3 +1,7 @@
+using NetMan.Actors;
+using NetMan.Items;
+using NetMan.Screens;
+
 namespace NetMan;
 
 internal sealed class PixelRenderer
@@ -442,7 +446,7 @@ internal sealed class PixelRenderer
       DrawTitleText(lines[index], 60 + (index * 12), White, 2);
   }
 
-  private void DrawCredits(Game game, EndCredits credits)
+  private void DrawCredits(Game game, EndCreditsScreen credits)
   {
     const int ViewTop = 12;
     const int ViewBottom = 198;

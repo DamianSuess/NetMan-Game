@@ -1,4 +1,4 @@
-namespace NetMan;
+namespace NetMan.Effects;
 
 public sealed class GrowthHeart(double x, double y, int direction, int sourceX = -1, int sourceY = -1,
   bool isFlamethrower = false, bool isBoomStick = false)

@@ -1,4 +1,4 @@
-namespace NetMan;
+namespace NetMan.Effects;
 
 public readonly record struct BlockBreakEffect(int X, int Y, int AgeTicks = 0)
 {

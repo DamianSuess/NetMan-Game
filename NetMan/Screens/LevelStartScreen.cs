@@ -1,4 +1,6 @@
-namespace NetMan;
+using NetMan.Actors;
+
+namespace NetMan.Screens;
 
 internal sealed class LevelStartScreen
 {

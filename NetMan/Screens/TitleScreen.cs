@@ -1,3 +1,5 @@
+using NetMan.Actors;
+
 namespace NetMan;
 
 internal sealed class TitleScreen

@@ -1,4 +1,5 @@
 using System.Globalization;
+using NetMan.Actors;
 
 namespace NetMan;
 
@@ -26,6 +27,7 @@ internal sealed class EnemyConfiguration
 
     string section = string.Empty;
     int lineNumber = 0;
+
     foreach (string raw in File.ReadLines(path))
     {
       lineNumber++;
