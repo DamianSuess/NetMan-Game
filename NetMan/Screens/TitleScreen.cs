@@ -14,7 +14,7 @@ internal sealed class TitleScreen
 
   public void HandleKeyPress(int code)
   {
-    if (!IsActive || KonamiCodeEnabled)
+    if (!IsActive)
       return;
 
     _recentKeys.Enqueue(code);
@@ -34,6 +34,7 @@ internal sealed class TitleScreen
 
     int selectionDirection = (keyPresses.Any(code => code is 0x27 or 0x44) ? 1 : 0)
       - (keyPresses.Any(code => code is 0x25 or 0x41) ? 1 : 0);
+
     bool startPressed = keyPresses.Any(code => code is 0x0D or 0x20);
     Update(elapsed, startPressed, windowActive, selectionDirection);
   }

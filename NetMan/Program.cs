@@ -60,8 +60,7 @@ try
     levelsPath = Path.GetFullPath(args[option + 1]);
   }
 
-  var files = Directory.GetFiles(levelsPath, "*.txt")
-    .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase).ToArray();
+  var files = LevelSelectScreen.Discover(levelsPath);
 
   if (files.Length == 0)
     throw new InvalidDataException($"No .txt levels found in {levelsPath}");
@@ -70,13 +69,13 @@ try
     Level.Load(file);
 
   using var audio = new WindowsGameAudio();
-  Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam)
+  Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam, int startingLevelIndex = 0)
   {
     var created = new Game(files,
       deathQuotesPath: Path.Combine(assetsPath, "death-quotes.txt"), creditsAssetsPath: assetsPath,
       enemySettingsPath: Path.Combine(assetsPath, "enemies.txt"),
       flamethrowerQuotesPath: Path.Combine(assetsPath, "flamethrower-quotes.txt"), konamiCheat: cheat,
-      gameOverQuotesPath: Path.Combine(assetsPath, "game-over-quotes.txt"))
+      gameOverQuotesPath: Path.Combine(assetsPath, "game-over-quotes.txt"), startingLevelIndex: startingLevelIndex)
     { Character = character };
     created.SoundRequested += audio.Play;
     return created;
@@ -85,6 +84,8 @@ try
   var renderer = new PixelRenderer(assetsPath);
   var game = CreateGame();
   var titleScreen = new TitleScreen();
+  LevelSelectScreen? levelSelect = null;
+  var levelSelectCheat = new LevelSelectCheat();
   var levelStart = new LevelStartScreen(Path.Combine(assetsPath, "uncle-quotes.txt"));
   Level? presentedLevel = null;
 
@@ -99,9 +100,9 @@ try
   {
     window.PumpEvents();
     audio.Update();
-    audio.SetMusicPaused(!window.Active || (!titleScreen.IsActive && game.Paused));
+    audio.SetMusicPaused(levelSelect is not null || !window.Active || (!titleScreen.IsActive && game.Paused));
     audio.SetMusic(GameMusicTracks.ForScreen(titleScreen.IsActive, game));
-    audio.SetFlamethrowerActive(window.Active && !titleScreen.IsActive && !levelStart.IsActive
+    audio.SetFlamethrowerActive(levelSelect is null && window.Active && !titleScreen.IsActive && !levelStart.IsActive
       && !game.Paused && !game.IsDying && !game.Won && game.Flame is not null);
 
     if (window.Closed)
@@ -112,10 +113,52 @@ try
     accumulator += elapsed;
     previous = now;
 
+    bool openedLevelSelect = levelSelect is null && levelSelectCheat.HandleInput(window.KeyPresses, window.Active);
+    if (openedLevelSelect)
+    {
+      files = LevelSelectScreen.Discover(levelsPath);
+      levelSelect = new LevelSelectScreen(files);
+      audio.SetFlamethrowerActive(false);
+      audio.SetMusicPaused(true);
+    }
+
+    if (levelSelect is not null)
+    {
+      // The final cheat key (or Enter in the same frame) must not act on the menu.
+      if (!openedLevelSelect)
+        levelSelect.HandleInput(window.KeyPresses, window.Active);
+
+      if (!levelSelect.IsActive)
+      {
+        if (levelSelect.Confirmed)
+        {
+          bool cheat = titleScreen.IsActive ? titleScreen.KonamiCodeEnabled : game.KonamiCheatEnabled;
+          var character = titleScreen.IsActive ? titleScreen.SelectedCharacter : game.Character;
+          game = CreateGame(cheat, character, levelSelect.SelectedIndex);
+          titleScreen.Update(0, startPressed: true, windowActive: true);
+          audio.Stop();
+          audio.Play(GameSound.PowerUp);
+        }
+
+        levelSelect = null;
+      }
+
+      accumulator = 0;
+      if (levelSelect is not null)
+      {
+        renderer.DrawLevelSelect(levelSelect);
+        window.Present(renderer.Frame);
+        Thread.Sleep(16);
+      }
+
+      continue;
+    }
+
     if (titleScreen.IsActive)
     {
       if (window.Active && updates.TryScheduleApply(restart: true, args))
         break;
+
       if (window.Active && window.Pressed(GameKey.Escape))
         break;
 
@@ -130,6 +173,7 @@ try
 
       accumulator = 0;
       renderer.DrawTitle(titleScreen, updates.Status);
+
       window.Present(renderer.Frame);
       Thread.Sleep(16);
       continue;

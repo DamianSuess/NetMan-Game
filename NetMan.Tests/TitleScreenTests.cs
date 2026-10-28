@@ -10,6 +10,60 @@ namespace NetMan.Tests;
 public sealed class TitleScreenTests
 {
   [TestMethod]
+  public void DeadbeefRequiresCorrectSequenceAndFocusAndRequestsOnlyOnce()
+  {
+    var cheat = new LevelSelectCheat();
+    int[] code = "DEADBEEF".Select(letter => (int)letter).ToArray();
+    Assert.IsFalse(cheat.HandleInput(code, false));
+
+    Assert.IsFalse(cheat.HandleInput("DEADBEAF".Select(letter => (int)letter).ToArray(), true));
+
+    Assert.IsTrue(cheat.HandleInput(code.Concat(new[] { 0x0D }).ToArray(), true));
+    Assert.IsFalse(cheat.HandleInput([], true));
+
+    var title = new TitleScreen();
+    title.Update(0, true, true);
+    Assert.IsFalse(title.IsActive);
+    Assert.IsTrue(cheat.HandleInput(code, true), "The cheat must also work after leaving the title.");
+    Assert.IsTrue(cheat.HandleInput(code, true), "The selector must be reopenable.");
+  }
+
+  [TestMethod]
+  [DataRow(true)]
+  [DataRow(false)]
+  public void LevelSelectAndKonamiCodesCanBothBeUsed(bool konamiFirst)
+  {
+    var title = new TitleScreen();
+    var cheat = new LevelSelectCheat();
+    int[] debug = "DEADBEEF".Select(letter => (int)letter).ToArray();
+    int[] konami = [0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x42, 0x41];
+    title.HandleInput(0, konamiFirst ? konami : debug, true);
+    bool requested = cheat.HandleInput(konamiFirst ? konami : debug, true);
+    title.HandleInput(0, konamiFirst ? debug : konami, true);
+    requested |= cheat.HandleInput(konamiFirst ? debug : konami, true);
+    Assert.IsTrue(title.KonamiCodeEnabled);
+    Assert.IsTrue(requested);
+    Assert.IsTrue(title.IsActive);
+  }
+
+  [TestMethod]
+  public void GlobalDebugCheatWorksAcrossFramesAndClearsPartialCodeOnLostFocus()
+  {
+    var cheat = new LevelSelectCheat();
+    foreach (char letter in "DEAD")
+      Assert.IsFalse(cheat.HandleInput([(int)letter], true));
+
+    Assert.IsFalse(cheat.HandleInput([], false));
+    foreach (char letter in "BEEF")
+      Assert.IsFalse(cheat.HandleInput([(int)letter], true));
+
+    string code = "DEADBEEF";
+    for (int index = 0; index < code.Length; index++)
+      Assert.AreEqual(index == code.Length - 1, cheat.HandleInput([(int)code[index]], true));
+
+  }
+
+  [TestMethod]
   public void PlayerSelectionRespondsToDirectionAndLocksAfterStarting()
   {
     var title = new TitleScreen();

@@ -161,6 +161,41 @@ internal sealed class PixelRenderer
   private static string PlayerSprite(PlayerCharacter character, string name) =>
     character == PlayerCharacter.Ella ? name.Replace("player-", "ella-", StringComparison.Ordinal) : name;
 
+  public void DrawLevelSelect(LevelSelectScreen screen)
+  {
+    Frame.Clear(Ink);
+    DrawTitleText("LEVEL SELECT", 12, Gold, 3);
+    PixelFont.Draw(Frame, "NO.", 24, 44, Gold);
+    PixelFont.Draw(Frame, "NAME", 48, 44, Gold);
+    PixelFont.Draw(Frame, "THEME", 300, 44, Gold);
+    Frame.Fill(10, 54, Width - 20, 1, Gold);
+    int first = screen.Page * LevelSelectScreen.PageSize;
+
+    for (int row = 0; row < LevelSelectScreen.PageSize && first + row < screen.Levels.Count; row++)
+    {
+      int index = first + row;
+      var level = screen.Levels[index];
+      int y = 64 + row * 16;
+      bool selected = index == screen.SelectedIndex;
+
+      if (selected)
+      {
+        Frame.Fill(10, y - 4, Width - 20, 13, 0xFF355575);
+        PixelFont.Draw(Frame, ">", 13, y, Gold);
+      }
+
+      uint color = selected ? Gold : White;
+      string name = level.Name.Length > 56 ? level.Name[..53] + "..." : level.Name;
+      PixelFont.Draw(Frame, level.Number.ToString(), 24, y, color);
+      PixelFont.Draw(Frame, name, 48, y, color);
+      PixelFont.Draw(Frame, level.Theme == BackgroundTheme.Night ? "NIGHTTIME" : "DAYTIME", 300, y, color);
+    }
+
+    DrawTitleText($"PAGE {screen.Page + 1}/{screen.PageCount}  LEVELS {screen.Levels.Count}", 196, Gold, 1);
+    DrawTitleText("UP/DOWN SELECT  LEFT/RIGHT OR PGUP/PGDN PAGE", 213, White, 1);
+    DrawTitleText("ENTER PLAY  ESC BACK", 227, White, 1);
+  }
+
   public void DrawLevelStart(LevelStartScreen screen)
   {
     Frame.Clear(Ink);
