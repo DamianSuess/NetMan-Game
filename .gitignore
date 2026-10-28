@@ -57,6 +57,9 @@ bld/
 [Ll]og/
 .vs/
 
+# Packaged Native AOT releases
+/Publish/
+
 # NuGet Packages
 *.nupkg
 ## The packages folder can be ignored because of Package Restore
@@ -90,7 +93,5 @@ TestResults/
 ## USER DEFINED
 /[Dd]ocs/*.csv
 /[Dd]ocs/backup
+/[Ss]andbox
 /[Tt]ools
-
-# Packaged Native AOT releases
-/Publish/
