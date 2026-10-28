@@ -136,6 +136,47 @@ public sealed class GameSoundTests : GameTestBase
     Assert.IsFalse(sounds.Contains(GameSound.PowerUp));
   }
 
+  [TestMethod]
+  [DataRow(EnemyKind.Walker, 1)]
+  [DataRow(EnemyKind.ToasterCat, 1)]
+  [DataRow(EnemyKind.Zombie, 1)]
+  [DataRow(EnemyKind.Dog, 1)]
+  [DataRow(EnemyKind.Walker, 2)]
+  public void EnemySmashPlaysOnceForDefeatedStompAndNotForSurvivingEnemy(EnemyKind kind, int health)
+  {
+    var game = Map(
+      "....................",
+      "....................",
+      ".S..................",
+      "....................",
+      "..................G.",
+      "####################");
+
+    var enemy = new Enemy(game.X, 5 - (kind == EnemyKind.Zombie ? Game.LargeBodyHeight : Game.BodyHeight),
+      kind, new EnemySettings(0, health, 0)) { Direction = 0 };
+    game.Enemies.Add(enemy);
+    var sounds = Listen(game);
+    for (int tick = 0; tick < 60; tick++)
+    {
+      game.Update(0, false);
+      if (game.VelocityY < 0)
+        break;
+    }
+
+    Assert.IsTrue(game.VelocityY < 0, "The player should bounce after stomping.");
+    Assert.AreEqual(health > 1, enemy.Alive);
+    if (health > 1)
+    {
+      Assert.IsEmpty(sounds, "An enemy that survives has not been smashed.");
+      return;
+    }
+
+    CollectionAssert.AreEqual(new[] { GameSound.EnemySmash }, sounds);
+    Tick(game, Enemy.SquashDurationTicks + 30);
+    CollectionAssert.AreEqual(new[] { GameSound.EnemySmash }, sounds,
+      "The enemy's splatter should not repeat the impact sound.");
+  }
+
   private static void Hit(Game game)
   {
     game.Enemies.Add(new Enemy(game.X + 0.4, game.Y) { Direction = 0 });

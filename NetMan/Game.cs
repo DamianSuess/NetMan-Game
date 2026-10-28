@@ -422,8 +422,13 @@ public sealed class Game
         bool defeated = enemy.Stomp(PlayerPowerLevel);
         Y = ey - PlayerHeight;
         VelocityY = -10;
+
         if (defeated)
+        {
           Score += 200 * enemy.Settings.PowerLevel;
+          SoundRequested?.Invoke(GameSound.EnemySmash);
+        }
+
         Message = defeated ? "Stomp!" : $"Still kicking! {enemy.Health} hits left";
       }
       else

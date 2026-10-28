@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using NetMan;
+using NetMan.Audio;
 using Velopack;
 
 try
