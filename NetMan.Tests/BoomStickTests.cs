@@ -12,6 +12,28 @@ namespace NetMan.Tests;
 public sealed class BoomStickTests : GameTestBase
 {
   [TestMethod]
+  [DataRow(1)]
+  [DataRow(10)]
+  public void ShotgunPlaysEnemyDeathSoundOnlyForDefeatingHit(int health)
+  {
+    var game = Arm();
+    var enemy = AddEnemy(game, 3, health);
+    int deathsHeard = 0;
+
+    game.SoundRequested += sound => deathsHeard += sound == GameSound.EnemyDied ? 1 : 0;
+    game.Update(0, false, true);
+    Assert.AreEqual(health > game.ShotgunDamage, enemy.Alive);
+    Assert.AreEqual(enemy.Alive ? 0 : 1, deathsHeard);
+
+    if (enemy.Alive)
+      return;
+
+    Tick(game, Game.ShotgunReloadTicks);
+    game.Update(0, false, true);
+    Assert.AreEqual(1, deathsHeard, "Shooting again must not replay a dead enemy's sound.");
+  }
+
+  [TestMethod]
   public void ShotgunSoundPlaysOnlyForShotsThatFire()
   {
     var game = Arm();

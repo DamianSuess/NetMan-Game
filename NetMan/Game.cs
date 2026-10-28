@@ -650,7 +650,11 @@ public sealed class Game
         continue;
 
       if (enemy.Hit(ShotgunDamage))
+      {
         Score += 200 * enemy.Settings.PowerLevel;
+        SoundRequested?.Invoke(GameSound.EnemyDied);
+      }
+
     }
 
     Message = "BOOM-STICK!";
@@ -905,6 +909,7 @@ public sealed class Game
     Y = grownY;
     IsLarge = true;
     _growthPending = false;
+
     Message = HasFlamethrower ? "Flamethrower! Hold X or CTRL" : "Powered up!";
   }
 
@@ -924,11 +929,13 @@ public sealed class Game
     double originX = _facingDirection > 0 ? X + BodyWidth : X;
     double originY = Y + PlayerHeight - 0.65;
     double length = 0;
+
     // Trace the full flame thickness so it cannot pass through a wall or a pipe.
     for (int pixel = 0; pixel < (int)(FlameRange * 16); pixel++)
     {
       double checkX = originX + (_facingDirection * ((pixel + 0.5) / 16));
       int tileX = (int)Math.Floor(checkX);
+
       if (Level.Solid(tileX, (int)Math.Floor(originY - 0.25))
         || Level.Solid(tileX, (int)Math.Floor(originY + 0.25)))
       {
@@ -942,19 +949,26 @@ public sealed class Game
 
     Flame = new FlameStream(originX, originY, _facingDirection, length, _flameAnimationTicks / 6 % 4);
     _flameAnimationTicks++;
+
     if (_flameDamageTicks > 0 || length == 0)
       return;
 
     _flameDamageTicks = FlameDamageIntervalTicks;
+
     double left = _facingDirection > 0 ? originX : originX - length;
     double right = _facingDirection > 0 ? originX + length : originX;
+
     foreach (var enemy in Enemies.Where(enemy => enemy.Alive))
     {
       if (enemy.X >= right || enemy.X + BodyWidth <= left
         || enemy.Y >= originY + 0.25 || enemy.Y + enemy.BodyHeight <= originY - 0.25)
         continue;
+
       if (enemy.Hit(FlameDamage))
+      {
         Score += 200 * enemy.Settings.PowerLevel;
+        SoundRequested?.Invoke(GameSound.EnemyDied);
+      }
     }
   }
 }

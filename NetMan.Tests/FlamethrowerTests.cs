@@ -3,12 +3,36 @@ using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetMan.Actors;
+using NetMan.Audio;
 
 namespace NetMan.Tests;
 
 [TestClass]
 public sealed class FlamethrowerTests : GameTestBase
 {
+  [TestMethod]
+  [DataRow(1)]
+  [DataRow(10)]
+  public void FlamePlaysEnemyDeathSoundOnlyForDefeatingHit(int health)
+  {
+    var game = Arm();
+    var enemy = AddEnemy(game, 3, health);
+    int deathsHeard = 0;
+
+    game.SoundRequested += sound => deathsHeard += sound == GameSound.EnemyDied ? 1 : 0;
+    game.Update(0, false, true);
+    Assert.AreEqual(health > game.FlameDamage, enemy.Alive);
+    Assert.AreEqual(enemy.Alive ? 0 : 1, deathsHeard);
+
+    if (enemy.Alive)
+      return;
+
+    for (int tick = 0; tick < 60; tick++)
+      game.Update(0, false, true);
+
+    Assert.AreEqual(1, deathsHeard, "Continued fire must not replay a dead enemy's sound.");
+  }
+
   [TestMethod]
   public void SmallPlayerCannotCollectFlamethrowerOrGrowFromIt()
   {
