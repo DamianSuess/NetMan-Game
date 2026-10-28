@@ -10,6 +10,42 @@ namespace NetMan.Tests;
 public sealed class TitleScreenTests
 {
   [TestMethod]
+  public void DeadbeefRequiresCorrectSequenceAndFocusAndRequestsOnlyOnce()
+  {
+    var title = new TitleScreen();
+    int[] code = "DEADBEEF".Select(letter => (int)letter).ToArray();
+    title.HandleInput(0, code, false);
+    Assert.IsFalse(title.TakeLevelSelectRequest());
+
+    title.HandleInput(0, "DEADBEAF".Select(letter => (int)letter).ToArray(), true);
+    Assert.IsFalse(title.TakeLevelSelectRequest());
+
+    title.HandleInput(0, code.Concat(new[] { 0x0D }).ToArray(), true);
+    Assert.IsTrue(title.IsActive, "Completing the cheat must open selection before starting.");
+    Assert.IsTrue(title.TakeLevelSelectRequest());
+    Assert.IsFalse(title.TakeLevelSelectRequest());
+
+    title.Update(0, true, true);
+    title.HandleInput(0, code, true);
+    Assert.IsFalse(title.TakeLevelSelectRequest());
+  }
+
+  [TestMethod]
+  [DataRow(true)]
+  [DataRow(false)]
+  public void LevelSelectAndKonamiCodesCanBothBeUsed(bool konamiFirst)
+  {
+    var title = new TitleScreen();
+    int[] debug = "DEADBEEF".Select(letter => (int)letter).ToArray();
+    int[] konami = [0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x42, 0x41];
+    title.HandleInput(0, konamiFirst ? konami : debug, true);
+    title.HandleInput(0, konamiFirst ? debug : konami, true);
+    Assert.IsTrue(title.KonamiCodeEnabled);
+    Assert.IsTrue(title.TakeLevelSelectRequest());
+    Assert.IsTrue(title.IsActive);
+  }
+
+  [TestMethod]
   public void PlayerSelectionRespondsToDirectionAndLocksAfterStarting()
   {
     var title = new TitleScreen();

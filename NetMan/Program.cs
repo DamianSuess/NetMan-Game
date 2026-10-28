@@ -60,8 +60,7 @@ try
     levelsPath = Path.GetFullPath(args[option + 1]);
   }
 
-  var files = Directory.GetFiles(levelsPath, "*.txt")
-    .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase).ToArray();
+  var files = LevelSelectScreen.Discover(levelsPath);
 
   if (files.Length == 0)
     throw new InvalidDataException($"No .txt levels found in {levelsPath}");
@@ -70,13 +69,13 @@ try
     Level.Load(file);
 
   using var audio = new WindowsGameAudio();
-  Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam)
+  Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam, int startingLevelIndex = 0)
   {
     var created = new Game(files,
       deathQuotesPath: Path.Combine(assetsPath, "death-quotes.txt"), creditsAssetsPath: assetsPath,
       enemySettingsPath: Path.Combine(assetsPath, "enemies.txt"),
       flamethrowerQuotesPath: Path.Combine(assetsPath, "flamethrower-quotes.txt"), konamiCheat: cheat,
-      gameOverQuotesPath: Path.Combine(assetsPath, "game-over-quotes.txt"))
+      gameOverQuotesPath: Path.Combine(assetsPath, "game-over-quotes.txt"), startingLevelIndex: startingLevelIndex)
     { Character = character };
     created.SoundRequested += audio.Play;
     return created;
@@ -85,6 +84,7 @@ try
   var renderer = new PixelRenderer(assetsPath);
   var game = CreateGame();
   var titleScreen = new TitleScreen();
+  LevelSelectScreen? levelSelect = null;
   var levelStart = new LevelStartScreen(Path.Combine(assetsPath, "uncle-quotes.txt"));
   Level? presentedLevel = null;
 
@@ -116,20 +116,47 @@ try
     {
       if (window.Active && updates.TryScheduleApply(restart: true, args))
         break;
-      if (window.Active && window.Pressed(GameKey.Escape))
-        break;
+      int startingLevelIndex = 0;
+      if (levelSelect is null)
+      {
+        if (window.Active && window.Pressed(GameKey.Escape))
+          break;
 
-      titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
+        titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
+        if (titleScreen.TakeLevelSelectRequest())
+        {
+          files = LevelSelectScreen.Discover(levelsPath);
+          levelSelect = new LevelSelectScreen(files);
+        }
+      }
+      else
+      {
+        levelSelect.HandleInput(window.KeyPresses, window.Active);
+        if (!levelSelect.IsActive)
+        {
+          if (levelSelect.Confirmed)
+          {
+            startingLevelIndex = levelSelect.SelectedIndex;
+            titleScreen.Update(0, startPressed: true, windowActive: true);
+          }
+
+          levelSelect = null;
+        }
+      }
 
       if (!titleScreen.IsActive)
       {
-        game = CreateGame(titleScreen.KonamiCodeEnabled, titleScreen.SelectedCharacter);
+        game = CreateGame(titleScreen.KonamiCodeEnabled, titleScreen.SelectedCharacter, startingLevelIndex);
         audio.SetMusic(GameMusic.None);
         audio.Play(GameSound.PowerUp);
       }
 
       accumulator = 0;
-      renderer.DrawTitle(titleScreen, updates.Status);
+      if (levelSelect is null)
+        renderer.DrawTitle(titleScreen, updates.Status);
+      else
+        renderer.DrawLevelSelect(levelSelect);
+
       window.Present(renderer.Frame);
       Thread.Sleep(16);
       continue;

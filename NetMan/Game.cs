@@ -58,10 +58,17 @@ public sealed class Game
   private int _shotgunReloadTicks;
 
   public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null,
-    string? flamethrowerQuotesPath = null, bool konamiCheat = false, string? gameOverQuotesPath = null)
+    string? flamethrowerQuotesPath = null, bool konamiCheat = false, string? gameOverQuotesPath = null,
+    int startingLevelIndex = 0)
   {
+    if ((uint)startingLevelIndex >= (uint)files.Length)
+      throw new ArgumentOutOfRangeException(nameof(startingLevelIndex));
+
     this._files = files;
+
+    _levelIndex = startingLevelIndex;
     KonamiCheatEnabled = konamiCheat;
+
     _enemyConfiguration = EnemyConfiguration.Load(enemySettingsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets", "enemies.txt"));
     _creditsAssetsPath = creditsAssetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     deathQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "death-quotes.txt");
