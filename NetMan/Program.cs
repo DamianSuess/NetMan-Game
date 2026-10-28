@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using NetMan;
+using NetMan.Audio;
 using Velopack;
 
 try
@@ -36,12 +37,14 @@ try
       // An unavailable log folder must not prevent offline play.
     }
   });
+
   string contentRoot = AppContext.BaseDirectory;
   if (updates.IsInstalled)
   {
     contentRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NetMan", "Content");
     UserContent.Synchronize(AppContext.BaseDirectory, contentRoot);
   }
+
   string assetsPath = Path.Combine(contentRoot, "Assets");
   var levelsPath = Path.Combine(contentRoot, "Levels");
   var option = Array.IndexOf(args, "--levels");
@@ -63,11 +66,19 @@ try
   foreach (var file in files)
     Level.Load(file);
 
-  Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam) => new(files,
-    deathQuotesPath: Path.Combine(assetsPath, "death-quotes.txt"), creditsAssetsPath: assetsPath,
-    enemySettingsPath: Path.Combine(assetsPath, "enemies.txt"),
-    flamethrowerQuotesPath: Path.Combine(assetsPath, "flamethrower-quotes.txt"), konamiCheat: cheat,
-    gameOverQuotesPath: Path.Combine(assetsPath, "game-over-quotes.txt")) { Character = character };
+  using var audio = new WindowsGameAudio();
+  Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam)
+  {
+    var created = new Game(files,
+      deathQuotesPath: Path.Combine(assetsPath, "death-quotes.txt"), creditsAssetsPath: assetsPath,
+      enemySettingsPath: Path.Combine(assetsPath, "enemies.txt"),
+      flamethrowerQuotesPath: Path.Combine(assetsPath, "flamethrower-quotes.txt"), konamiCheat: cheat,
+      gameOverQuotesPath: Path.Combine(assetsPath, "game-over-quotes.txt"))
+    { Character = character };
+    created.SoundRequested += audio.Play;
+    return created;
+  }
+
   var renderer = new PixelRenderer(assetsPath);
   var game = CreateGame();
   var titleScreen = new TitleScreen();
@@ -84,6 +95,7 @@ try
   while (!window.Closed)
   {
     window.PumpEvents();
+    audio.Update();
 
     if (window.Closed)
       break;
@@ -121,6 +133,7 @@ try
       levelStart.Update(elapsed, window.AnyKeyPressed, window.Active);
       if (!levelStart.IsActive)
         game.CompleteLevelStart();
+
       accumulator = 0;
       renderer.DrawLevelStart(levelStart);
       window.Present(renderer.Frame);
@@ -183,6 +196,7 @@ try
     window.Present(renderer.Frame);
     Thread.Sleep(16);
   }
+
   updates.TryScheduleApply(restart: false, args);
 }
 catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException

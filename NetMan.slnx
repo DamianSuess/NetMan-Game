@@ -4,5 +4,7 @@
     <File Path="Docs/ideas.md" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="NetMan.Tests/NetMan.Tests.csproj" />
+  <Folder Name="/Tests/">
+    <Project Path="NetMan.Tests/NetMan.Tests.csproj" />
+  </Folder>
 </Solution>

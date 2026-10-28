@@ -21,6 +21,8 @@ The game opens a separate resizable window. It renders at 384 x 240 pixels and s
 
 This version runs on Windows. The gameplay, text-level loader, sprite loader, pixel renderer, and PNG exporter use portable .NET code. `IGameWindow` separates those components from the Win32 backend; Linux and macOS would need their own window/input/presentation implementations and testing.
 
+Original 16-bit-style chiptune sound effects play when jumping, collecting growth or weapon power-ups, losing a weapon or shrinking, stomping an enemy, and dying. A surviving enemy plays the short, crunchy EnemySmash impact; a fatal stomp plays a distinct, longer EnemyDied crunch with a falling metallic tone. The player's death melody lasts two seconds. Effects use synthesized pulse, triangle, and FM tones with 16-bit PCM playback through Windows audio; no external sound files are required. Overlapping effects can finish together, and player death clears earlier effects before its melody starts. The game also runs when no audio output device is available.
+
 | Key | Action |
 | --- | --- |
 | A / D or left / right | Move |
