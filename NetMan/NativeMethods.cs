@@ -7,8 +7,70 @@ namespace NetMan;
 [SupportedOSPlatform("windows")]
 internal static class NativeMethods
 {
-  [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-  internal delegate nint WindowProcedure(nint window, uint message, nuint wParam, nint lParam);
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern bool AdjustWindowRect(ref Rectangle rectangle, uint style, bool menu);
+
+  [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+  internal static extern nint CreateWindowExW(uint extendedStyle, string className, string title, uint style,
+    int x, int y, int width, int height, nint parent, nint menu, nint instance, nint parameter);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern nint DefWindowProcW(nint window, uint message, nuint wParam, nint lParam);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern bool DestroyWindow(nint window);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern nint DispatchMessageW(ref Message message);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern bool GetClientRect(nint window, out Rectangle rectangle);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern nint GetDC(nint window);
+
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+  internal static extern nint GetModuleHandleW(string? moduleName);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern nint LoadCursorW(nint instance, nint name);
+
+  [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+  internal static extern int MessageBoxW(nint owner, string text, string caption, uint type);
+
+  [DllImport("gdi32.dll", ExactSpelling = true)]
+  internal static extern bool PatBlt(nint dc, int x, int y, int width, int height, uint operation);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern bool PeekMessageW(out Message message, nint window, uint min, uint max, uint remove);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern void PostQuitMessage(int code);
+
+  [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+  internal static extern ushort RegisterClassW(ref WindowClass windowClass);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern int ReleaseDC(nint window, nint dc);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern bool SetProcessDPIAware();
+
+  [DllImport("gdi32.dll", ExactSpelling = true)]
+  internal static extern int SetStretchBltMode(nint dc, int mode);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern bool ShowWindow(nint window, int command);
+
+  [DllImport("gdi32.dll", ExactSpelling = true)]
+  internal static extern int StretchDIBits(nint dc, int x, int y, int width, int height,
+    int sourceX, int sourceY, int sourceWidth, int sourceHeight, nint bits, ref BitmapInfo info, uint usage, uint operation);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern bool TranslateMessage(ref Message message);
+
+  [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+  internal static extern bool UnregisterClassW(string className, nint instance);
 
   [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
   internal struct WindowClass
@@ -80,68 +142,6 @@ internal static class NativeMethods
     public uint Color;
   }
 
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern bool AdjustWindowRect(ref Rectangle rectangle, uint style, bool menu);
-
-  [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
-  internal static extern nint CreateWindowExW(uint extendedStyle, string className, string title, uint style,
-    int x, int y, int width, int height, nint parent, nint menu, nint instance, nint parameter);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern nint DefWindowProcW(nint window, uint message, nuint wParam, nint lParam);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern bool DestroyWindow(nint window);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern nint DispatchMessageW(ref Message message);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern bool GetClientRect(nint window, out Rectangle rectangle);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern nint GetDC(nint window);
-
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
-  internal static extern nint GetModuleHandleW(string? moduleName);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern nint LoadCursorW(nint instance, nint name);
-
-  [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
-  internal static extern int MessageBoxW(nint owner, string text, string caption, uint type);
-
-  [DllImport("gdi32.dll", ExactSpelling = true)]
-  internal static extern bool PatBlt(nint dc, int x, int y, int width, int height, uint operation);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern bool PeekMessageW(out Message message, nint window, uint min, uint max, uint remove);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern void PostQuitMessage(int code);
-
-  [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
-  internal static extern ushort RegisterClassW(ref WindowClass windowClass);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern int ReleaseDC(nint window, nint dc);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern bool SetProcessDPIAware();
-
-  [DllImport("gdi32.dll", ExactSpelling = true)]
-  internal static extern int SetStretchBltMode(nint dc, int mode);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern bool ShowWindow(nint window, int command);
-
-  [DllImport("gdi32.dll", ExactSpelling = true)]
-  internal static extern int StretchDIBits(nint dc, int x, int y, int width, int height,
-    int sourceX, int sourceY, int sourceWidth, int sourceHeight, nint bits, ref BitmapInfo info, uint usage, uint operation);
-
-  [DllImport("user32.dll", ExactSpelling = true)]
-  internal static extern bool TranslateMessage(ref Message message);
-
-  [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
-  internal static extern bool UnregisterClassW(string className, nint instance);
+  [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+  internal delegate nint WindowProcedure(nint window, uint message, nuint wParam, nint lParam);
 }
