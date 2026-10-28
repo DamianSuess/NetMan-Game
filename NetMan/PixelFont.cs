@@ -27,6 +27,7 @@ internal static class PixelFont
     ['T'] = "111010010010010",
     ['U'] = "101101101101111",
     ['V'] = "101101101101010",
+    ['v'] = "000000101101010",
     ['W'] = "101101111111101",
     ['X'] = "101101010101101",
     ['Y'] = "101101010010010",
@@ -56,9 +57,9 @@ internal static class PixelFont
   };
 
   public static void Draw(PixelBuffer frame, string text, int x, int y, uint color, int scale = 1,
-    int clipTop = 0, int clipBottom = int.MaxValue)
+    int clipTop = 0, int clipBottom = int.MaxValue, bool preserveCase = false)
   {
-    foreach (char character in text.ToUpperInvariant())
+    foreach (char character in preserveCase ? text : text.ToUpperInvariant())
     {
       if (Glyphs.TryGetValue(character, out string? bits))
       {

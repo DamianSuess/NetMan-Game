@@ -1,4 +1,8 @@
 <Solution>
   <Project Path="NetMan/NetMan.csproj" />
+  <Folder Name="/Solution Items/">
+    <File Path="Docs/ideas.md" />
+    <File Path="README.md" />
+  </Folder>
   <Project Path="NetMan.Tests/NetMan.Tests.csproj" />
 </Solution>

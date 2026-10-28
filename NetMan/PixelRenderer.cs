@@ -10,6 +10,8 @@ internal sealed class PixelRenderer
   private const int HeaderHeight = 28;
   private const uint Ink = 0xFF17263F;
   private const uint White = 0xFFF6F4DF;
+  private static readonly string VersionLabel = "v" + System.Reflection.CustomAttributeExtensions
+    .GetCustomAttribute<System.Reflection.AssemblyFileVersionAttribute>(typeof(PixelRenderer).Assembly)!.Version;
   private readonly Dictionary<string, Sprite> _sprites = [];
   private double _animationTime;
   private bool _facingLeft;
@@ -136,6 +138,9 @@ internal sealed class PixelRenderer
     DrawCreditsRunner($"dog-walk-{animationFrame}", ticks, 110, -28, false, 224);
     Frame.Fill(0, 224, Width, 2, Gold);
     Frame.Fill(0, 226, Width, 14, Ink);
+
+    PixelFont.Draw(Frame, VersionLabel, 6, Height - 9, White, preserveCase: true);
+
     const string Copyright = "© 2026 XENO INNOVATIONS, INC.";
     PixelFont.Draw(Frame, Copyright, Width - (Copyright.Length * 4) - 5, Height - 9, White);
   }
