@@ -426,9 +426,9 @@ public sealed class Game
         if (defeated)
         {
           Score += 200 * enemy.Settings.PowerLevel;
-          SoundRequested?.Invoke(GameSound.EnemySmash);
         }
 
+        SoundRequested?.Invoke(defeated ? GameSound.EnemyDied : GameSound.EnemySmash);
         Message = defeated ? "Stomp!" : $"Still kicking! {enemy.Health} hits left";
       }
       else

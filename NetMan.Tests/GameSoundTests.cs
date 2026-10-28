@@ -142,7 +142,10 @@ public sealed class GameSoundTests : GameTestBase
   [DataRow(EnemyKind.Zombie, 1)]
   [DataRow(EnemyKind.Dog, 1)]
   [DataRow(EnemyKind.Walker, 2)]
-  public void EnemySmashPlaysOnceForDefeatedStompAndNotForSurvivingEnemy(EnemyKind kind, int health)
+  [DataRow(EnemyKind.ToasterCat, 2)]
+  [DataRow(EnemyKind.Zombie, 2)]
+  [DataRow(EnemyKind.Dog, 2)]
+  public void StompsPlaySmashForSurvivingEnemyAndDistinctDeathSoundForDefeat(EnemyKind kind, int health)
   {
     var game = Map(
       "....................",
@@ -167,13 +170,19 @@ public sealed class GameSoundTests : GameTestBase
     Assert.AreEqual(health > 1, enemy.Alive);
     if (health > 1)
     {
-      Assert.IsEmpty(sounds, "An enemy that survives has not been smashed.");
-      return;
+      CollectionAssert.AreEqual(new[] { GameSound.EnemySmash }, sounds);
+      for (int tick = 0; tick < 180 && enemy.Alive; tick++)
+        game.Update(0, false);
+
+      Assert.IsFalse(enemy.Alive, "A second stomp should defeat the injured enemy.");
     }
 
-    CollectionAssert.AreEqual(new[] { GameSound.EnemySmash }, sounds);
+    GameSound[] expected = health > 1
+      ? [GameSound.EnemySmash, GameSound.EnemyDied]
+      : [GameSound.EnemyDied];
+    CollectionAssert.AreEqual(expected, sounds);
     Tick(game, Enemy.SquashDurationTicks + 30);
-    CollectionAssert.AreEqual(new[] { GameSound.EnemySmash }, sounds,
+    CollectionAssert.AreEqual(expected, sounds,
       "The enemy's splatter should not repeat the impact sound.");
   }
 

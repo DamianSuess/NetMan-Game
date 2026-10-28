@@ -11,4 +11,5 @@ internal enum GameSound
   PowerDown,
   Died,
   EnemySmash,
+  EnemyDied,
 }

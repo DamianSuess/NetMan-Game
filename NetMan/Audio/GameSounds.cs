@@ -15,6 +15,7 @@ internal static class GameSounds
       GameSound.PowerDown => 0.42,
       GameSound.Died => 2.0,
       GameSound.EnemySmash => 0.14,
+      GameSound.EnemyDied => 0.28,
       _ => throw new ArgumentOutOfRangeException(nameof(sound)),
     };
 
@@ -36,15 +37,17 @@ internal static class GameSounds
         GameSound.PowerUp => rising[note],
         GameSound.PowerDown => falling[note] * (1 - 0.15 * time / duration),
         GameSound.EnemySmash => 180 * Math.Pow(0.15, time / duration),
+        GameSound.EnemyDied => 320 * Math.Pow(0.10, time / duration),
         _ => death[note],
       };
 
       phase = (phase + frequency / SampleRate) % 1;
       bassPhase = (bassPhase + frequency / (2 * SampleRate)) % 1;
+
       double pulse = phase < 0.25 ? 0.75 : -0.25;
       double triangle = 1 - 4 * Math.Abs(bassPhase - 0.5);
       double fm = Math.Sin(2 * Math.PI * phase + 1.5 * Math.Sin(4 * Math.PI * phase));
-      bool continuous = sound is GameSound.Jump or GameSound.EnemySmash;
+      bool continuous = sound is GameSound.Jump or GameSound.EnemySmash or GameSound.EnemyDied;
       double localTime = continuous ? time : time % noteLength;
       double localLength = continuous ? duration : noteLength;
 
@@ -55,15 +58,19 @@ internal static class GameSounds
 
       double value = (pulse * 0.45 + triangle * 0.35 + fm * 0.20) * envelope;
 
-      if (sound == GameSound.EnemySmash)
+      if (sound is GameSound.EnemySmash or GameSound.EnemyDied)
       {
         // Seeded noise and a falling bass thud give the smash a crunchy impact.
         noiseState ^= noiseState << 13;
         noiseState ^= noiseState >> 17;
         noiseState ^= noiseState << 5;
         double noise = (noiseState & 0xFFFF) / 32767.5 - 1;
-        value = (pulse * 0.35 + triangle * 0.35 + noise * 0.30)
-          * envelope * Math.Exp(-5 * time / duration);
+
+        value = sound == GameSound.EnemyDied
+          ? (pulse * 0.20 + triangle * 0.25 + fm * 0.20 + noise * 0.35)
+            * envelope * Math.Exp(-3 * time / duration)
+          : (pulse * 0.35 + triangle * 0.35 + noise * 0.30)
+            * envelope * Math.Exp(-5 * time / duration);
       }
 
       samples[i] = (short)(value * short.MaxValue * 0.45);
