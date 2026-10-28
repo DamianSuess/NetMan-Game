@@ -27,6 +27,8 @@ The flamethrower plays a looping fire roar while its stream is active, stopping 
 
 Original chiptune music plays on three screens: a bright looping title theme, a five-second minor-key funeral-style march on the Game Over page that plays once, and a looping victory theme during successful ending credits. Music stops when leaving its screen and pauses with window focus or the game. Music and sound effects use separate voices.
 
+Daytime levels cycle through three upbeat themes: Sunlit Sprint, Cloud Hopper, and Meadow Parade. Nighttime levels independently cycle through three dark themes: Graveyard Watch, Something Follows, and Below the Moon. Each song loops for its level. Retrying keeps that level's song, restarting resets the sequence, and music pauses with gameplay or loss of window focus. Player death stops level music before the death sound.
+
 | Key | Action |
 | --- | --- |
 | A / D or left / right | Move |
