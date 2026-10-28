@@ -1,13 +1,4 @@
-namespace NetMan;
-
-internal enum GameSound
-{
-  Jump,
-  PowerUp,
-  PowerDown,
-  Died,
-  EnemySmash,
-}
+namespace NetMan.Audio;
 
 // Original chiptune effects: pulse lead, triangle bass, and a quiet FM overtone.
 // Samples are generated once at startup; playback never synthesizes on the game loop.

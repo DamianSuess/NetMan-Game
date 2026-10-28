@@ -11,7 +11,9 @@ internal static class ArtExporter
     int cellWidth = Math.Max(31, sprites.Max(sprite => sprite.Width) + 4);
     int cellHeight = Math.Max(50, sprites.Max(sprite => sprite.Height) + 14);
     int sheetRows = (files.Length + 7) / 8;
+
     var sheet = new PixelBuffer(8 + (8 * cellWidth), Math.Max(144, 29 + (sheetRows * cellHeight)));
+
     sheet.Clear(0xFF17263F);
     PixelFont.Draw(sheet, "NETMAN - PIXEL ART", 8, 7, 0xFFFFD56B);
 
