@@ -86,6 +86,7 @@ internal static class GameSounds
   {
     bool flame = sound == GameSound.Flamethrower;
     double duration = flame ? 0.4 : 0.3;
+    double volume = flame ? 0.6 : 0.95;
 
     var samples = new short[(int)(SampleRate * duration)];
     uint noiseState = flame ? 0xF1A4Eu : 0xB0057u;
@@ -99,19 +100,20 @@ internal static class GameSounds
       noiseState ^= noiseState << 5;
 
       double noise = (noiseState & 0xFFFF) / 32767.5 - 1;
-      filteredNoise += (noise - filteredNoise) * (flame ? 0.18 : 0.55);
+      filteredNoise += (noise - filteredNoise) * (flame ? 0.18 : 0.08);
 
-      double frequency = flame ? 80 : 160 * Math.Pow(0.2, time / duration);
+      // A low sine boom and muffled noise keep the shotgun distinct from stomps.
+      double frequency = flame ? 80 : 95 * Math.Pow(0.45, time / duration);
       phase = (phase + frequency / SampleRate) % 1;
-      double bass = 1 - 4 * Math.Abs(phase - 0.5);
+      double bass = flame ? 1 - 4 * Math.Abs(phase - 0.5) : Math.Sin(2 * Math.PI * phase);
       double envelope = Math.Min(1, time / 0.002)
         * Math.Min(1, (duration - time) / 0.004);
 
       double value = flame
         ? (filteredNoise * 0.8 + bass * 0.2) * (0.8 + 0.2 * Math.Sin(2 * Math.PI * 25 * time))
-        : (filteredNoise * 0.7 + bass * 0.3) * Math.Exp(-14 * time);
+        : (filteredNoise * 0.35 + bass * 0.65) * Math.Exp(-10 * time);
 
-      samples[i] = (short)(value * envelope * short.MaxValue * 0.6);
+      samples[i] = (short)(value * envelope * short.MaxValue * volume);
     }
 
     return samples;
