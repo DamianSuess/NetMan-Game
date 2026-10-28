@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetMan.Actors;
+using NetMan.Effects;
 
 namespace NetMan.Tests;
 
@@ -37,9 +39,11 @@ public sealed class GrowthHeartTests : GameTestBase
   {
     var game = CreateGame();
     var heart = Release(game);
+
     game.Enemies.Add(new Enemy(game.X + 0.4, game.Y) { Direction = 0 });
     game.Update(0, false);
     Assert.IsTrue(game.IsDying);
+
     double x = heart.X, y = heart.Y;
     int age = heart.AgeTicks;
     Tick(game, 240);
@@ -48,6 +52,7 @@ public sealed class GrowthHeartTests : GameTestBase
     Assert.AreEqual(age, heart.AgeTicks);
     Assert.IsTrue(game.ContinueAfterDeath());
     Assert.IsEmpty(game.GrowthHearts);
+
     Release(game);
     game.Restart();
     Assert.IsEmpty(game.GrowthHearts);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetMan.Actors;
 using NetMan.Audio;
 
 namespace NetMan.Tests;

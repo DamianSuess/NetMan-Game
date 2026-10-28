@@ -1,4 +1,4 @@
-namespace NetMan;
+namespace NetMan.Actors;
 
 public sealed record EnemySettings
 {
@@ -6,8 +6,10 @@ public sealed record EnemySettings
   {
     if (!double.IsFinite(speed) || speed is < 0 or > 30)
       throw new ArgumentOutOfRangeException(nameof(speed), "Enemy speed must be between 0 and 30 tiles per second.");
+
     if (powerLevel is < 1 or > 10)
       throw new ArgumentOutOfRangeException(nameof(powerLevel), "Enemy power level must be between 1 and 10.");
+
     if (!double.IsFinite(hopVelocity) || hopVelocity is < 0 or > 20)
       throw new ArgumentOutOfRangeException(nameof(hopVelocity), "Hop velocity must be between 0 and 20.");
 
@@ -17,6 +19,8 @@ public sealed record EnemySettings
   }
 
   public double Speed { get; }
+
   public int PowerLevel { get; }
+
   public double HopVelocity { get; }
 }

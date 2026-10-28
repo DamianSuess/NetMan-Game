@@ -1,4 +1,4 @@
-namespace NetMan;
+namespace NetMan.Actors;
 
 public sealed class Enemy
 {
@@ -19,19 +19,30 @@ public sealed class Enemy
       EnemyKind.Dog => EnemyConfiguration.DefaultDog,
       _ => EnemyConfiguration.DefaultWalker,
     });
+
     Health = Settings.PowerLevel;
   }
 
   public int Direction = -1;
+
   public double X, Y, VelocityY;
+
   public EnemyKind Kind { get; }
+
   public EnemySettings Settings { get; }
+
   public double BodyHeight => Kind == EnemyKind.Zombie ? Game.LargeBodyHeight : Game.BodyHeight;
+
   public int Health { get; private set; }
+
   public bool Alive { get; private set; } = true;
+
   public int SquashTicksRemaining { get; private set; }
+
   internal int HopTicksRemaining { get; set; }
+
   internal int StunTicksRemaining { get; set; }
+
   internal int PoopTicksRemaining { get; set; } = PoopIntervalTicks;
 
   internal void AdvanceSquash()
@@ -44,6 +55,7 @@ public sealed class Enemy
   {
     if (damage is < 1 or > 10)
       throw new ArgumentOutOfRangeException(nameof(damage));
+
     return Hit(damage);
   }
 

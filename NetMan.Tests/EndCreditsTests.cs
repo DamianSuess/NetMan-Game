@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetMan.Screens;
 
 namespace NetMan.Tests;
 
@@ -183,14 +184,14 @@ public sealed class EndCreditsTests : GameTestBase
     {
       File.WriteAllLines(opening, ["; comment", "", "You survived the custom ending."]);
       File.WriteAllLines(closing, ["; comment", "Custom reaper demands a rematch."]);
-      var credits = new EndCredits(folder, TimeSpan.FromSeconds(65), 4, 1234, 7);
+      var credits = new EndCreditsScreen(folder, TimeSpan.FromSeconds(65), 4, 1234, 7);
       Assert.AreEqual("You survived the custom ending.", credits.OpeningQuote);
       Assert.AreEqual("Custom reaper demands a rematch.", credits.ClosingQuote);
       Assert.AreEqual(credits.OpeningQuote, credits.Lines[0].Text);
       CollectionAssert.Contains(credits.Lines.Select(line => line.Text).ToArray(), "TIME 00:01:05");
       File.WriteAllText(opening, new string('A', 200));
       File.WriteAllText(closing, "; no quotes");
-      credits = new EndCredits(folder, TimeSpan.Zero, 0, 0, 0);
+      credits = new EndCreditsScreen(folder, TimeSpan.Zero, 0, 0, 0);
       Assert.IsTrue(credits.Lines.All(line => ((line.Text.Length * 4) - 1) * line.Scale <= PixelRenderer.Width));
       Assert.IsFalse(string.IsNullOrWhiteSpace(credits.ClosingQuote));
     }

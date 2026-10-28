@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using NetMan;
+using NetMan.Actors;
 using NetMan.Audio;
+using NetMan.Screens;
+using NetMan.Updater;
 using Velopack;
 
 try

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetMan.Actors;
 
 namespace NetMan.Tests;
 

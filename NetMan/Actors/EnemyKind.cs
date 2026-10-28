@@ -1,4 +1,4 @@
-namespace NetMan;
+namespace NetMan.Actors;
 
 public enum EnemyKind
 {

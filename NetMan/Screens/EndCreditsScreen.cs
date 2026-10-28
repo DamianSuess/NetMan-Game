@@ -1,18 +1,21 @@
-namespace NetMan;
+namespace NetMan.Screens;
 
 internal readonly record struct CreditLine(string Text, int Y, int Scale, bool Highlight);
 
-internal sealed class EndCredits
+internal sealed class EndCreditsScreen
 {
   private readonly List<CreditLine> _lines = [];
+
   private int _y;
 
-  public EndCredits(string assetsPath, TimeSpan completionTime, int deaths, int score, int itemsMissed)
+  public EndCreditsScreen(string assetsPath, TimeSpan completionTime, int deaths, int score, int itemsMissed)
   {
     OpeningQuote = ChooseQuote(Path.Combine(assetsPath, "credits-opening-quotes.txt"),
       "You survived. The reaper hates overtime.");
+
     ClosingQuote = ChooseQuote(Path.Combine(assetsPath, "credits-closing-quotes.txt"),
       "One more run. The morgue saved your seat.");
+
     AddQuote(OpeningQuote);
     _y += 32;
     Add("NETMAN", 4, true);
@@ -39,8 +42,11 @@ internal sealed class EndCredits
   }
 
   public string OpeningQuote { get; }
+
   public string ClosingQuote { get; }
+
   public int ClosingOffset { get; }
+
   public IReadOnlyList<CreditLine> Lines => _lines;
 
   private void Add(string text, int scale = 2, bool highlight = false)
@@ -55,12 +61,14 @@ internal sealed class EndCredits
     while (remaining.Length > 0)
     {
       int length = Math.Min(40, remaining.Length);
+
       if (length < remaining.Length)
       {
         int space = remaining.LastIndexOf(' ', length - 1, length);
         if (space > 0)
           length = space;
       }
+
       Add(remaining[..length].Trim(), 2, true);
       remaining = remaining[length..].TrimStart();
     }
@@ -72,6 +80,7 @@ internal sealed class EndCredits
       ? File.ReadAllLines(path).Select(line => line.Trim())
         .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
       : [];
+
     return quotes.Length == 0 ? fallback : quotes[Random.Shared.Next(quotes.Length)];
   }
 }

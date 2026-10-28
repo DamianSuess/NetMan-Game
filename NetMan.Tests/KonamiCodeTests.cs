@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetMan.Actors;
 
 namespace NetMan.Tests;
 

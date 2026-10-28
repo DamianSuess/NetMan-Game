@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetMan.Actors;
+using NetMan.Effects;
 
 namespace NetMan.Tests;
 
@@ -35,12 +37,15 @@ public sealed class DogTests : GameTestBase
     var dog = AddDog(game, 6);
     Tick(game, Enemy.PoopIntervalTicks - 1);
     Assert.IsEmpty(game.PoopPiles);
+
     Tick(game, 1);
     Assert.HasCount(1, game.PoopPiles);
     Assert.AreEqual(new PoopPile(7, 5), game.PoopPiles[0]);
+
     dog.Squash();
     Tick(game, Enemy.PoopIntervalTicks * 2);
     Assert.HasCount(1, game.PoopPiles);
+
     game.Restart();
     Assert.IsEmpty(game.PoopPiles);
   }
@@ -56,13 +61,16 @@ public sealed class DogTests : GameTestBase
     Assert.IsEmpty(game.PoopPiles);
     Assert.AreEqual(3, game.Lives);
     Assert.AreEqual(0, game.Score);
+
     double x = game.X;
     Tick(game, 120, 1);
     Assert.AreEqual(x + (game.PlayerSettings.Speed / 2 * 2), game.X, 0.00001);
     Assert.AreEqual(0, game.PoopSplatterTicksRemaining);
     Assert.AreEqual(180, game.SlowTicksRemaining);
+
     Tick(game, 179);
     Assert.AreEqual(1, game.SlowTicksRemaining);
+
     Tick(game, 1);
     Assert.AreEqual(0, game.SlowTicksRemaining);
     Assert.AreEqual(game.PlayerSettings.Speed, game.PlayerSpeed);
@@ -79,6 +87,7 @@ public sealed class DogTests : GameTestBase
     Assert.AreEqual(300, game.SlowTicksRemaining);
     Assert.AreEqual(120, game.PoopSplatterTicksRemaining);
     Assert.AreEqual(Enemy.PoopIntervalTicks, dog.PoopTicksRemaining);
+
     game.Paused = false;
     Tick(game, 60);
     game.Enemies.Clear();
@@ -87,6 +96,7 @@ public sealed class DogTests : GameTestBase
     Tick(game, 1);
     Assert.AreEqual(300, game.SlowTicksRemaining);
     Assert.AreEqual(120, game.PoopSplatterTicksRemaining);
+
     game.Restart();
     Assert.AreEqual(0, game.SlowTicksRemaining);
     Assert.AreEqual(0, game.PoopSplatterTicksRemaining);
@@ -124,14 +134,18 @@ public sealed class DogTests : GameTestBase
   {
     var game = CreateGame();
     var dog = AddDog(game, 6);
+
     if (dead)
       dog.Squash();
+
     string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
     var sprite = Sprite.Load(Path.Combine(assets, name + ".sprite"), Sprite.LoadPalette(Path.Combine(assets, "palette.txt")));
     var renderer = new PixelRenderer(assets);
     renderer.Draw(game, 0, elapsed);
+
     int left = (int)Math.Round((dog.X + (Game.BodyWidth / 2)) * 16) - (sprite.Width / 2);
     int top = 28 + (int)Math.Round((dog.Y + dog.BodyHeight) * 16) - sprite.Height;
+
     for (int y = 0; y < sprite.Height; y++)
       for (int x = 0; x < sprite.Width; x++)
         if (sprite.Pixel(x, y) != 0)
@@ -145,10 +159,12 @@ public sealed class DogTests : GameTestBase
     WalkIntoPile(game);
     var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
     renderer.Draw(game, 0, 0);
+
     uint[] splashed = (uint[])renderer.Frame.Pixels.Clone();
     Tick(game, 119);
     renderer.Draw(game, 0, 0);
     CollectionAssert.AreEqual(splashed, renderer.Frame.Pixels);
+
     Tick(game, 1);
     renderer.Draw(game, 0, 0);
     Assert.IsFalse(splashed.SequenceEqual(renderer.Frame.Pixels));
@@ -161,8 +177,10 @@ public sealed class DogTests : GameTestBase
     string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
     var sprite = Sprite.Load(Path.Combine(assets, "poop-screen-splatter.sprite"), Sprite.LoadPalette(Path.Combine(assets, "palette.txt")));
     var frame = new PixelBuffer(128, 96);
+
     frame.Clear(0xFFFFFFFF);
     frame.DrawTranslucent(sprite, 0, 0, 128);
+
     for (int y = 0; y < sprite.Height; y++)
       for (int x = 0; x < sprite.Width; x++)
       {
@@ -178,6 +196,7 @@ public sealed class DogTests : GameTestBase
           Assert.AreEqual(red, (actual >> 16) & 255);
         }
       }
+
     // Zero opacity is a no-op even when the sprite is clipped at the frame edges.
     uint[] previous = (uint[])frame.Pixels.Clone();
     frame.DrawTranslucent(sprite, -60, -40, 0);
@@ -198,9 +217,11 @@ public sealed class DogTests : GameTestBase
   private Game PreparePile()
   {
     var game = CreateGame();
+
     AddDog(game, 6);
     Tick(game, Enemy.PoopIntervalTicks);
     game.Enemies.Clear();
+
     return game;
   }
 
@@ -208,6 +229,7 @@ public sealed class DogTests : GameTestBase
   {
     for (int tick = 0; tick < 60 && game.SlowTicksRemaining == 0; tick++)
       game.Update(1, false);
+
     Assert.IsGreaterThan(0, game.SlowTicksRemaining);
   }
 }
