@@ -52,6 +52,8 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
   private readonly List<Voice> _voices = [];
 
   private bool _disposed;
+  private Voice? _flamethrower;
+  private bool _flamethrowerRequested;
 
   public void Dispose()
   {
@@ -71,6 +73,29 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     if (_voices.Count >= 8)
       return;
 
+    var voice = CreateVoice(sound);
+    if (voice is not null)
+      _voices.Add(voice);
+  }
+
+  public void SetFlamethrowerActive(bool active)
+  {
+    if (_disposed || active == _flamethrowerRequested)
+      return;
+
+    _flamethrowerRequested = active;
+    if (active)
+      _flamethrower = CreateVoice(GameSound.Flamethrower, loop: true);
+    else
+    {
+      _flamethrower?.Dispose();
+      _flamethrower = null;
+    }
+
+  }
+
+  private Voice? CreateVoice(GameSound sound, bool loop = false)
+  {
     var format = new WaveFormat
     {
       FormatTag = 1,
@@ -83,26 +108,33 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
 
     // Audio is optional: missing/disabled devices must not prevent playing the game.
     if (waveOutOpen(out nint device, uint.MaxValue, ref format, 0, 0, 0) != 0)
-      return;
+      return null;
 
     var voice = new Voice(device, _samples[sound]);
     if (waveOutPrepareHeader(device, voice.Header, (uint)sizeof(WaveHeader)) != 0)
     {
       voice.Dispose();
-      return;
+      return null;
+    }
+
+    if (loop)
+    {
+      voice.Header->Flags |= 4 | 8; // WHDR_BEGINLOOP | WHDR_ENDLOOP
+      voice.Header->Loops = uint.MaxValue;
     }
 
     if (waveOutWrite(device, voice.Header, (uint)sizeof(WaveHeader)) != 0)
     {
       voice.Dispose();
-      return;
+      return null;
     }
 
-    _voices.Add(voice);
+    return voice;
   }
 
   public void Stop()
   {
+    SetFlamethrowerActive(false);
     foreach (var voice in _voices)
       voice.Dispose();
     _voices.Clear();
