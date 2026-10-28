@@ -25,6 +25,8 @@ Original 16-bit-style chiptune sound effects play when jumping, collecting growt
 
 The flamethrower plays a looping fire roar while its stream is active, stopping on release, pause, loss of focus, weapon loss, death, or the two-second firing limit. Each shotgun shot plays a short blast; holding fire or pressing during reload does not repeat the sound.
 
+Original chiptune music plays on three screens: a bright looping title theme, a five-second minor-key funeral-style march on the Game Over page that plays once, and a looping victory theme during successful ending credits. Music stops when leaving its screen and pauses with window focus or the game. Music and sound effects use separate voices.
+
 | Key | Action |
 | --- | --- |
 | A / D or left / right | Move |
