@@ -389,7 +389,9 @@ public sealed class Game
 
     foreach (var enemy in Enemies.Where(enemy => enemy.Alive))
     {
-      if (enemy.AdvanceEmergence(X, Y))
+      bool supported = enemy.Kind != EnemyKind.CreepyCrawler || enemy.CanInteract
+        || Level.Solid((int)Math.Floor(enemy.X + (BodyWidth / 2)), (int)Math.Round(enemy.Y + enemy.BodyHeight));
+      if (enemy.AdvanceEmergence(X, Y, supported))
         continue;
 
       double ex = enemy.X, ey = enemy.Y;

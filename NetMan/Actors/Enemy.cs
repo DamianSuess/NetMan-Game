@@ -61,10 +61,17 @@ public sealed class Enemy
 
   internal int PoopTicksRemaining { get; set; } = PoopIntervalTicks;
 
-  internal bool AdvanceEmergence(double playerX, double playerY)
+  internal bool AdvanceEmergence(double playerX, double playerY, bool supported = true)
   {
     if (Kind != EnemyKind.CreepyCrawler)
       return false;
+
+    if (!supported)
+    {
+      IsBuried = false;
+      EmergenceTicksRemaining = 0;
+      return false;
+    }
 
     if (IsBuried)
     {

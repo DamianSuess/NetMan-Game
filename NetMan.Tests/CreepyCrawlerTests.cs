@@ -17,9 +17,10 @@ public sealed class CreepyCrawlerTests : GameTestBase
     var level = Level.Load(files[4]);
     Assert.AreEqual(BackgroundTheme.Night, level.Background);
     Assert.IsNotEmpty(level.CreepyCrawlerSpawns);
-    foreach (string file in files)
+    for (int index = 0; index < files.Length; index++)
     {
-      var map = Level.Load(file);
+      var map = Level.Load(files[index]);
+      Assert.AreEqual(index >= 4 && map.Background == BackgroundTheme.Night, map.CreepyCrawlerSpawns.Count > 0);
       foreach (var spawn in map.CreepyCrawlerSpawns)
       {
         Assert.AreEqual(BackgroundTheme.Night, map.Background);
@@ -130,6 +131,20 @@ public sealed class CreepyCrawlerTests : GameTestBase
     Assert.IsFalse(game.IsDying);
     Assert.AreEqual(400, game.Score);
     Assert.AreEqual(Enemy.SquashDurationTicks, crawler.SquashTicksRemaining);
+  }
+
+  [TestMethod]
+  public void DestroyingBuriedCrawlersSupportMakesItFallInsteadOfFloating()
+  {
+    var game = CreateLevel();
+    var crawler = game.Enemies.Single();
+    crawler.Direction = 0;
+    game.Level.Clear(30, 5);
+    Tick(game, 120);
+    Assert.IsFalse(crawler.IsBuried);
+    Assert.IsFalse(crawler.IsEmerging);
+    Assert.IsFalse(crawler.Alive);
+    Assert.AreEqual(0, crawler.Health);
   }
 
   [TestMethod]

@@ -70,7 +70,7 @@ Levels 3, 6, and 7 have denser enemy patrols. Levels 4 and 5 combine more enemie
 with four-tile pits and spike clusters. Level 8, Moonlit Stepping Stones, crosses
 17 brick islands over a bottomless void. Level 9, Midnight Brickfall, tightens the
 landings across 21 islands with larger height changes. These final two levels
-have no floor or enemies: hold jump for the full arc and control your landing on
+have no floor: hold jump for the full arc and control your landing on
 each staggered platform. Missing a jump costs a life. Both routes work at normal
 and powered-up size.
 
@@ -111,8 +111,20 @@ Within the map, each character is one tile. Rows run from top to bottom; columns
 | `C` | Toaster Cat; runs faster and hops |
 | `Z` | Tall, slow-walking zombie; place in its bottom tile with clear space above |
 | `D` | Dog; patrols and leaves poop piles on solid ground |
+| `R` | Creepy-Crawler; nighttime half-body zombie that emerges from supported terrain |
 | `^` | Spike; blocks sideways movement and is deadly only when landing on its tip from above |
 | `G` | Green goal flag; at least one per map |
+
+Creepy-Crawler is a legless, half-body zombie introduced on nighttime Level 5,
+with more encounters in Levels 8 and 9. A cracked dirt mound marks each spawn.
+When the player comes within 12 tiles, it spends one second clawing up through
+the terrain before crawling on its belly. It cannot hurt the player or take hits
+while buried or emerging. Its exposed body is half a tile tall, crawls at 1.5
+tiles per second, and has 2 health: two small-player stomps or one large stomp.
+Weapons can also defeat it. Emergence freezes while paused; reloading buries it
+again. Use `R` above solid terrain in a `Background=Night` map. Defaults are in
+`[Creepy-Crawler]` in `Assets/enemies.txt`; it never hops. Destroying its supporting
+terrain makes it fall, including during emergence.
 
 Toaster Cats appear from Level 2 onward. Their metal toaster bodies have toast, cat faces, paws, and tails. They run a little faster than ordinary enemies and hop between short ground runs. Edit `Assets/enemies.txt` and relaunch to balance both types independently: `Speed` is tiles per second (0-30), `PowerLevel` is enemy health (1-10), and `HopVelocity` is hop strength (0-20; zero disables hopping). Defaults are speed 3 / health 1 / no hopping for walkers and speed 6 / health 2 / hop strength 7 for Toaster Cats. A nonfatal stomp briefly stuns the enemy and bounces the player safely away. Defeating an enemy by stomping awards 200 points per power level; pit falls defeat enemies regardless of power. Enemies regain full health when a level reloads. Side contact keeps the existing shrink-or-die behavior.
 
