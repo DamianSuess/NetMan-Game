@@ -70,7 +70,8 @@ try
 
   string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
     "SamElla", "settings.txt");
-  var settings = new SettingsScreen(AudioSettings.Load(settingsPath));
+  var savedSettings = GameSettings.Load(settingsPath);
+  var settings = new SettingsScreen(savedSettings.Audio);
 
   // Restore saved audio preferences before starting any music or sound effects.
   using var audio = new WindowsGameAudio();
@@ -146,7 +147,7 @@ try
       audio.SetVolume(settings.Audio.MusicVolume, settings.Audio.SoundEffectsVolume);
 
       if (!settings.IsActive)
-        settings.Audio.Save(settingsPath);
+        savedSettings.Save(settingsPath);
 
       accumulator = 0;
 
@@ -310,6 +311,9 @@ try
     while (accumulator >= Game.Step)
     {
       game.Update(direction, !wasDying && window.Down(GameKey.Jump), !wasDying && window.Down(GameKey.Fire));
+      if (savedSettings.RecordProgress(game, DateTimeOffset.Now))
+        savedSettings.Save(settingsPath);
+
       accumulator -= Game.Step;
       if (!ReferenceEquals(presentedLevel, game.Level))
       {
@@ -323,7 +327,7 @@ try
     WaitForFrame(frameStarted);
   }
 
-  settings.Audio.Save(settingsPath);
+  savedSettings.Save(settingsPath);
   updates.TryScheduleApply(restart: false, args);
 }
 catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException

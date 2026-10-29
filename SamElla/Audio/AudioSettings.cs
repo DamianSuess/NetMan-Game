@@ -67,17 +67,19 @@ internal sealed class AudioSettings
     try
     {
       Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-      File.WriteAllLines(path,
-      [
-        $"{nameof(MusicEnabled)}={MusicEnabled}",
-        $"{nameof(MusicVolume)}={MusicVolume.ToString(CultureInfo.InvariantCulture)}",
-        $"{nameof(SoundEffectsEnabled)}={SoundEffectsEnabled}",
-        $"{nameof(SoundEffectsVolume)}={SoundEffectsVolume.ToString(CultureInfo.InvariantCulture)}",
-      ]);
+      File.WriteAllLines(path, ToLines());
     }
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
     {
       // Preferences still apply to this session if the file cannot be written.
     }
   }
+
+  public IEnumerable<string> ToLines() =>
+  [
+    $"{nameof(MusicEnabled)}={MusicEnabled}",
+    $"{nameof(MusicVolume)}={MusicVolume.ToString(CultureInfo.InvariantCulture)}",
+    $"{nameof(SoundEffectsEnabled)}={SoundEffectsEnabled}",
+    $"{nameof(SoundEffectsVolume)}={SoundEffectsVolume.ToString(CultureInfo.InvariantCulture)}",
+  ];
 }
