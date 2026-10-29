@@ -14,7 +14,8 @@ public sealed class ToasterCatTests : GameTestBase
   {
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     Assert.IsEmpty(Level.Load(paths[0]).ToasterCatSpawns);
-    foreach (string path in paths.Skip(1))
+    // Levels 8 and 9 are enemy-free precision jumping courses over the void.
+    foreach (string path in paths.Skip(1).Take(6))
     {
       var level = Level.Load(path);
       Assert.IsNotEmpty(level.ToasterCatSpawns, Path.GetFileName(path));

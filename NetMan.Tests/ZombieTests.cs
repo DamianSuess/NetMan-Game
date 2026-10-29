@@ -16,7 +16,7 @@ public sealed class ZombieTests : GameTestBase
     for (int index = 0; index < paths.Length; index++)
     {
       var level = Level.Load(paths[index]);
-      Assert.AreEqual(index >= 3, level.ZombieSpawns.Count > 0, paths[index]);
+      Assert.AreEqual(index is >= 3 and <= 6, level.ZombieSpawns.Count > 0, paths[index]);
     }
   }
 

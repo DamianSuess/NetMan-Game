@@ -22,7 +22,8 @@ public sealed class NewLevelTests
     int goalX = Enumerable.Range(0, game.Level.Width).Single(x => game.Level.Tile(x, groundRow - 1) == 'G');
 
     int[] takeoffs = Enumerable.Range(1, game.Level.Width - 1)
-      .Where(x => game.Level.Tile(x, groundRow) == '.' && game.Level.Tile(x - 1, groundRow) == '#')
+      .Where(x => (game.Level.Tile(x, groundRow) == '.' && game.Level.Tile(x - 1, groundRow) == '#')
+        || (game.Level.Tile(x, groundRow - 1) == '^' && game.Level.Tile(x - 1, groundRow - 1) != '^'))
       .Select(x => x - 2).ToArray();
 
     // Patrol speed is configurable. Try a few launch timings instead of requiring
@@ -41,7 +42,7 @@ public sealed class NewLevelTests
         int direction = game.X >= goalX - 0.2 ? 0 : 1;
         bool atTakeoff = nextTakeoff < takeoffs.Length && game.X >= takeoffs[nextTakeoff];
 
-        // Land before each pit, then make a full jump from its safe takeoff point.
+        // Land before each pit or spike cluster, then jump from a safe takeoff point.
         if (atTakeoff && !game.Grounded)
           direction = 0;
 

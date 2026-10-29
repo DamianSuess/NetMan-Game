@@ -16,7 +16,9 @@ public sealed class NightBackgroundTests : GameTestBase
   [DataRow(5, true)]
   [DataRow(6, false)]
   [DataRow(7, false)]
-  public void OnlyLevelsFourAndFiveHaveNightSkyMoonAndTombstones(int levelNumber, bool night)
+  [DataRow(8, true)]
+  [DataRow(9, true)]
+  public void NightLevelsHaveNightSkyMoonAndTombstones(int levelNumber, bool night)
   {
     var game = ReachLevel(levelNumber);
     string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
@@ -90,7 +92,7 @@ public sealed class NightBackgroundTests : GameTestBase
       ".S" + new string('.', 60) + "G.", new string('#', 64));
 
     File.WriteAllLines(NextPath, new[] { "Background=Night", "" }.Concat(File.ReadAllLines(LevelPath)));
-    var game = new Game(Enumerable.Range(1, 7).Select(number => number is 4 or 5 ? NextPath : LevelPath).ToArray());
+    var game = new Game(Enumerable.Range(1, 9).Select(number => number is 4 or 5 or 8 or 9 ? NextPath : LevelPath).ToArray());
     for (int tick = 0; tick < 4000 && game.LevelNumber < target; tick++)
       game.Update(1, false);
 
