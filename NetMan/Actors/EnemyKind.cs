@@ -6,4 +6,5 @@ public enum EnemyKind
   ToasterCat,
   Zombie,
   Dog,
+  CreepyCrawler,
 }

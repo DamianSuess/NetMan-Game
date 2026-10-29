@@ -389,6 +389,9 @@ public sealed class Game
 
     foreach (var enemy in Enemies.Where(enemy => enemy.Alive))
     {
+      if (enemy.AdvanceEmergence(X, Y))
+        continue;
+
       double ex = enemy.X, ey = enemy.Y;
       bool stunned = enemy.StunTicksRemaining > 0;
       if (stunned)
@@ -405,7 +408,7 @@ public sealed class Game
       if (floor)
       {
         enemy.VelocityY = 0;
-        if (!stunned && enemy.Settings.HopVelocity > 0 && enemyVertical > 0)
+        if (!stunned && enemy.Kind != EnemyKind.CreepyCrawler && enemy.Settings.HopVelocity > 0 && enemyVertical > 0)
         {
           if (enemy.HopTicksRemaining > 0)
             enemy.HopTicksRemaining--;
@@ -745,6 +748,8 @@ public sealed class Game
       .Concat(Level.ToasterCatSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.ToasterCat, _enemyConfiguration.ToasterCat)))
       .Concat(Level.ZombieSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y - (LargeBodyHeight - BodyHeight), EnemyKind.Zombie, _enemyConfiguration.Zombie)))
       .Concat(Level.DogSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Dog, _enemyConfiguration.Dog)))
+      .Concat(Level.CreepyCrawlerSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + 1 - Enemy.CrawlerBodyHeight,
+        EnemyKind.CreepyCrawler, _enemyConfiguration.CreepyCrawler)))
       .ToList();
     TryGrow();
   }
