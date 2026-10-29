@@ -15,6 +15,7 @@ public sealed class Level
     }
   }
   public BackgroundTheme Background { get; }
+  public bool EnemiesAvoidLedges { get; }
 
   public int Width => _tiles.GetLength(0);
 
@@ -28,10 +29,11 @@ public sealed class Level
   public List<(int X, int Y)> DogSpawns { get; } = [];
   public List<(int X, int Y)> CreepyCrawlerSpawns { get; } = [];
 
-  private Level(string name, char[,] tiles, BackgroundTheme background)
+  private Level(string name, char[,] tiles, BackgroundTheme background, bool enemiesAvoidLedges)
   {
     Name = name;
     Background = background;
+    EnemiesAvoidLedges = enemiesAvoidLedges;
     this._tiles = tiles;
   }
 
@@ -40,25 +42,30 @@ public sealed class Level
   public static Level Parse(string name, string[] lines)
   {
     var background = BackgroundTheme.Day;
-    if (lines.Length > 0 && lines[0].Contains('='))
+    bool enemiesAvoidLedges = false;
+    int mapStart = 0;
+    while (mapStart < lines.Length && lines[mapStart].Contains('='))
     {
-      string[] setting = lines[0].Split('=', 2, StringSplitOptions.TrimEntries);
-      if (!setting[0].Equals("Background", StringComparison.OrdinalIgnoreCase)
-        || !(setting[1].Equals("Day", StringComparison.OrdinalIgnoreCase)
-          || setting[1].Equals("Night", StringComparison.OrdinalIgnoreCase)))
-        throw new InvalidDataException($"{name}: line 1: expected Background=Day or Background=Night.");
+      string[] setting = lines[mapStart].Split('=', 2, StringSplitOptions.TrimEntries);
+      if (setting[0].Equals("Background", StringComparison.OrdinalIgnoreCase)
+        && (setting[1].Equals("Day", StringComparison.OrdinalIgnoreCase) || setting[1].Equals("Night", StringComparison.OrdinalIgnoreCase)))
+        background = setting[1].Equals("Night", StringComparison.OrdinalIgnoreCase) ? BackgroundTheme.Night : BackgroundTheme.Day;
+      else if (setting[0].Equals("EnemyLedges", StringComparison.OrdinalIgnoreCase)
+        && (setting[1].Equals("Turn", StringComparison.OrdinalIgnoreCase) || setting[1].Equals("Fall", StringComparison.OrdinalIgnoreCase)))
+        enemiesAvoidLedges = setting[1].Equals("Turn", StringComparison.OrdinalIgnoreCase);
+      else
+        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Background=Day or Background=Night, or EnemyLedges=Turn/Fall.");
 
-      background = setting[1].Equals("Night", StringComparison.OrdinalIgnoreCase) ? BackgroundTheme.Night : BackgroundTheme.Day;
-      int mapStart = 1;
+      mapStart++;
       while (mapStart < lines.Length && string.IsNullOrWhiteSpace(lines[mapStart]))
         mapStart++;
-      lines = lines[mapStart..];
     }
 
+    lines = lines[mapStart..];
     if (lines.Length < 3 || lines.Length > 100 || lines.Max(line => line.Length) is < 10 or > 10000)
       throw new InvalidDataException($"{name}: maps must be 10–10000 columns wide and 3–100 rows tall.");
 
-    var map = new Level(name, new char[lines.Max(line => line.Length), lines.Length], background);
+    var map = new Level(name, new char[lines.Max(line => line.Length), lines.Length], background, enemiesAvoidLedges);
     int starts = 0, goals = 0;
 
     for (int y = 0; y < map.Height; y++)

@@ -26,6 +26,7 @@ public sealed class Enemy
 
     Health = Settings.PowerLevel;
     IsBuried = kind == EnemyKind.CreepyCrawler;
+    PatrolFloorRow = (int)Math.Round(y + BodyHeight);
   }
 
   public int Direction = -1;
@@ -56,6 +57,7 @@ public sealed class Enemy
   public int SquashTicksRemaining { get; private set; }
 
   internal int HopTicksRemaining { get; set; }
+  internal int PatrolFloorRow { get; set; }
 
   internal int StunTicksRemaining { get; set; }
 
