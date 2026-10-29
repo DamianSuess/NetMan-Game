@@ -119,7 +119,7 @@ internal sealed class PixelRenderer
     DrawBackground((int)(title.Elapsed * 10) % (Width * 4));
     Frame.OverlayBlack(100);
     DrawTitleText(updateStatus, 12, White, 1);
-    DrawTitleText("NETMAN", 34, Gold, 5, shadow: true);
+    DrawTitleText("Sam n' Ella", 34, Gold, 5, shadow: true);
     if (title.KonamiCodeEnabled)
       DrawTitleText("KONAMI CODE ACTIVATED - 30 LIVES", 72, Gold, 1);
     DrawTitleText("PLAYER SELECT", 86, White, 2);
@@ -797,7 +797,7 @@ internal sealed class PixelRenderer
   {
     Frame.Fill(0, 0, Width, HeaderHeight, Ink);
     Frame.Fill(0, HeaderHeight - 2, Width, 2, 0xFF355575);
-    PixelFont.Draw(Frame, "NETMAN", 8, 5, Gold, 2);
+    PixelFont.Draw(Frame, "Sam n' Ella", 8, 8, Gold);
     PixelFont.Draw(Frame, $"SCORE {game.Score:000000}   COINS {game.Coins:00}   LIVES {game.Lives}   {game.LevelNumber}/{game.LevelCount}", 76, 8, White);
     string seconds = game.LevelSecondsRemaining.ToString("000");
     int timeX = Width - (((seconds.Length * 4) - 1) * 2) - 8;

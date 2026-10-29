@@ -6,36 +6,22 @@ namespace NetMan.Updater;
 internal interface IAppUpdateBackend
 {
   bool IsInstalled { get; }
+
   Task<bool> DownloadLatestAsync(Action<int> progress, CancellationToken cancellationToken);
+
   void ScheduleApply(bool restart, string[] restartArgs);
-}
-
-internal sealed class VelopackUpdateBackend : IAppUpdateBackend
-{
-  private readonly UpdateManager _manager = new(new GithubSource(AppUpdates.RepositoryUrl, null, false));
-  public bool IsInstalled => _manager.IsInstalled;
-
-  public async Task<bool> DownloadLatestAsync(Action<int> progress, CancellationToken cancellationToken)
-  {
-    var update = await _manager.CheckForUpdatesAsync().WaitAsync(cancellationToken);
-    if (update is null)
-      return false;
-
-    await _manager.DownloadUpdatesAsync(update, progress, cancellationToken);
-    return true;
-  }
-
-  public void ScheduleApply(bool restart, string[] restartArgs) =>
-    _manager.WaitExitThenApplyUpdates(null, silent: true, restart: restart, restartArgs: restartArgs);
 }
 
 internal sealed class AppUpdates(IAppUpdateBackend backend, Action<Exception>? log = null) : IDisposable
 {
-  public const string RepositoryUrl = "https://github.com/DamianSuess/NetMan-Game";
+  public const string RepositoryUrl = "https://github.com/SuessLabs/Sam-n-Ella-Game";
+
   private readonly CancellationTokenSource _cancellation = new(TimeSpan.FromMinutes(2));
-  private int _started;
-  private int _scheduled;
+
   private volatile bool _ready;
+
+  private int _scheduled;
+  private int _started;
   private volatile string _status = string.Empty;
 
   public bool IsInstalled => backend.IsInstalled;
@@ -60,6 +46,12 @@ internal sealed class AppUpdates(IAppUpdateBackend backend, Action<Exception>? l
     }
   }
 
+  public void Dispose()
+  {
+    _cancellation.Cancel();
+    _cancellation.Dispose();
+  }
+
   // Called on the UI thread at the title screen, or once when the game exits.
   public bool TryScheduleApply(bool restart, string[] restartArgs)
   {
@@ -78,10 +70,23 @@ internal sealed class AppUpdates(IAppUpdateBackend backend, Action<Exception>? l
       return false;
     }
   }
+}
 
-  public void Dispose()
+internal sealed class VelopackUpdateBackend : IAppUpdateBackend
+{
+  private readonly UpdateManager _manager = new(new GithubSource(AppUpdates.RepositoryUrl, null, false));
+  public bool IsInstalled => _manager.IsInstalled;
+
+  public async Task<bool> DownloadLatestAsync(Action<int> progress, CancellationToken cancellationToken)
   {
-    _cancellation.Cancel();
-    _cancellation.Dispose();
+    var update = await _manager.CheckForUpdatesAsync().WaitAsync(cancellationToken);
+    if (update is null)
+      return false;
+
+    await _manager.DownloadUpdatesAsync(update, progress, cancellationToken);
+    return true;
   }
+
+  public void ScheduleApply(bool restart, string[] restartArgs) =>
+    _manager.WaitExitThenApplyUpdates(null, silent: true, restart: restart, restartArgs: restartArgs);
 }

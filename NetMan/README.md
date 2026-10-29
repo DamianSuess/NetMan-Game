@@ -1,4 +1,4 @@
-# NetMan
+# Sam n' Ella
 
 A C# / .NET 10 pixel-art platformer with its own software renderer and native Windows game window. The game requires no third-party engine or graphics library. Velopack provides its installer and automatic updates; the separate MSTest project restores Microsoft test packages during development. Collect coins, stomp enemies, cross gaps, and reach the green flag at the end of each level.
 

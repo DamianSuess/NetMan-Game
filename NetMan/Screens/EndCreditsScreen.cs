@@ -18,7 +18,7 @@ internal sealed class EndCreditsScreen
 
     AddQuote(OpeningQuote);
     _y += 32;
-    Add("NETMAN", 4, true);
+    Add("Sam n' Ella", 4, true);
     Add("ALL LEVELS COMPLETE");
     _y += 16;
     Add("CREATED BY", 1);

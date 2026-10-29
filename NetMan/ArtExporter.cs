@@ -15,7 +15,7 @@ internal static class ArtExporter
     var sheet = new PixelBuffer(8 + (8 * cellWidth), Math.Max(144, 29 + (sheetRows * cellHeight)));
 
     sheet.Clear(0xFF17263F);
-    PixelFont.Draw(sheet, "NETMAN - PIXEL ART", 8, 7, 0xFFFFD56B);
+    PixelFont.Draw(sheet, "Sam n' Ella - PIXEL ART", 8, 7, 0xFFFFD56B);
 
     for (int i = 0; i < files.Length; i++)
     {

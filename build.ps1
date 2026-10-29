@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-Builds and packages NetMan as a size-optimized, trimmed Native AOT executable.
+Builds and packages Sam n' Ella as a size-optimized, trimmed Native AOT executable.
 .DESCRIPTION
 Run on Windows with the .NET 10 SDK and Visual Studio's Desktop development
 with C++ workload installed. Paths are based on this script, not the current
@@ -103,7 +103,7 @@ function Assert-PublishChild
 
 if ($env:OS -ne 'Windows_NT')
 {
-  throw 'NetMan currently has a Windows backend. Build this Native AOT release on Windows.'
+  throw "Sam n' Ella currently has a Windows backend. Build this Native AOT release on Windows."
 }
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue))
@@ -239,7 +239,7 @@ try
       # Native AOT has no managed entry-point metadata for vpk to inspect. The application
       # calls VelopackApp.Run before normal startup; verify its fast-exit hook in native smoke tests.
       Invoke-DotNet -Arguments @('tool', 'run', 'vpk', '--', 'pack',
-        '--packId', 'SuessLabs.NetMan', '--packTitle', 'NetMan',
+        '--packId', 'SuessLabs.NetMan', '--packTitle', "Sam n' Ella",
         '--packAuthors', 'Damian Suess, Xeno Innovations, (DBA) Suess Labs',
         '--icon', (Join-Path $PSScriptRoot 'NetMan/Assets/AppIcon/app.ico'),
         '--packVersion', $packageVersion, '--packDir', $payloadPath,
