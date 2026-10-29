@@ -69,6 +69,12 @@ try
     Level.Load(file);
 
   using var audio = new WindowsGameAudio();
+  string audioSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "NetMan", "audio-settings.txt");
+
+  var settings = new SettingsScreen(AudioSettings.Load(audioSettingsPath));
+  audio.SetEnabled(settings.Audio.MusicEnabled, settings.Audio.SoundEffectsEnabled);
+
   Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam, int startingLevelIndex = 0)
   {
     var created = new Game(files,
@@ -84,6 +90,7 @@ try
   var renderer = new PixelRenderer(assetsPath);
   var game = CreateGame();
   var titleScreen = new TitleScreen();
+  var pauseScreen = new PauseScreen();
   LevelSelectScreen? levelSelect = null;
   var levelSelectCheat = new LevelSelectCheat();
   var levelStart = new LevelStartScreen(Path.Combine(assetsPath, "uncle-quotes.txt"));
@@ -120,6 +127,41 @@ try
     double elapsed = Math.Min(now - previous, 0.1);
     accumulator += elapsed;
     previous = now;
+
+    bool openedSettings = !settings.IsActive && levelSelect is null && window.Active
+      && (titleScreen.IsActive || (game.Paused && !game.IsDying && !game.Won && game.Lives > 0))
+      && window.KeyPresses.Any(code => code is 0x53 or 0x70);
+    if (openedSettings)
+      settings.Open();
+
+    if (settings.IsActive)
+    {
+      // Opening and closing keys belong to the overlay, never the screen beneath it.
+      if (!openedSettings)
+        settings.HandleInput(window.KeyPresses, window.Active);
+
+      audio.SetEnabled(settings.Audio.MusicEnabled, settings.Audio.SoundEffectsEnabled);
+
+      if (!settings.IsActive)
+        settings.Audio.Save(audioSettingsPath);
+
+      accumulator = 0;
+
+      if (titleScreen.IsActive)
+      {
+        titleScreen.Update(elapsed, startPressed: false, window.Active);
+        renderer.DrawTitle(titleScreen, updates.Status);
+      }
+      else
+        renderer.Draw(game, 0, 0, pauseScreen.SelectedIndex);
+
+      if (settings.IsActive)
+        renderer.DrawSettings(settings);
+
+      window.Present(renderer.Frame);
+      WaitForFrame(frameStarted);
+      continue;
+    }
 
     bool openedLevelSelect = levelSelect is null && levelSelectCheat.HandleInput(window.KeyPresses, window.Active);
     if (openedLevelSelect)
@@ -170,7 +212,8 @@ try
       if (window.Active && window.Pressed(GameKey.Escape))
         break;
 
-      titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
+      if (titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active) == MenuAction.Settings)
+        settings.Open();
 
       if (!titleScreen.IsActive)
       {
@@ -181,6 +224,8 @@ try
 
       accumulator = 0;
       renderer.DrawTitle(titleScreen, updates.Status);
+      if (settings.IsActive)
+        renderer.DrawSettings(settings);
 
       window.Present(renderer.Frame);
       WaitForFrame(frameStarted);
@@ -208,9 +253,9 @@ try
 
     if (!window.Active)
     {
-      game.Paused = true;
+      pauseScreen.Open(game);
       accumulator = 0;
-      renderer.Draw(game, 0, 0);
+      renderer.Draw(game, 0, 0, pauseScreen.SelectedIndex);
       window.Present(renderer.Frame);
       WaitForFrame(frameStarted);
       continue;
@@ -228,13 +273,26 @@ try
       if (window.Pressed(GameKey.Escape))
         break;
 
+      bool wasPaused = game.Paused;
       if (window.Pressed(GameKey.Restart))
         game.Restart();
 
-      if (window.Pressed(GameKey.Pause))
-        game.Paused = !game.Paused;
+      if (pauseScreen.HandleInput(game, window.KeyPresses, window.Active) == MenuAction.Settings)
+        settings.Open();
 
-      if (window.Pressed(GameKey.Jump))
+      if (game.Paused)
+      {
+        accumulator = 0;
+        renderer.Draw(game, 0, 0, pauseScreen.SelectedIndex);
+        if (settings.IsActive)
+          renderer.DrawSettings(settings);
+
+        window.Present(renderer.Frame);
+        WaitForFrame(frameStarted);
+        continue;
+      }
+
+      if (!wasPaused && window.Pressed(GameKey.Jump))
         game.QueueJump();
     }
 
@@ -262,6 +320,7 @@ try
     WaitForFrame(frameStarted);
   }
 
+  settings.Audio.Save(audioSettingsPath);
   updates.TryScheduleApply(restart: false, args);
 }
 catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException

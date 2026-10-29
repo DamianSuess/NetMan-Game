@@ -79,6 +79,25 @@ internal sealed class PixelBuffer(int width, int height)
     }
   }
 
+  public void FillTranslucent(int x, int y, int width, int height, uint color, byte opacity)
+  {
+    int left = Math.Clamp(x, 0, Width);
+    int right = Math.Clamp(x + width, 0, Width);
+    uint inverse = (uint)(255 - opacity);
+    for (int row = Math.Max(0, y); row < Math.Min(Height, y + height); row++)
+    {
+      for (int column = left; column < right; column++)
+      {
+        int index = (row * Width) + column;
+        uint target = Pixels[index];
+        uint red = ((((color >> 16) & 255) * opacity) + (((target >> 16) & 255) * inverse)) / 255;
+        uint green = ((((color >> 8) & 255) * opacity) + (((target >> 8) & 255) * inverse)) / 255;
+        uint blue = (((color & 255) * opacity) + ((target & 255) * inverse)) / 255;
+        Pixels[index] = 0xFF000000 | (red << 16) | (green << 8) | blue;
+      }
+    }
+  }
+
   // A minimal lossless PNG exporter, using only the .NET compression library.
   public void SavePng(string path)
   {
