@@ -8,10 +8,13 @@ internal sealed class GameSettings
 
   public PlayerRecords Records { get; private init; } = new();
 
+  public Leaderboard Leaderboard { get; private init; } = new();
+
   public static GameSettings Load(string path) => new()
   {
     Audio = AudioSettings.Load(path),
     Records = PlayerRecords.Load(path),
+    Leaderboard = Leaderboard.Load(path),
   };
 
   public void Save(string path)
@@ -20,7 +23,7 @@ internal sealed class GameSettings
     try
     {
       Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-      File.WriteAllLines(temporaryPath, Audio.ToLines().Concat(Records.ToLines()));
+      File.WriteAllLines(temporaryPath, Audio.ToLines().Concat(Records.ToLines()).Concat(Leaderboard.ToLines()));
       File.Move(temporaryPath, path, overwrite: true);
     }
 

@@ -32,7 +32,7 @@ public sealed class MenuNavigationTests : GameTestBase
     Assert.AreEqual(MenuAction.None, title.HandleInput(0, [0x20, 0x50], true));
     Assert.IsTrue(title.IsActive);
     title.HandleInput(0, [0x26], true);
-    Assert.AreEqual(1, title.SelectedMenuIndex);
+    Assert.AreEqual(2, title.SelectedMenuIndex);
     title.HandleInput(0, [0x28], true);
     Assert.AreEqual(0, title.SelectedMenuIndex);
   }

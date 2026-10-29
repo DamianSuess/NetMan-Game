@@ -5,9 +5,10 @@ internal enum MenuAction
   None,
   Primary,
   Settings,
+  Leaderboard,
 }
 
-internal sealed class ScreenMenu
+internal sealed class ScreenMenu(bool includeLeaderboard = false)
 {
   public int SelectedIndex { get; private set; }
 
@@ -20,10 +21,13 @@ internal sealed class ScreenMenu
 
     foreach (int code in keyPresses)
     {
-      if (code is 0x26 or 0x28)
-        SelectedIndex = 1 - SelectedIndex;
+      int count = includeLeaderboard ? 3 : 2;
+      if (code == 0x26)
+        SelectedIndex = (SelectedIndex + count - 1) % count;
+      else if (code == 0x28)
+        SelectedIndex = (SelectedIndex + 1) % count;
       else if (code == 0x0D)
-        return SelectedIndex == 0 ? MenuAction.Primary : MenuAction.Settings;
+        return SelectedIndex == 0 ? MenuAction.Primary : SelectedIndex == 1 ? MenuAction.Settings : MenuAction.Leaderboard;
     }
 
     return MenuAction.None;

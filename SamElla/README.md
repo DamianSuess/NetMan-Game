@@ -44,7 +44,7 @@ Daytime levels cycle through three upbeat themes: Sunlit Sprint, Cloud Hopper, a
 | R | Restart the entire game |
 | Esc | Quit |
 
-On the title screen, use Up/Down to select Start Game or Settings, then Enter to
+On the title screen, use Up/Down to select Start Game, Settings, or Top 10, then Enter to
 confirm. During gameplay, Enter opens the pause menu; Up/Down selects Resume Game
 or Settings, and Enter confirms. Returning from Settings keeps the game paused.
 
@@ -61,6 +61,22 @@ Missing or invalid preferences use the defaults: music and effects on, both at
 100% volume.
 
 You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter while gameplay freezes. PRESS ANY KEY TO CONTINUE appears immediately, and a fresh keypress can restart at any point during death. With no keypress, the original two-second death animation plays and then waits indefinitely. A fresh keypress reloads the current level; holding a key does not dismiss the screen. After the last life, only a fresh Enter press can start a new run. Otherwise, the death animation finishes and a red GAME OVER page displays a tombstone and a random roast. Enter starts a new run from level one with cleared rewards and the normal starting lives, or the cheat starting lives if enabled. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
+
+## Top 10 leaderboard
+
+Choose **Top 10** on the title menu to view the ten highest submitted scores,
+ranked by points, with three-character initials and the date. The board is saved
+in `%LocalAppData%/SamElla/settings.txt` with audio preferences and player records.
+Only positive scores qualify; when the table is full, a score must exceed tenth
+place. Equal scores keep existing entries ahead of newer ones.
+
+After completing the final level, a qualifying run prompts for initials before
+the credits begin. A qualifying Game Over prompts after the final death animation,
+before the run can restart. Type exactly three letters or digits (A-Z / 0-9,
+including the numeric keypad); Backspace edits, and Enter saves. Game controls
+and cheat codes are suspended while entering initials. The next Enter continues
+to victory credits or starts a fresh run after Game Over. Each run is submitted
+at most once. Nonqualifying runs keep the usual credits or Game Over behavior.
 
 ## Player records
 
@@ -82,7 +98,7 @@ TimeSpan ticks and dates as ISO 8601 timestamps with a timezone offset.
 
 For level debugging, type `deadbeef` at any time to open Level Select: on the title, during gameplay or a pause, on a level intro or death screen, at Game Over, or during credits. The menu freezes the underlying screen and pauses music; Esc returns to that screen with the current game and pause state preserved. The menu discovers the current level directory (`Levels` or `--levels`) each time it opens and lists levels in game order with their number, name, and Daytime/Nighttime theme. Eight entries appear per page. Use Up/Down or W/S to select, Left/Right or Page Up/Page Down to change pages, and Enter to start a fresh run at the selected level, keeping your character and Konami setting. New `.txt` levels appear automatically when the menu is reopened. Selection preserves the full level numbering and normal progression; retries stay on the chosen level, while R restarts from level one. The Konami code itself remains a title-screen cheat.
 
-The animated title screen opens before Level 1. Choose Sam or Ella with A/D or the Left/Right arrow keys. Both previews show the powered-up size; Ella wears purple and has a ponytail. Use Up/Down to select Start Game or Settings, then Enter to confirm, or Esc to quit. Gameplay begins at normal size; the selection preview does not grant a power-up. The selected character remains active through growth, shrinking, deaths, level changes, and restarts. Both characters use the same movement and power settings. Characters move along the bottom beneath the selection, and the copyright appears in the bottom-right corner. Losing window focus freezes the title animation.
+The animated title screen opens before Level 1. Choose Sam or Ella with A/D or the Left/Right arrow keys. Both previews show the powered-up size; Ella wears purple and has a ponytail. Use Up/Down to select Start Game, Settings, or Top 10, then Enter to confirm, or Esc to quit. Gameplay begins at normal size; the selection preview does not grant a power-up. The selected character remains active through growth, shrinking, deaths, level changes, and restarts. Both characters use the same movement and power settings. Characters move along the bottom beneath the selection, and the copyright appears in the bottom-right corner. Losing window focus freezes the title animation.
 
 On the title screen, enter the Konami code with fresh keypresses: Up, Up, Down, Down, Left, Right, Left, Right, B, A. A confirmation appears when it activates. You can then press Left or Right again to choose Sam or Ella before pressing Enter. The cheat starts the game with 30 lives, growth, and the flamethrower, including in Level 1. Holding a key does not count as repeated code entries. Normal damage and deaths still apply; respawning does not refill lives or restore lost powers. R starts a fresh cheat run with the original 30 lives and starting powers. Ordinary runs keep their usual three lives and small starting size.
 
@@ -203,7 +219,7 @@ Example:
 ##############################
 ```
 
-Maps support 10ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“10000 columns and 3ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“100 rows. Shorter rows are padded with air. Place the spawn and enemies in empty space above solid ground. Leave openings in the bottom ground rows to make pits. The camera follows horizontally and vertically, so maps can exceed the visible screen. A full jump rises roughly 2.8 tiles; start with obstacles up to two tiles tall and gaps up to four tiles wide. Test every map to ensure the goal is reachable. The loader validates map syntax and reports the file and position of unknown characters.
+Maps support 10ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ10000 columns and 3ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ100 rows. Shorter rows are padded with air. Place the spawn and enemies in empty space above solid ground. Leave openings in the bottom ground rows to make pits. The camera follows horizontally and vertically, so maps can exceed the visible screen. A full jump rises roughly 2.8 tiles; start with obstacles up to two tiles tall and gaps up to four tiles wide. Test every map to ensure the goal is reachable. The loader validates map syntax and reports the file and position of unknown characters.
 
 To load maps directly from another folder:
 

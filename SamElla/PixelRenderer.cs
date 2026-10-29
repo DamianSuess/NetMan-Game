@@ -138,8 +138,6 @@ internal sealed class PixelRenderer
         PixelFont.Draw(Frame, ">", left + 10, 126, Gold);
     }
     DrawTitleText("LEFT/RIGHT PLAYER  UP/DOWN MENU  ENTER SELECT", 173, White, 1);
-    DrawMenuChoice("START GAME", 186, title.SelectedMenuIndex == 0);
-    DrawMenuChoice("SETTINGS", 200, title.SelectedMenuIndex == 1);
 
     long ticks = (long)(title.Elapsed * 60);
     DrawCreditsRunner($"player-run-{animationFrame}", ticks, 0, 38, false, 224);
@@ -148,12 +146,15 @@ internal sealed class PixelRenderer
     DrawCreditsRunner((int)(title.Elapsed * 4) % 2 == 0 ? "enemy-idle" : "enemy-walk", ticks, 290, -24, false, 224);
     DrawCreditsRunner($"zombie-walk-{(int)(title.Elapsed * 3) % 2 + 1}", ticks, 380, -12, false, 224);
     DrawCreditsRunner($"dog-walk-{animationFrame}", ticks, 110, -28, false, 224);
+    DrawMenuChoice("START GAME", 184, title.SelectedMenuIndex == 0);
+    DrawMenuChoice("SETTINGS", 196, title.SelectedMenuIndex == 1);
+    DrawMenuChoice("TOP 10", 208, title.SelectedMenuIndex == 2);
     Frame.Fill(0, 224, Width, 2, Gold);
     Frame.Fill(0, 226, Width, 14, Ink);
 
     PixelFont.Draw(Frame, VersionLabel, 6, Height - 9, White, preserveCase: true);
 
-    const string Copyright = "© 2026 XENO INNOVATIONS, INC.";
+    const string Copyright = "Â© 2026 XENO INNOVATIONS, INC.";
     PixelFont.Draw(Frame, Copyright, Width - (Copyright.Length * 4) - 5, Height - 9, White);
   }
 
@@ -275,6 +276,65 @@ internal sealed class PixelRenderer
     DrawWrappedCentered(screen.Quote, 170, White);
     Frame.Fill(12, 218, Width - 24, 1, 0xFF355575);
     DrawTitleText("PRESS ANY KEY TO BEGIN", 227, Gold, 1);
+  }
+
+  public void DrawLeaderboard(LeaderboardScreen screen)
+  {
+    Frame.Clear(screen.Context == LeaderboardContext.GameOver ? 0xFF781C29 : Ink);
+    Frame.Fill(12, 10, Width - 24, 1, Gold);
+    if (screen.IsEnteringInitials)
+    {
+      DrawTitleText("TOP 10 SCORE!", 24, Gold, 3);
+      DrawTitleText($"POINTS {screen.Score}  RANK {screen.Board.RankFor(screen.Score)}", 54, White, 2);
+      DrawTitleText(screen.Context == LeaderboardContext.Victory ? "ALL LEVELS COMPLETE" : "GAME OVER", 78, White, 1);
+      if (screen.Context == LeaderboardContext.GameOver)
+        Frame.Draw(_sprites["tombstone"], (Width / 2) - 48, 66);
+
+      for (int index = 0; index < 3; index++)
+      {
+        int left = 130 + (index * 44);
+        bool selected = index == screen.Initials.Length;
+        Frame.Fill(left, 101, 36, 42, selected ? Gold : 0xFF527787);
+        Frame.Fill(left + 2, 103, 32, 38, Ink);
+        string letter = index < screen.Initials.Length ? screen.Initials[index].ToString() : "-";
+        PixelFont.Draw(Frame, letter, left + 12, 112, selected ? Gold : White, 4);
+      }
+
+      DrawTitleText("ENTER THREE INITIALS", 160, Gold, 2);
+      DrawTitleText("A-Z / 0-9   BACKSPACE TO EDIT", 185, White, 1);
+      DrawTitleText(screen.Initials.Length == 3 ? "PRESS ENTER TO SAVE" : "TYPE 3 LETTERS OR DIGITS", 211, Gold, 1);
+      return;
+    }
+
+    DrawTitleText("TOP 10", 18, Gold, 3);
+    PixelFont.Draw(Frame, "RANK", 32, 45, White);
+    PixelFont.Draw(Frame, "NAME", 80, 45, White);
+    PixelFont.Draw(Frame, "POINTS", 152, 45, White);
+    PixelFont.Draw(Frame, "DATE", 268, 45, White);
+    for (int index = 0; index < Leaderboard.Capacity; index++)
+    {
+      int top = 61 + (index * 14);
+      bool highlighted = index + 1 == screen.SubmittedRank;
+      if (highlighted)
+        Frame.FillTranslucent(24, top - 2, Width - 48, 13, Gold, 45);
+
+      uint color = highlighted ? Gold : White;
+      PixelFont.Draw(Frame, (index + 1).ToString("00"), 36, top + 2, color);
+      if (index < screen.Board.Entries.Count)
+      {
+        var entry = screen.Board.Entries[index];
+        PixelFont.Draw(Frame, entry.Initials, 80, top, color, 2);
+        PixelFont.Draw(Frame, entry.Score.ToString(System.Globalization.CultureInfo.InvariantCulture), 152, top + 2, color);
+        PixelFont.Draw(Frame, entry.RecordedAt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), 256, top + 2, color);
+      }
+      else
+        PixelFont.Draw(Frame, "---", 80, top + 2, 0xFF838B98);
+    }
+
+    Frame.Fill(12, 210, Width - 24, 1, Gold);
+    string prompt = screen.Context == LeaderboardContext.Victory ? "PRESS ENTER FOR CREDITS" :
+      screen.Context == LeaderboardContext.GameOver ? "PRESS ENTER TO START OVER" : "ENTER / ESC BACK";
+    DrawTitleText(prompt, 224, Gold, 1);
   }
 
   private void DrawGameOver(Game game)

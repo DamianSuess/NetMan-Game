@@ -94,6 +94,7 @@ try
   var game = CreateGame();
   var titleScreen = new TitleScreen();
   var pauseScreen = new PauseScreen();
+  var leaderboard = new LeaderboardScreen(savedSettings.Leaderboard);
   LevelSelectScreen? levelSelect = null;
   var levelSelectCheat = new LevelSelectCheat();
   var levelStart = new LevelStartScreen(Path.Combine(assetsPath, "uncle-quotes.txt"));
@@ -118,7 +119,7 @@ try
   {
     double frameStarted = clock.Elapsed.TotalSeconds;
     window.PumpEvents();
-    audio.SetMusicPaused(levelSelect is not null || !window.Active || (!titleScreen.IsActive && game.Paused));
+    audio.SetMusicPaused(leaderboard.IsActive || levelSelect is not null || !window.Active || (!titleScreen.IsActive && game.Paused));
     audio.SetMusic(GameMusicTracks.ForScreen(titleScreen.IsActive, game));
     audio.SetFlamethrowerActive(levelSelect is null && window.Active && !titleScreen.IsActive && !levelStart.IsActive
       && !game.Paused && !game.IsDying && !game.Won && game.Flame is not null);
@@ -130,6 +131,28 @@ try
     double elapsed = Math.Min(now - previous, 0.1);
     accumulator += elapsed;
     previous = now;
+
+    bool openedLeaderboard = !titleScreen.IsActive && levelSelect is null && leaderboard.TryOpenFor(game);
+    if (leaderboard.IsActive)
+    {
+      if (!openedLeaderboard && leaderboard.HandleInput(window.KeyPresses, window.Active, DateTimeOffset.Now))
+        savedSettings.Save(settingsPath);
+
+      accumulator = 0;
+      if (!leaderboard.IsActive)
+      {
+        if (leaderboard.Context == LeaderboardContext.GameOver)
+          game.ContinueAfterDeath();
+      }
+      else
+      {
+        renderer.DrawLeaderboard(leaderboard);
+        window.Present(renderer.Frame);
+      }
+
+      WaitForFrame(frameStarted);
+      continue; // Initials and confirmation keys never reach gameplay or cheats.
+    }
 
     bool openedSettings = !settings.IsActive && levelSelect is null && window.Active
       && (titleScreen.IsActive || (game.Paused && !game.IsDying && !game.Won && game.Lives > 0))
@@ -216,8 +239,11 @@ try
       if (window.Active && window.Pressed(GameKey.Escape))
         break;
 
-      if (titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active) == MenuAction.Settings)
+      var titleAction = titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
+      if (titleAction == MenuAction.Settings)
         settings.Open();
+      else if (titleAction == MenuAction.Leaderboard)
+        leaderboard.OpenViewer();
 
       if (!titleScreen.IsActive)
       {
@@ -228,6 +254,8 @@ try
 
       accumulator = 0;
       renderer.DrawTitle(titleScreen, updates.Status);
+      if (leaderboard.IsActive)
+        renderer.DrawLeaderboard(leaderboard);
       if (settings.IsActive)
         renderer.DrawSettings(settings);
 
@@ -269,7 +297,9 @@ try
     if (wasDying)
     {
       game.Paused = false;
-      if (DeathScreen.HandleInput(game, window.KeyPresses, window.Active))
+      // Qualifying runs must reach the initials prompt before Enter can restart.
+      bool waitingForLeaderboard = game.Lives == 0 && savedSettings.Leaderboard.Qualifies(game.Score);
+      if (!waitingForLeaderboard && DeathScreen.HandleInput(game, window.KeyPresses, window.Active))
         accumulator = 0;
     }
     else
@@ -315,6 +345,12 @@ try
         savedSettings.Save(settingsPath);
 
       accumulator -= Game.Step;
+      if (leaderboard.TryOpenFor(game))
+      {
+        accumulator = 0;
+        break; // No credit-scrolling ticks before initials have been entered.
+      }
+
       if (!ReferenceEquals(presentedLevel, game.Level))
       {
         accumulator = 0;
@@ -322,7 +358,14 @@ try
       }
     }
 
-    renderer.Draw(game, direction, elapsed);
+    if (leaderboard.IsActive || leaderboard.TryOpenFor(game))
+    {
+      accumulator = 0;
+      renderer.DrawLeaderboard(leaderboard);
+    }
+    else
+      renderer.Draw(game, direction, elapsed);
+
     window.Present(renderer.Frame);
     WaitForFrame(frameStarted);
   }
