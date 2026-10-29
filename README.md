@@ -5,7 +5,7 @@
 
 ![](Docs/Sam-and-Ella.png)
 
-This aint ya mamma's side scroller. NetMan is a .NET pixel-art platformer with a native game window and editable Sprites, Text levels, and really bad uncle quotes. Written 100% in C# and not forgiving like modern Mario games.
+This aint ya mamma's side scroller. Sam-n-Ella (_previously, NetMan_) is a pixel-art platformer with a native game window and editable Sprites, Text levels, and really bad uncle quotes. Written 100% in C# and not forgiving like modern "Mario" games. _Saves? NO! Surprises? YES!_
 
 ![](screen-shot.png)
 
