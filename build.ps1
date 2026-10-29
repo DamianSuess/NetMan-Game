@@ -241,6 +241,7 @@ try
       Invoke-DotNet -Arguments @('tool', 'run', 'vpk', '--', 'pack',
         '--packId', 'SuessLabs.NetMan', '--packTitle', 'NetMan',
         '--packAuthors', 'Damian Suess, Xeno Innovations, (DBA) Suess Labs',
+        '--icon', (Join-Path $PSScriptRoot 'NetMan/Assets/AppIcon/app.ico'),
         '--packVersion', $packageVersion, '--packDir', $payloadPath,
         '--mainExe', $executableName, '--runtime', $Runtime,
         '--channel', $Runtime, '--outputDir', $stagedInstaller, '--skipVeloAppCheck')

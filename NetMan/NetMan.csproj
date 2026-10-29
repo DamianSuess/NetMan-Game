@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>NetMan</AssemblyName>
+    <ApplicationIcon>Assets\AppIcon\app.ico</ApplicationIcon>
     <Copyright>Copyright 2026 Xeno Innovations, Inc.</Copyright>
     <PackageProjectUrl>https://github.com/DamianSuess/NetMan-Game</PackageProjectUrl>
     <Description>Side scrolling game (engine) written in .NET</Description>
@@ -20,6 +21,7 @@
     <InternalsVisibleTo Include="NetMan.Tests" />
     <Content Include="Levels\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="Assets\AppIcon\**\*" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
     <Content Include="ThirdPartyNotices.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(NetManDistribution)' == 'true'">

@@ -1,9 +1,11 @@
-# NetMan Game
-
-This aint ya mamma's side scroller. NetMan is a .NET pixel-art platformer with a native game window and editable Sprites, Text levels, and really bad uncle quotes. Written 100% in C# and not forgiving like modern Mario games.
+# Sam-n-Ella - _Brutal Pixel Art Game_
 
 > In the words of Ivan Drago,\
 > &nbsp; &nbsp;"_If he dies, he dies._"
+
+![](Docs/Sam-and-Ella.png)
+
+This aint ya mamma's side scroller. NetMan is a .NET pixel-art platformer with a native game window and editable Sprites, Text levels, and really bad uncle quotes. Written 100% in C# and not forgiving like modern Mario games.
 
 ![](screen-shot.png)
 
