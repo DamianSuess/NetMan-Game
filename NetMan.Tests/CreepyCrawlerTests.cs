@@ -50,7 +50,7 @@ public sealed class CreepyCrawlerTests : GameTestBase
     Assert.AreEqual(initialX, crawler.X);
     Assert.AreEqual(Enemy.CrawlerBodyHeight, crawler.BodyHeight);
     Assert.AreEqual(5, crawler.Y + crawler.BodyHeight, 0.00001);
-    crawler.X = game.X + 5;
+    crawler.X = game.X + 3;
     game.Update(0, false);
     Assert.IsTrue(crawler.IsEmerging);
     Assert.AreEqual(0, crawler.EmergenceFrameIndex);
@@ -73,6 +73,50 @@ public sealed class CreepyCrawlerTests : GameTestBase
     Assert.AreEqual(0, crawler.VelocityY);
     game.Restart();
     Assert.IsTrue(game.Enemies.Single().IsBuried);
+  }
+
+  [TestMethod]
+  public void DormantCrawlerIsCompletelyInvisibleUntilPlayerApproaches()
+  {
+    var game = CreateLevel();
+    var crawler = game.Enemies.Single();
+    crawler.X = 10; // Visible camera area, outside the four-tile trigger.
+    Tick(game, 60);
+    Assert.IsTrue(crawler.IsBuried);
+    var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
+    renderer.Draw(game, 0, 0);
+    uint[] hidden = (uint[])renderer.Frame.Pixels.Clone();
+    game.Enemies.Remove(crawler);
+    renderer.Draw(game, 0, 0);
+    CollectionAssert.AreEqual(hidden, renderer.Frame.Pixels, "No mound, body or other cue should reveal the buried enemy.");
+    game.Enemies.Add(crawler);
+    crawler.X = game.X + Enemy.CrawlerWakeDistance;
+    game.Update(0, false);
+    Assert.IsTrue(crawler.IsEmerging);
+    renderer.Draw(game, 0, 0);
+    Assert.IsFalse(hidden.SequenceEqual(renderer.Frame.Pixels));
+  }
+
+  [TestMethod]
+  [DataRow(0)]
+  [DataRow(20)]
+  [DataRow(40)]
+  public void EmergingBodyNeverDrawsOverTheTerrainBelowTheSurface(int ticks)
+  {
+    var game = CreateLevel();
+    var crawler = game.Enemies.Single();
+    crawler.X = 12;
+    crawler.AdvanceEmergence(11, crawler.Y);
+    for (int tick = 0; tick < ticks; tick++)
+      crawler.AdvanceEmergence(11, crawler.Y);
+
+    var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
+    renderer.Draw(game, 0, 0);
+    int groundRow = 28 + 5 * PixelRenderer.TileSize;
+    uint[] ground = renderer.Frame.Pixels.Skip(groundRow * PixelRenderer.Width).ToArray();
+    game.Enemies.Remove(crawler);
+    renderer.Draw(game, 0, 0);
+    CollectionAssert.AreEqual(ground, renderer.Frame.Pixels.Skip(groundRow * PixelRenderer.Width).ToArray());
   }
 
   [TestMethod]
@@ -158,7 +202,6 @@ public sealed class CreepyCrawlerTests : GameTestBase
   }
 
   [TestMethod]
-  [DataRow("creepy-crawler-buried", -1, 0.0)]
   [DataRow("creepy-crawler-emerge-1", 0, 0.0)]
   [DataRow("creepy-crawler-emerge-2", 20, 0.0)]
   [DataRow("creepy-crawler-emerge-3", 40, 0.0)]
@@ -186,11 +229,15 @@ public sealed class CreepyCrawlerTests : GameTestBase
     renderer.Draw(game, 0, elapsed);
     int left = (int)Math.Round((crawler.X + (Game.BodyWidth / 2)) * 16) - (sprite.Width / 2);
     int top = 28 + (int)Math.Round((crawler.Y + crawler.BodyHeight) * 16) - sprite.Height;
+    int groundY = top + sprite.Height;
+    if (crawler.IsEmerging)
+      top += (crawler.EmergenceTicksRemaining * 8) / Enemy.CrawlerEmergenceDurationTicks;
+
     for (int y = 0; y < sprite.Height; y++)
     {
       for (int x = 0; x < sprite.Width; x++)
       {
-        if (sprite.Pixel(x, y) != 0)
+        if (sprite.Pixel(x, y) != 0 && (!crawler.IsEmerging || top + y < groundY))
           Assert.AreEqual(sprite.Pixel(x, y), renderer.Frame.Pixels[((top + y) * PixelRenderer.Width) + left + x]);
       }
     }
