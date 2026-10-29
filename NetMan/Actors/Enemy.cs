@@ -8,7 +8,7 @@ public sealed class Enemy
   public const int PoopIntervalTicks = 180;
   public const int CrawlerEmergenceDurationTicks = 60;
   public const double CrawlerBodyHeight = 0.5;
-  public const double CrawlerWakeDistance = 12;
+  public const double CrawlerWakeDistance = 4;
 
   public Enemy(double x, double y, EnemyKind kind = EnemyKind.Walker, EnemySettings? settings = null)
   {

@@ -372,11 +372,23 @@ internal sealed class PixelRenderer
 
     foreach (var enemy in game.Enemies.Where(enemy => enemy.Alive))
     {
+      if (enemy.IsBuried)
+        continue;
+
+      if (enemy.IsEmerging)
+      {
+        var sprite = _sprites[$"creepy-crawler-emerge-{enemy.EmergenceFrameIndex + 1}"];
+        int groundY = HeaderHeight + (int)Math.Round((enemy.Y + enemy.BodyHeight) * TileSize) - cameraY;
+        int left = (int)Math.Round((enemy.X + (Game.BodyWidth / 2)) * TileSize) - (sprite.Width / 2) - cameraX;
+        int undergroundOffset = (enemy.EmergenceTicksRemaining * (TileSize / 2)) / Enemy.CrawlerEmergenceDurationTicks;
+        Frame.Draw(sprite, left, groundY - sprite.Height + undergroundOffset,
+          enemy.Direction > 0, clipBottom: groundY);
+        continue;
+      }
+
       string name = enemy.Kind switch
       {
-        EnemyKind.CreepyCrawler => enemy.IsBuried ? "creepy-crawler-buried"
-          : enemy.IsEmerging ? $"creepy-crawler-emerge-{enemy.EmergenceFrameIndex + 1}"
-          : $"creepy-crawler-crawl-{(int)(_animationTime * 4) % 2 + 1}",
+        EnemyKind.CreepyCrawler => $"creepy-crawler-crawl-{(int)(_animationTime * 4) % 2 + 1}",
         EnemyKind.Zombie => $"zombie-walk-{(int)(_animationTime * 3) % 2 + 1}",
         EnemyKind.Dog => $"dog-walk-{(int)(_animationTime * 6) % 2 + 1}",
         EnemyKind.ToasterCat => Math.Abs(enemy.VelocityY) > 0.01 ? "toaster-cat-jump" : $"toaster-cat-run-{animationFrame + 1}",

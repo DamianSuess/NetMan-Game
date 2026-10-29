@@ -28,12 +28,13 @@ internal sealed class PixelBuffer(int width, int height)
     }
   }
 
-  public void Draw(Sprite sprite, int x, int y, bool flip = false)
+  public void Draw(Sprite sprite, int x, int y, bool flip = false, int clipBottom = int.MaxValue)
   {
-    if (x >= Width || y >= Height || x <= -sprite.Width || y <= -sprite.Height)
+    int bottom = Math.Min(Height, clipBottom);
+    if (x >= Width || y >= bottom || x <= -sprite.Width || y <= -sprite.Height)
       return;
 
-    for (int sy = Math.Max(0, -y); sy < Math.Min(sprite.Height, Height - y); sy++)
+    for (int sy = Math.Max(0, -y); sy < Math.Min(sprite.Height, bottom - y); sy++)
     {
       for (int sx = Math.Max(0, -x); sx < Math.Min(sprite.Width, Width - x); sx++)
       {

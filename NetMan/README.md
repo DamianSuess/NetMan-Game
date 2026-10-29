@@ -116,8 +116,9 @@ Within the map, each character is one tile. Rows run from top to bottom; columns
 | `G` | Green goal flag; at least one per map |
 
 Creepy-Crawler is a legless, half-body zombie introduced on nighttime Level 5,
-with more encounters in Levels 8 and 9. A cracked dirt mound marks each spawn.
-When the player comes within 12 tiles, it spends one second clawing up through
+with more encounters in Levels 8 and 9. It waits completely hidden beneath the
+terrain, with no visible mound. When the player comes within 4 tiles, it spends
+one second clawing up through
 the terrain before crawling on its belly. It cannot hurt the player or take hits
 while buried or emerging. Its exposed body is half a tile tall, crawls at 1.5
 tiles per second, and has 2 health: two small-player stomps or one large stomp.

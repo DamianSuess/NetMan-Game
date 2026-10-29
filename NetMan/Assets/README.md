@@ -76,10 +76,12 @@ Restart `dotnet run` after editing source art. Running the project copies assets
 ## Creepy-Crawler
 
 The `creepy-crawler-*.sprite` files are editable 32 x 16 pixel grids using the
-shared zombie palette. `buried` shows a cracked dirt mound. `emerge-1` through
+shared zombie palette. Buried crawlers are not drawn; the old `buried` mound
+asset is retained as an editable reference. `emerge-1` through
 `emerge-3` show a hand, head, and torn torso clawing out over one second. The two
 `crawl-*` frames alternate as the zombie drags its legless half-body along the
-ground. `squashed` is its blood, skin, and torn-clothing splatter. All frames face
+ground. Emergence starts below the terrain and is clipped at the surface as the
+body rises. `squashed` is its blood, skin, and torn-clothing splatter. All frames face
 left and are mirrored when moving right. They are anchored at the terrain
 surface, including supported bricks on the nighttime jumping courses.
 
