@@ -2,6 +2,8 @@ namespace NetMan;
 
 public sealed class Level
 {
+  public const int DefaultTimeLimitSeconds = 100;
+
   private readonly char[,] _tiles;
 
   public string Name { get; }
@@ -16,6 +18,7 @@ public sealed class Level
   }
   public BackgroundTheme Background { get; }
   public bool EnemiesAvoidLedges { get; }
+  public int TimeLimitSeconds { get; }
 
   public int Width => _tiles.GetLength(0);
 
@@ -29,11 +32,12 @@ public sealed class Level
   public List<(int X, int Y)> DogSpawns { get; } = [];
   public List<(int X, int Y)> CreepyCrawlerSpawns { get; } = [];
 
-  private Level(string name, char[,] tiles, BackgroundTheme background, bool enemiesAvoidLedges)
+  private Level(string name, char[,] tiles, BackgroundTheme background, bool enemiesAvoidLedges, int timeLimitSeconds)
   {
     Name = name;
     Background = background;
     EnemiesAvoidLedges = enemiesAvoidLedges;
+    TimeLimitSeconds = timeLimitSeconds;
     this._tiles = tiles;
   }
 
@@ -43,6 +47,7 @@ public sealed class Level
   {
     var background = BackgroundTheme.Day;
     bool enemiesAvoidLedges = false;
+    int timeLimitSeconds = DefaultTimeLimitSeconds;
     int mapStart = 0;
     while (mapStart < lines.Length && lines[mapStart].Contains('='))
     {
@@ -53,8 +58,11 @@ public sealed class Level
       else if (setting[0].Equals("EnemyLedges", StringComparison.OrdinalIgnoreCase)
         && (setting[1].Equals("Turn", StringComparison.OrdinalIgnoreCase) || setting[1].Equals("Fall", StringComparison.OrdinalIgnoreCase)))
         enemiesAvoidLedges = setting[1].Equals("Turn", StringComparison.OrdinalIgnoreCase);
+      else if (setting[0].Equals("TimeLimit", StringComparison.OrdinalIgnoreCase)
+        && int.TryParse(setting[1], out int seconds) && seconds is >= 1 and <= 9999)
+        timeLimitSeconds = seconds;
       else
-        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Background=Day or Background=Night, or EnemyLedges=Turn/Fall.");
+        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Background=Day or Background=Night, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
 
       mapStart++;
       while (mapStart < lines.Length && string.IsNullOrWhiteSpace(lines[mapStart]))
@@ -65,7 +73,7 @@ public sealed class Level
     if (lines.Length < 3 || lines.Length > 100 || lines.Max(line => line.Length) is < 10 or > 10000)
       throw new InvalidDataException($"{name}: maps must be 10–10000 columns wide and 3–100 rows tall.");
 
-    var map = new Level(name, new char[lines.Max(line => line.Length), lines.Length], background, enemiesAvoidLedges);
+    var map = new Level(name, new char[lines.Max(line => line.Length), lines.Length], background, enemiesAvoidLedges, timeLimitSeconds);
     int starts = 0, goals = 0;
 
     for (int y = 0; y < map.Height; y++)

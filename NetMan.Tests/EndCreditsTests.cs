@@ -25,7 +25,7 @@ public sealed class EndCreditsTests : GameTestBase
     CollectionAssert.Contains(lines, "POINTS 1100");
     CollectionAssert.Contains(lines, "ITEMS MISSED 3");
     CollectionAssert.Contains(lines, "TIMES DIED 0");
-    Assert.IsTrue(lines.Any(line => line.StartsWith("TIME ")));
+    Assert.IsTrue(lines.Any(line => line.StartsWith("Time Wasted: ", StringComparison.Ordinal)));
     Assert.IsFalse(string.IsNullOrWhiteSpace(game.Credits.OpeningQuote));
     Assert.IsFalse(string.IsNullOrWhiteSpace(game.Credits.ClosingQuote));
     long ticks = game.RunTicks;
@@ -188,7 +188,7 @@ public sealed class EndCreditsTests : GameTestBase
       Assert.AreEqual("You survived the custom ending.", credits.OpeningQuote);
       Assert.AreEqual("Custom reaper demands a rematch.", credits.ClosingQuote);
       Assert.AreEqual(credits.OpeningQuote, credits.Lines[0].Text);
-      CollectionAssert.Contains(credits.Lines.Select(line => line.Text).ToArray(), "TIME 00:01:05");
+      CollectionAssert.Contains(credits.Lines.Select(line => line.Text).ToArray(), "Time Wasted: 00:01:05");
       File.WriteAllText(opening, new string('A', 200));
       File.WriteAllText(closing, "; no quotes");
       credits = new EndCreditsScreen(folder, TimeSpan.Zero, 0, 0, 0);
@@ -230,7 +230,7 @@ public sealed class EndCreditsTests : GameTestBase
   {
     var expected = new PixelBuffer(PixelRenderer.Width, PixelRenderer.Height);
     int x = (PixelRenderer.Width - (((line.Text.Length * 4) - 1) * line.Scale)) / 2;
-    PixelFont.Draw(expected, line.Text, x, y, 0xFFFFD56B, line.Scale);
+    PixelFont.Draw(expected, line.Text, x, y, 0xFFFFD56B, line.Scale, preserveCase: line.PreserveCase);
     for (int i = 0; i < expected.Pixels.Length; i++)
     {
       if (expected.Pixels[i] != 0)

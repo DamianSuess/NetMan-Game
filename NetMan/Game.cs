@@ -139,6 +139,8 @@ public sealed class Game
   public Level Level { get; private set; } = null!;
   public int LevelCount => _files.Length;
   public int LevelNumber => _levelIndex + 1;
+  public int LevelTicksRemaining { get; private set; }
+  public int LevelSecondsRemaining => (LevelTicksRemaining + 59) / 60;
   internal int ThemeLevelNumber { get; private set; }
   public int Lives { get; private set; } = 3;
   public string Message { get; private set; } = "Let's effn' go!";
@@ -263,6 +265,15 @@ public sealed class Game
     if (_transition > 0)
     {
       _transition -= Step;
+      return;
+    }
+
+    if (--LevelTicksRemaining <= 0)
+    {
+      LevelTicksRemaining = 0;
+      Die();
+      Message = "TIME'S UP!";
+      DeathQuote = "Time's up!";
       return;
     }
 
@@ -733,6 +744,7 @@ public sealed class Game
     _facingDirection = 1;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
+    LevelTicksRemaining = Level.TimeLimitSeconds * 60;
     ThemeLevelNumber = 1;
 
     for (int index = 0; index < _levelIndex; index++)

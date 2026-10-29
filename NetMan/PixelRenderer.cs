@@ -587,8 +587,8 @@ internal sealed class PixelRenderer
         continue;
 
       int x = (Width - (((line.Text.Length * 4) - 1) * line.Scale)) / 2;
-      PixelFont.Draw(Frame, line.Text, x + 1, y + 1, Ink, line.Scale, ViewTop, ViewBottom);
-      PixelFont.Draw(Frame, line.Text, x, y, line.Highlight ? Gold : White, line.Scale, ViewTop, ViewBottom);
+      PixelFont.Draw(Frame, line.Text, x + 1, y + 1, Ink, line.Scale, ViewTop, ViewBottom, line.PreserveCase);
+      PixelFont.Draw(Frame, line.Text, x, y, line.Highlight ? Gold : White, line.Scale, ViewTop, ViewBottom, line.PreserveCase);
     }
 
     int animationFrame = (int)(game.CreditsTicks / 6 % 2);
@@ -799,6 +799,11 @@ internal sealed class PixelRenderer
     Frame.Fill(0, HeaderHeight - 2, Width, 2, 0xFF355575);
     PixelFont.Draw(Frame, "NETMAN", 8, 5, Gold, 2);
     PixelFont.Draw(Frame, $"SCORE {game.Score:000000}   COINS {game.Coins:00}   LIVES {game.Lives}   {game.LevelNumber}/{game.LevelCount}", 76, 8, White);
+    string seconds = game.LevelSecondsRemaining.ToString("000");
+    int timeX = Width - (((seconds.Length * 4) - 1) * 2) - 8;
+    uint timeColor = game.LevelSecondsRemaining <= 10 ? 0xFFFF6B6B : Gold;
+    PixelFont.Draw(Frame, "TIME", timeX - 23, 8, timeColor);
+    PixelFont.Draw(Frame, seconds, timeX, 5, timeColor, 2);
     PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
 
     Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);

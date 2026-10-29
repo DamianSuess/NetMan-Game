@@ -87,6 +87,13 @@ When the last life is lost, the usual two-second death animation plays unless in
 
 ## Make levels
 
+Each level has a countdown shown in the HUD. It defaults to 100 seconds and
+turns red for the last 10 seconds. Add `TimeLimit=150` to a level's header to use
+150 seconds instead; whole-number values from 1 to 9999 are supported. Pausing,
+Settings, level intros, transitions, and death screens do not spend countdown
+time. Reaching zero costs one life and displays TIME'S UP. Retrying reloads that
+level's full limit; the next level starts with its own limit.
+
 Use `EnemyLedges=Turn` after the `Background` header to make enemies guard their
 platforms. Levels 8 and 9 enable it. Omit it or use `EnemyLedges=Fall` for the
 original patrol behavior used by earlier levels. Headers do not change map
@@ -98,6 +105,7 @@ Choose the scenery with an optional first-line header, `Background=Day` or `Back
 
 ```text
 Background=Night
+TimeLimit=150
 
 ........................
 ...S................G...
@@ -157,9 +165,9 @@ The growth-heart limit is one growth reward at a time; the separate flamethrower
 
 Every death displays a large `YOU DIED!` title with a randomly chosen quote underneath during the two-second death delay and, when lives remain, while waiting for a keypress to continue. The last life instead leads to the separate game-over page after that delay. Edit `Assets/death-quotes.txt` to customize the messages: one quote per line, without surrounding quotation marks. Blank lines and lines starting with `;` are ignored. The file includes 42 quotes; add, remove, or replace lines as desired, then relaunch the game. Longer messages wrap to three lines and are shortened with an ellipsis if needed. A missing or empty file uses a fallback quote.
 
-Completing the final level starts scrolling end credits over a translucent black overlay, with characters running across the bottom. The credits open with a random dark-humored victory quote, credit Damian Suess, Suess Labs, and Xeno Innovations, and give special thanks to Little Stinker. Your run statistics show completion time, deaths, points, and items missed. Completion time includes active gameplay, level transitions, and death animations, while excluding pauses, waiting for a respawn key, and the credits themselves. Missed items are coins and reward-block contents never collected during the run; hearts only count as collected when touched, and items found before a death are remembered across retries. Brick obstacles and enemies are not counted as missed items.
+Completing the final level starts scrolling end credits over a translucent black overlay, with characters running across the bottom. The credits open with a random dark-humored victory quote, credit Damian Suess, Suess Labs, and Xeno Innovations, and give special thanks to Little Stinker. Your run statistics show completion time as `Time Wasted: HH:MM:SS`, deaths, points, and items missed. Completion time includes active gameplay across all attempts, level transitions, and death animations, while excluding pauses, waiting for a respawn key, and the credits themselves. Missed items are coins and reward-block contents never collected during the run; hearts only count as collected when touched, and items found before a death are remembered across retries. Brick obstacles and enemies are not counted as missed items.
 
-The credits end on another random play-again quote. Edit `Assets/credits-opening-quotes.txt` and `Assets/credits-closing-quotes.txt` to customize these lines, using the same one-quote-per-line format as death quotes. Press `P` to pause the credits, `R` to start a new run, or `Esc` to quit. Starting a new run resets the statistics.
+The credits end on another random play-again quote. Edit `Assets/credits-opening-quotes.txt` and `Assets/credits-closing-quotes.txt` to customize these lines, using the same one-quote-per-line format as death quotes. Press Enter to open the pause menu, R to start a new run, or Esc to quit. Starting a new run resets the statistics.
 
 Example:
 
