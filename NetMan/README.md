@@ -23,6 +23,12 @@ This version runs on Windows. The gameplay, text-level loader, sprite loader, pi
 
 Original 16-bit-style chiptune sound effects play when jumping, collecting growth or weapon power-ups, losing a weapon or shrinking, stomping an enemy, and dying. A surviving enemy plays the short, crunchy EnemySmash impact; a fatal stomp plays a distinct, longer EnemyDied crunch with a falling metallic tone. The player's death melody lasts two seconds. Effects use synthesized pulse, triangle, and FM tones with 16-bit PCM playback through Windows audio; no external sound files are required. Overlapping effects can finish together, and player death clears earlier effects before its melody starts. The game also runs when no audio output device is available.
 
+Growth and weapon pickup notifications temporarily pause background music while
+their sound plays, then resume the same track from its paused position. Overlapping
+pickup sounds finish before music resumes. Music stays paused while gameplay is
+paused or unfocused, and stays muted when disabled in Settings. Muted or skipped
+sound effects do not interrupt music.
+
 The flamethrower plays a looping fire roar while its stream is active, stopping on release, pause, loss of focus, weapon loss, death, or the two-second firing limit. Each shotgun shot plays a short blast; holding fire or pressing during reload does not repeat the sound.
 
 Original chiptune music plays on three screens: a bright looping title theme, a five-second minor-key funeral-style march on the Game Over page that plays once, and a looping victory theme during successful ending credits. Music stops when leaving its screen and pauses with window focus or the game. Music and sound effects use separate voices.
