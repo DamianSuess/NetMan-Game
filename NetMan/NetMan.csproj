@@ -9,7 +9,7 @@
     <ApplicationIcon>Assets\AppIcon\app.ico</ApplicationIcon>
     <Copyright>Copyright 2026 Xeno Innovations, Inc.</Copyright>
     <PackageProjectUrl>https://github.com/DamianSuess/NetMan-Game</PackageProjectUrl>
-    <Description>Side scrolling game (engine) written in .NET</Description>
+    <Description>Sam n' Ella old-school side scrolling game</Description>
     <BaseOutputPath>../output</BaseOutputPath>
     <FileVersion>0.6.0.90</FileVersion>
     <AssemblyVersion>0.6.0.90</AssemblyVersion>
