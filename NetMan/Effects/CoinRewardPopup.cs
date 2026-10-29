@@ -1,4 +1,4 @@
-namespace NetMan;
+namespace NetMan.Items;
 
 public readonly record struct CoinRewardPopup(int X, int Y, int AgeTicks = 0)
 {

@@ -27,6 +27,7 @@ internal static class PixelFont
     ['T'] = "111010010010010",
     ['U'] = "101101101101111",
     ['V'] = "101101101101010",
+    ['v'] = "000000101101010",
     ['W'] = "101101111111101",
     ['X'] = "101101010101101",
     ['Y'] = "101101010010010",
@@ -46,14 +47,19 @@ internal static class PixelFont
     ['/'] = "001001010100100",
     ['!'] = "010010010000010",
     ['.'] = "000000000000010",
+    [','] = "000000000010100",
+    ['©'] = "111101101101111",
+    ['>'] = "100010001010100",
     ['?'] = "110001010000010",
     ['+'] = "000010111010000",
+    ['%'] = "101001010100101",
     ['\''] = "010010000000000",
   };
 
-  public static void Draw(PixelBuffer frame, string text, int x, int y, uint color, int scale = 1)
+  public static void Draw(PixelBuffer frame, string text, int x, int y, uint color, int scale = 1,
+    int clipTop = 0, int clipBottom = int.MaxValue, bool preserveCase = false)
   {
-    foreach (char character in text.ToUpperInvariant())
+    foreach (char character in preserveCase ? text : text.ToUpperInvariant())
     {
       if (Glyphs.TryGetValue(character, out string? bits))
       {
@@ -62,7 +68,12 @@ internal static class PixelFont
           for (int col = 0; col < 3; col++)
           {
             if (bits[(row * 3) + col] == '1')
-              frame.Fill(x + (col * scale), y + (row * scale), scale, scale, color);
+            {
+              int top = Math.Max(y + (row * scale), clipTop);
+              int bottom = Math.Min(y + ((row + 1) * scale), clipBottom);
+              if (bottom > top)
+                frame.Fill(x + (col * scale), top, scale, bottom - top, color);
+            }
           }
         }
       }

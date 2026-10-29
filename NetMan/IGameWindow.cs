@@ -5,15 +5,19 @@ internal enum GameKey
   Left,
   Right,
   Jump,
-  Pause,
   Restart,
   Escape,
+  Start,
+  Fire,
 }
 
 // Only this interface needs a new implementation to host the game on another OS.
 internal interface IGameWindow : IDisposable
 {
   bool Active { get; }
+
+  bool AnyKeyPressed { get; }
+  IReadOnlyList<int> KeyPresses { get; }
 
   bool Closed { get; }
 

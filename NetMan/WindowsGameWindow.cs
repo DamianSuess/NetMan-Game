@@ -9,8 +9,7 @@ internal sealed class WindowsGameWindow : IGameWindow
 {
   private const uint WindowStyle = 0x00CF0000;
 
-  private readonly HashSet<int> _held = [];
-  private readonly HashSet<GameKey> _pressed = [];
+  private readonly GameKeyboard _keyboard = new();
   private readonly NativeMethods.WindowProcedure _procedure;
   private readonly int _width;
   private readonly int _height;
@@ -57,11 +56,14 @@ internal sealed class WindowsGameWindow : IGameWindow
 
   public bool Active => _focused && !_minimized;
 
+  public bool AnyKeyPressed => _keyboard.AnyKeyPressed;
+  public IReadOnlyList<int> KeyPresses => _keyboard.KeyPresses;
+
   public bool Closed { get; private set; }
 
-  public bool Down(GameKey key) => _held.Any(code => MapKey(code) == key);
+  public bool Down(GameKey key) => _keyboard.Down(key);
 
-  public bool Pressed(GameKey key) => _pressed.Contains(key);
+  public bool Pressed(GameKey key) => _keyboard.Pressed(key);
 
   public void Dispose()
   {
@@ -126,7 +128,7 @@ internal sealed class WindowsGameWindow : IGameWindow
 
   public void PumpEvents()
   {
-    _pressed.Clear();
+    _keyboard.BeginFrame();
 
     while (NativeMethods.PeekMessageW(out var message, 0, 0, 0, 1))
     {
@@ -162,8 +164,7 @@ internal sealed class WindowsGameWindow : IGameWindow
 
         if (!_focused)
         {
-          _held.Clear();
-          _pressed.Clear();
+          _keyboard.Clear();
         }
 
         return 0;
@@ -178,29 +179,22 @@ internal sealed class WindowsGameWindow : IGameWindow
         return 0;
 
       case 0x0100: // WM_KEYDOWN; ignore OS repeats, preserving a single press edge.
-        int code = (int)wParam;
-
-        if (_held.Add(code) && MapKey(code) is { } key)
-          _pressed.Add(key);
-
+        _keyboard.KeyDown((int)wParam, (lParam.ToInt64() & (1L << 30)) != 0);
         return 0;
 
       case 0x0101: // WM_KEYUP
-        _held.Remove((int)wParam);
+        _keyboard.KeyUp((int)wParam);
         return 0;
+
+      case 0x0104: // WM_SYSKEYDOWN; preserve system shortcuts such as Alt+F4.
+        _keyboard.KeyDown((int)wParam, (lParam.ToInt64() & (1L << 30)) != 0);
+        break;
+
+      case 0x0105: // WM_SYSKEYUP
+        _keyboard.KeyUp((int)wParam);
+        break;
     }
 
     return NativeMethods.DefWindowProcW(window, message, wParam, lParam);
   }
-
-  private static GameKey? MapKey(int code) => code switch
-  {
-    0x25 or 0x41 => GameKey.Left,
-    0x27 or 0x44 => GameKey.Right,
-    0x20 or 0x26 or 0x57 => GameKey.Jump,
-    0x50 => GameKey.Pause,
-    0x52 => GameKey.Restart,
-    0x1B => GameKey.Escape,
-    _ => null,
-  };
 }

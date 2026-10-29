@@ -10,18 +10,23 @@
     <PackageProjectUrl>https://github.com/DamianSuess/NetMan-Game</PackageProjectUrl>
     <Description>Side scrolling game (engine) written in .NET</Description>
     <BaseOutputPath>../output</BaseOutputPath>
-    <FileVersion>0.2.1</FileVersion>
-    <AssemblyVersion>0.2.1</AssemblyVersion>
+    <FileVersion>0.6.0.86</FileVersion>
+    <AssemblyVersion>0.6.0.86</AssemblyVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(NetManDistribution)' == 'true'">
     <DefineConstants>$(DefineConstants);NETMAN_DISTRIBUTION</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="NetMan.Tests" />
     <Content Include="Levels\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ThirdPartyNotices.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(NetManDistribution)' == 'true'">
-    <Compile Remove="SelfTests.cs;GraphicsTests.cs;ArtExporter.cs" />
+    <Compile Remove="ArtExporter.cs" />
     <Content Update="Assets\Previews\**\*;Assets\README.md" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="1.2.158" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,63 @@
+name: Build installer and GitHub updates
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  windows-release:
+    if: github.event.release.immutable != true
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the released version
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Verify package version mapping
+        shell: pwsh
+        run: ./scripts/Test-PackageVersion.ps1
+
+      - name: Test, publish Native AOT, and package Velopack
+        shell: pwsh
+        run: ./build.ps1 -Runtime win-x64
+
+      - name: Verify native installer bootstrap hook
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content NetMan/NetMan.csproj
+          $version = [string]($project.Project.PropertyGroup.FileVersion | Where-Object { $_ } | Select-Object -First 1)
+          $name = 'NetMan-v' + (($version.Split('.'))[0..2] -join '.')
+          $native = Join-Path $PWD "Publish/$name/NetMan.exe"
+          . ./scripts/Get-PackageVersion.ps1
+          $packageVersion = Get-NetManPackageVersion $version
+          $process = Start-Process -FilePath $native -ArgumentList '--veloapp-install', $packageVersion -WindowStyle Hidden -PassThru
+          if (-not $process.WaitForExit(10000)) {
+            Stop-Process -Id $process.Id
+            throw 'Native installer hook timed out.'
+          }
+          if ($process.ExitCode -ne 0) { throw "Native hook failed: $($process.ExitCode)" }
+
+      - name: Attach installer and update assets to this release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          $assets = @(Get-ChildItem Publish/Velopack/win-x64 -File | ForEach-Object FullName)
+          $assets += @(Get-ChildItem Publish -File -Filter 'NetMan-v*.zip' | ForEach-Object FullName)
+          if ($assets.Count -lt 4) { throw 'Release assets are missing.' }
+          gh release upload --repo "$env:GITHUB_REPOSITORY" --clobber -- "$env:RELEASE_TAG" @assets
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release upload failed.' }

@@ -7,21 +7,27 @@ internal static class ArtExporter
     Directory.CreateDirectory(outputPath);
     var palette = Sprite.LoadPalette(Path.Combine(assetsPath, "palette.txt"));
     string[] files = Directory.GetFiles(assetsPath, "*.sprite").Order().ToArray();
-    var sheet = new PixelBuffer(256, 144);
+    var sprites = files.Select(file => Sprite.Load(file, palette)).ToArray();
+    int cellWidth = Math.Max(31, sprites.Max(sprite => sprite.Width) + 4);
+    int cellHeight = Math.Max(50, sprites.Max(sprite => sprite.Height) + 14);
+    int sheetRows = (files.Length + 7) / 8;
+
+    var sheet = new PixelBuffer(8 + (8 * cellWidth), Math.Max(144, 29 + (sheetRows * cellHeight)));
+
     sheet.Clear(0xFF17263F);
     PixelFont.Draw(sheet, "NETMAN - PIXEL ART", 8, 7, 0xFFFFD56B);
 
     for (int i = 0; i < files.Length; i++)
     {
-      var sprite = Sprite.Load(files[i], palette);
+      var sprite = sprites[i];
       var image = new PixelBuffer(sprite.Width, sprite.Height);
       image.Draw(sprite, 0, 0);
       image.SavePng(Path.Combine(outputPath, Path.GetFileNameWithoutExtension(files[i]) + ".png"));
-      int x = 8 + ((i % 8) * 31);
-      int y = 29 + ((i / 8) * 50);
-      sheet.Fill(x - 1, y - 1, 18, 18, 0xFF355575);
+      int x = 8 + ((i % 8) * cellWidth);
+      int y = 29 + ((i / 8) * cellHeight);
+      sheet.Fill(x - 1, y - 1, sprite.Width + 2, sprite.Height + 2, 0xFF355575);
       sheet.Draw(sprite, x, y);
-      PixelFont.Draw(sheet, (i + 1).ToString(), x, y + 21, 0xFFF6F4DF);
+      PixelFont.Draw(sheet, (i + 1).ToString(), x, y + Math.Max(21, sprite.Height + 3), 0xFFF6F4DF);
     }
 
     sheet.SavePng(Path.Combine(outputPath, "sprite-sheet.png"));

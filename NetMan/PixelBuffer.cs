@@ -15,9 +15,26 @@ internal sealed class PixelBuffer(int width, int height)
 
   public void Clear(uint color) => Array.Fill(Pixels, color);
 
-  public void Draw(Sprite sprite, int x, int y, bool flip = false)
+  public void OverlayBlack(byte opacity)
   {
-    for (int sy = Math.Max(0, -y); sy < Math.Min(sprite.Height, Height - y); sy++)
+    uint remaining = (uint)(255 - opacity);
+    for (int i = 0; i < Pixels.Length; i++)
+    {
+      uint pixel = Pixels[i];
+      uint red = ((pixel >> 16) & 255) * remaining / 255;
+      uint green = ((pixel >> 8) & 255) * remaining / 255;
+      uint blue = (pixel & 255) * remaining / 255;
+      Pixels[i] = (pixel & 0xFF000000) | (red << 16) | (green << 8) | blue;
+    }
+  }
+
+  public void Draw(Sprite sprite, int x, int y, bool flip = false, int clipBottom = int.MaxValue)
+  {
+    int bottom = Math.Min(Height, clipBottom);
+    if (x >= Width || y >= bottom || x <= -sprite.Width || y <= -sprite.Height)
+      return;
+
+    for (int sy = Math.Max(0, -y); sy < Math.Min(sprite.Height, bottom - y); sy++)
     {
       for (int sx = Math.Max(0, -x); sx < Math.Min(sprite.Width, Width - x); sx++)
       {
@@ -36,6 +53,50 @@ internal sealed class PixelBuffer(int width, int height)
 
     for (int row = Math.Max(0, y); row < Math.Min(Height, y + height); row++)
       Array.Fill(Pixels, color, (row * Width) + left, Math.Max(0, right - left));
+  }
+
+  public void DrawTranslucent(Sprite sprite, int x, int y, byte opacity)
+  {
+    if (x >= Width || y >= Height || x <= -sprite.Width || y <= -sprite.Height)
+      return;
+
+    for (int sy = Math.Max(0, -y); sy < Math.Min(sprite.Height, Height - y); sy++)
+    {
+      for (int sx = Math.Max(0, -x); sx < Math.Min(sprite.Width, Width - x); sx++)
+      {
+        uint source = sprite.Pixel(sx, sy);
+        uint alpha = (source >> 24) * opacity / 255;
+        if (alpha == 0)
+          continue;
+
+        int index = ((y + sy) * Width) + x + sx;
+        uint target = Pixels[index];
+        uint inverse = 255 - alpha;
+        uint red = ((((source >> 16) & 255) * alpha) + (((target >> 16) & 255) * inverse)) / 255;
+        uint green = ((((source >> 8) & 255) * alpha) + (((target >> 8) & 255) * inverse)) / 255;
+        uint blue = (((source & 255) * alpha) + ((target & 255) * inverse)) / 255;
+        Pixels[index] = 0xFF000000 | (red << 16) | (green << 8) | blue;
+      }
+    }
+  }
+
+  public void FillTranslucent(int x, int y, int width, int height, uint color, byte opacity)
+  {
+    int left = Math.Clamp(x, 0, Width);
+    int right = Math.Clamp(x + width, 0, Width);
+    uint inverse = (uint)(255 - opacity);
+    for (int row = Math.Max(0, y); row < Math.Min(Height, y + height); row++)
+    {
+      for (int column = left; column < right; column++)
+      {
+        int index = (row * Width) + column;
+        uint target = Pixels[index];
+        uint red = ((((color >> 16) & 255) * opacity) + (((target >> 16) & 255) * inverse)) / 255;
+        uint green = ((((color >> 8) & 255) * opacity) + (((target >> 8) & 255) * inverse)) / 255;
+        uint blue = (((color & 255) * opacity) + ((target & 255) * inverse)) / 255;
+        Pixels[index] = 0xFF000000 | (red << 16) | (green << 8) | blue;
+      }
+    }
   }
 
   // A minimal lossless PNG exporter, using only the .NET compression library.

@@ -1,8 +1,15 @@
-# Learn.DosGame
+# NetMan Game
 
-Active development lives in [NetMan](NetMan/README.md), a .NET pixel-art platformer with a native Windows game window and editable text levels. [NetMan-0.1](NetMan-0.1/README.md) preserves the original console version.
+This aint ya mamma's side scroller. NetMan is a .NET pixel-art platformer with a native game window and editable Sprites, Text levels, and really bad uncle quotes. Written 100% in C# and not forgiving like modern Mario games.
+
+> In the words of Ivan Drago,\
+> &nbsp; &nbsp;"_If he dies, he dies._"
 
 ![](screen-shot.png)
+
+![Player collecting an extra heart and exploding](Docs/Player-Explosion.gif)
+
+![Graveyard Shift](Docs/Level-Graveyard.png)
 
 From this repository folder, run:
 
@@ -20,21 +27,63 @@ From the repository root, run:
 .\build.ps1
 ```
 
+The build also produces a Velopack installer and automatic-update packages in
+`Publish/Velopack/win-x64/`. The .NET SDK restores the pinned local packaging tool;
+no global Velopack installation is required. Use `-SkipInstaller` to produce only
+the original Native AOT folder and ZIP. `-Runtime win-arm64` produces a separate
+ARM64 update channel when the required native toolchain is installed.
+
 Project and output paths resolve relative to the script, so it also works when invoked by absolute path from another working directory.
 
-It builds Release, runs the headless checks, and publishes a self-contained, trimmed Native AOT Windows x64 executable optimized for size. It then creates `Publish/NetMan-v0.2.0/` and `Publish/NetMan-v0.2.0.zip`. The ZIP contains that versioned directory with `NetMan.exe`, runtime assets, editable levels, and the license. No .NET installation is needed on the player's machine.
-
-The name comes from the first three components of `FileVersion` in `NetMan/NetMan.csproj` (Major.Minor.Revision). Change that property to change the package version. Rebuilding the same version replaces its generated folder and ZIP after publishing and compression succeed; older versions are retained. `Publish` is ignored by Git.
-
-Requirements: Windows, PowerShell 5.1 or later, the .NET 10 SDK, and Visual Studio 2022 or later with **Desktop development with C++**, including its default MSVC and Windows SDK components. The first Native AOT build also restores compiler/runtime packages from NuGet. See Microsoft's [Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
-
-Optional arguments:
+To publish and launch the game, double-click `build-exec.bat` or run:
 
 ```powershell
-.\build.ps1 -SkipTests
-.\build.ps1 -Runtime win-arm64
+.\build-exec.bat
 ```
 
-ARM64 publishing needs the corresponding C++ ARM64 build tools. Both architectures use the requested version-only ZIP name, so publishing another architecture replaces the same version's previous output.
+This runs the same Release build, tests, Native AOT publish, and ZIP packaging, then opens the newly published game. If any step fails, the game is not launched. Build options are forwarded, for example `.\build-exec.bat -SkipTests`. The PowerShell equivalent is `.\build.ps1 -Run`.
 
-To reduce size, the distribution excludes development test code, PNG-export tooling, preview images, asset documentation, and debug symbols. Runtime `.sprite` files, the palette, and levels remain editable. Publishing favors size over speed, uses invariant globalization, and removes runtime stack traces, debugger support, diagnostic events, and full framework exception messages. Normal development builds retain their existing behavior. See Microsoft's [AOT optimization](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/optimizing) and [trimming options](https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/trimming-options).
+## Install and automatically update
+
+Install `SuessLabs.NetMan-win-x64-Setup.exe` from the project's
+[GitHub Releases](https://github.com/DamianSuess/NetMan-Game/releases).
+Velopack-managed installations and its generated portable ZIP check that repository's
+stable releases at launch. Updates download without blocking the game. If a download
+finishes while the title screen is open, the app exits cleanly and restarts updated;
+otherwise it installs when the player exits. A pending downloaded update can also
+be applied automatically at the next launch. Offline play remains available, and
+update failures are logged to `%LocalAppData%/NetMan/Logs/updates.log`.
+
+The original `NetMan-vX.Y.Z.zip` remains available as an unmanaged portable build;
+it does not self-update. Existing ZIP users must install the setup EXE or use the
+Velopack-generated portable ZIP once to enable automatic updates.
+
+For each release, increment the project FileVersion and build, then upload **all files**
+from `Publish/Velopack/win-x64/` as assets of the same GitHub Release. The full `.nupkg`
+and `releases.win-x64.json` are required; uploading only a ZIP is insufficient.
+The new `publish-release.yml` workflow performs the build, tests, and upload automatically
+when a GitHub Release is published from a tag containing this integration. It also
+attaches the original ZIP. The workflow uses GitHub's built-in release token; client
+applications contain no GitHub credentials. Draft and prerelease releases are not
+offered by the app. If using immutable GitHub releases, build locally and attach the
+assets while the release is still a draft, before publishing it.
+
+The four-part Windows FileVersion is preserved. Velopack uses a three-part package
+version: `Major.Minor.(Revision * 65536 + Build)`. For example, `0.5.0.71` becomes
+`0.5.71`, and `0.5.1.0` becomes `0.5.65536`. This preserves ordering when either
+Revision or Build increases. Verify the mapping with `./scripts/Test-PackageVersion.ps1`.
+
+For managed installations, editable levels and assets live in
+`%LocalAppData%/NetMan/Content/Levels` and `.../Assets`, outside the replaceable app
+directory. New defaults are copied forward only if the old copy was not edited;
+custom files and intentionally deleted defaults are preserved. Unmodified retired
+defaults are removed. The existing `--levels <directory>` override still works.
+
+## Hubmle Beginnings
+
+NetMan started out as a side-scrolling DOS pixle art game. The orginal code can be found in the Legacy folder [NetMan-0.1](Legacy/NetMan-0.1/README.md) which preserves the original console version.
+
+## Developer Notes
+
+* Active development lives in [NetMan](NetMan/README.md)
+* More [developer notes](Docs/dev-notes.md)

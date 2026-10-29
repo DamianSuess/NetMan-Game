@@ -1,0 +1,9 @@
+; One play-again quote per line. Blank lines and ; comments are ignored.
+One more run. The morgue saved your seat.
+Play again. Your replacement organs just arrived.
+The reaper demands a rematch.
+Again? Your life insurance already quit.
+Go again. The graveyard has a loyalty card.
+Press R. Unfinished business needs witnesses.
+One more run. What could go wrong twice?
+Play again. Dignity was never the goal.
