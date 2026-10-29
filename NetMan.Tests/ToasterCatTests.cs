@@ -10,7 +10,7 @@ namespace NetMan.Tests;
 public sealed class ToasterCatTests : GameTestBase
 {
   [TestMethod]
-  public void BundledLevelsIntroduceToasterCatsFromLevelTwoOnward()
+  public void BundledCombatLevelsIntroduceToasterCatsFromLevelTwo()
   {
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     Assert.IsEmpty(Level.Load(paths[0]).ToasterCatSpawns);

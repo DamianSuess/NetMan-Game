@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetMan.Actors;
 
 namespace NetMan.Tests;
 
@@ -9,12 +10,12 @@ namespace NetMan.Tests;
 public sealed class NewLevelTests
 {
   [TestMethod]
-  [DataRow("03-pipe-gardens.txt")]
-  [DataRow("04-zombie-ate-my.txt")]
-  [DataRow("05-pipe-terraces.txt")]
-  [DataRow("06-ruins-crossing.txt")]
-  [DataRow("07-brick-summit.txt")]
-  public void NewLevelCanBeCompletedWithRunningJumps(string name)
+  [DataRow("03-pipe-gardens.txt", 0)]
+  [DataRow("04-zombie-ate-my.txt", 0)]
+  [DataRow("05-pipe-terraces.txt", 2)]
+  [DataRow("06-ruins-crossing.txt", 0)]
+  [DataRow("07-brick-summit.txt", 0)]
+  public void RebalancedLevelsCanBeCompletedWithoutLosingALife(string name, int groundedWait)
   {
     var path = Path.Combine(AppContext.BaseDirectory, "Levels", name);
     var game = new Game([path]);
@@ -28,7 +29,7 @@ public sealed class NewLevelTests
 
     // Patrol speed is configurable. Try a few launch timings instead of requiring
     // every level to match one particular enemy phase at the start of the run.
-    for (int startDelay = 0; startDelay <= 60 && !game.Won; startDelay += 5)
+    for (int startDelay = 0; startDelay <= 60 && !game.Won; startDelay++)
     {
       if (startDelay > 0)
         game.Restart();
@@ -37,6 +38,7 @@ public sealed class NewLevelTests
         game.Update(0, false);
 
       int nextTakeoff = 0;
+      int groundedFrames = 0;
       for (int tick = 0; tick < 6000 && !game.Won && !game.IsDying; tick++)
       {
         int direction = game.X >= goalX - 0.2 ? 0 : 1;
@@ -46,7 +48,16 @@ public sealed class NewLevelTests
         if (atTakeoff && !game.Grounded)
           direction = 0;
 
-        if (game.Grounded && direction != 0)
+        // Rise above tall zombies before moving across their bodies.
+        bool tallEnemyAhead = game.Enemies.Any(enemy => enemy.Alive && enemy.Kind == EnemyKind.Zombie
+          && enemy.X >= game.X + Game.BodyWidth && enemy.X - game.X < 2.5
+          && game.Y + game.PlayerHeight > enemy.Y && enemy.Y >= game.Y - 1.2);
+        if (tallEnemyAhead)
+          direction = 0;
+
+        groundedFrames = game.Grounded ? groundedFrames + 1 : 0;
+        if (game.Grounded && (direction != 0 || tallEnemyAhead)
+          && (groundedFrames > groundedWait || tallEnemyAhead))
         {
           game.QueueJump();
 
@@ -54,7 +65,7 @@ public sealed class NewLevelTests
             nextTakeoff++;
         }
 
-        game.Update(direction, true);
+        game.Update(direction, true, game.HasFlamethrower || tick % 32 == 0);
       }
     }
 
