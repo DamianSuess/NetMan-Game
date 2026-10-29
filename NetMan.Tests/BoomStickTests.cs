@@ -67,7 +67,7 @@ public sealed class BoomStickTests : GameTestBase
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     for (int index = 0; index < paths.Length; index++)
     {
-      Assert.AreEqual(index >= 3, File.ReadAllText(paths[index]).Contains('Q'), paths[index]);
+      Assert.AreEqual(index is >= 3 and <= 6, File.ReadAllText(paths[index]).Contains('Q'), paths[index]);
       Level.Load(paths[index]);
     }
   }

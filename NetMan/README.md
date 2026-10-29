@@ -64,7 +64,15 @@ The animated title screen opens before Level 1. Choose Sam or Ella with A/D or t
 
 On the title screen, enter the Konami code with fresh keypresses: Up, Up, Down, Down, Left, Right, Left, Right, B, A. A confirmation appears when it activates. You can then press Left or Right again to choose Sam or Ella before pressing Enter. The cheat starts the game with 30 lives, growth, and the flamethrower, including in Level 1. Holding a key does not count as repeated code entries. Normal damage and deaths still apply; respawning does not refill lives or restore lost powers. R starts a fresh cheat run with the original 30 lives and starting powers. Ordinary runs keep their usual three lives and small starting size.
 
-Levels 4 and 5 use a night sky with stars, a moon, and tombstones in the background. Two layers of gravestones scroll at different speeds as the player walks past; they are scenery and do not block movement. Daytime returns from Level 6 onward. Each level selects its own theme through the Background header; moving or renaming the file does not change its scenery.
+Levels 4, 5, 8, and 9 use a night sky with stars, a moon, and tombstones in the background. Two layers of gravestones scroll at different speeds as the player walks past; they are scenery and do not block movement. Levels 6 and 7 return to daytime. Each level selects its own theme through the Background header; moving or renaming the file does not change its scenery.
+
+Levels 3, 6, and 7 have denser enemy patrols. Levels 4 and 5 combine more enemies
+with four-tile pits and spike clusters. Level 8, Moonlit Stepping Stones, crosses
+17 brick islands over a bottomless void. Level 9, Midnight Brickfall, tightens the
+landings across 21 islands with larger height changes. These final two levels
+have no floor or enemies: hold jump for the full arc and control your landing on
+each staggered platform. Missing a jump costs a life. Both routes work at normal
+and powered-up size.
 
 Before each level begins, a start page shows its number, its filename-derived name, remaining lives, and a random demotivating uncle quote. It lasts five seconds or dismisses on any fresh keypress. Gameplay and completion timing stay frozen during the page, and losing window focus freezes the countdown. The page also appears on retries and when restarting the game. Level names omit a leading numeric prefix and replace hyphens or underscores with spaces; for example, `04-zombie-ate-my.txt` displays ZOMBIE ATE MY. Edit the 30 lines in `Assets/uncle-quotes.txt` to customize the advice.
 
