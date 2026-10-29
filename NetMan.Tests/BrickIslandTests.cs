@@ -10,6 +10,21 @@ namespace NetMan.Tests;
 public sealed class BrickIslandTests
 {
   [TestMethod]
+  [DataRow("08-moonlit-stepping-stones.txt")]
+  [DataRow("09-midnight-brickfall.txt")]
+  public void MissingTheFirstJumpFallsIntoTheVoid(string name)
+  {
+    var game = new Game([Path.Combine(AppContext.BaseDirectory, "Levels", name)]);
+    game.CompleteLevelStart();
+    for (int tick = 0; tick < 180 && !game.IsDying; tick++)
+      game.Update(1, false);
+
+    Assert.IsTrue(game.IsDying);
+    Assert.IsFalse(game.Won);
+    Assert.AreEqual(2, game.Lives);
+  }
+
+  [TestMethod]
   [DataRow("08-moonlit-stepping-stones.txt", false)]
   [DataRow("08-moonlit-stepping-stones.txt", true)]
   [DataRow("09-midnight-brickfall.txt", false)]
