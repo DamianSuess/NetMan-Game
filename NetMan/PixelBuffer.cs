@@ -30,6 +30,9 @@ internal sealed class PixelBuffer(int width, int height)
 
   public void Draw(Sprite sprite, int x, int y, bool flip = false)
   {
+    if (x >= Width || y >= Height || x <= -sprite.Width || y <= -sprite.Height)
+      return;
+
     for (int sy = Math.Max(0, -y); sy < Math.Min(sprite.Height, Height - y); sy++)
     {
       for (int sx = Math.Max(0, -x); sx < Math.Min(sprite.Width, Width - x); sx++)
@@ -53,6 +56,9 @@ internal sealed class PixelBuffer(int width, int height)
 
   public void DrawTranslucent(Sprite sprite, int x, int y, byte opacity)
   {
+    if (x >= Width || y >= Height || x <= -sprite.Width || y <= -sprite.Height)
+      return;
+
     for (int sy = Math.Max(0, -y); sy < Math.Min(sprite.Height, Height - y); sy++)
     {
       for (int sx = Math.Max(0, -x); sx < Math.Min(sprite.Width, Width - x); sx++)
