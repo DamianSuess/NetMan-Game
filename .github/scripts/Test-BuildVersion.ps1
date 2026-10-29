@@ -60,7 +60,7 @@ function Bump
 
 function Remote-Version
 {
-  [xml]$project = Invoke-TestGit $remote @('show', 'refs/heads/develop:NetMan/NetMan.csproj')
+  [xml]$project = Invoke-TestGit $remote @('show', 'refs/heads/develop:SamElla/SamElla.csproj')
   $fileVersion = $project.SelectSingleNode('/Project/PropertyGroup/FileVersion').InnerText
   $assemblyVersion = $project.SelectSingleNode('/Project/PropertyGroup/AssemblyVersion').InnerText
   Check ($fileVersion -eq $assemblyVersion) 'FileVersion and AssemblyVersion match'
@@ -72,18 +72,18 @@ function Commit-Version
   param([string]$Version)
   $null = Invoke-TestGit $racer @('fetch', 'origin')
   $null = Invoke-TestGit $racer @('switch', '--detach', 'origin/develop')
-  $path = Join-Path $racer 'NetMan/NetMan.csproj'
+  $path = Join-Path $racer 'SamElla/SamElla.csproj'
   $text = [System.IO.File]::ReadAllText($path)
   $text = [regex]::Replace($text, '(?<=<FileVersion>)[^<]+', $Version)
   $text = [regex]::Replace($text, '(?<=<AssemblyVersion>)[^<]+', $Version)
   [System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))
-  $null = Invoke-TestGit $racer @('add', 'NetMan/NetMan.csproj')
+  $null = Invoke-TestGit $racer @('add', 'SamElla/SamElla.csproj')
   $null = Invoke-TestGit $racer @('-c', 'user.name=Version Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false',
     'commit', '-m', "Set version $Version")
   $null = Invoke-TestGit $racer @('push', 'origin', 'HEAD:refs/heads/develop')
 }
 
-$null = New-Item -ItemType Directory -Path (Join-Path $seed 'NetMan') -Force
+$null = New-Item -ItemType Directory -Path (Join-Path $seed 'SamElla') -Force
 $null = Invoke-TestGit $testRoot @('init', '--bare', '--initial-branch=develop', $remote)
 $null = Invoke-TestGit $seed @('init', '--initial-branch=develop')
 $null = Invoke-TestGit $seed @('config', 'core.autocrlf', 'false')
@@ -97,8 +97,8 @@ $fixture = @'
 </Project>
 '@
 $fixture = $fixture.Replace("`r`n", "`n").Replace("`n", "`r`n") + "`r`n"
-[System.IO.File]::WriteAllText((Join-Path $seed 'NetMan/NetMan.csproj'), $fixture, [System.Text.UTF8Encoding]::new($false))
-$null = Invoke-TestGit $seed @('add', 'NetMan/NetMan.csproj')
+[System.IO.File]::WriteAllText((Join-Path $seed 'SamElla/SamElla.csproj'), $fixture, [System.Text.UTF8Encoding]::new($false))
+$null = Invoke-TestGit $seed @('add', 'SamElla/SamElla.csproj')
 $null = Invoke-TestGit $seed @('-c', 'user.name=Version Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false',
   'commit', '-m', 'Merged PR fixture')
 $mergeCommit = Invoke-TestGit $seed @('rev-parse', 'HEAD')
@@ -114,7 +114,7 @@ Check ((Remote-Version) -eq '0.4.0.61') 'A merged PR increments only the fourth 
 $afterFirst = Invoke-TestGit $remote @('rev-parse', 'develop')
 $null = Bump $worker 101 $mergeCommit
 Check ((Invoke-TestGit $remote @('rev-parse', 'develop')) -eq $afterFirst) 'Rerunning a processed PR creates no commit'
-$blob = Invoke-TestGit $remote @('show', 'develop:NetMan/NetMan.csproj')
+$blob = Invoke-TestGit $remote @('show', 'develop:SamElla/SamElla.csproj')
 Check ($blob -eq $fixture.TrimEnd().Replace('0.4.0.60', '0.4.0.61')) 'Project formatting and unrelated content are preserved'
 
 # A pre-push hook lets the other worker win the race deterministically.
@@ -144,7 +144,7 @@ foreach ($number in @(101, 102, 103))
 $null = Bump $worker 102 $mergeCommit
 Check ((Remote-Version) -eq '0.4.0.63') 'A raced PR remains idempotent on rerun'
 
-$path = Join-Path $worker 'NetMan/NetMan.csproj'
+$path = Join-Path $worker 'SamElla/SamElla.csproj'
 $original = [System.IO.File]::ReadAllText($path)
 [System.IO.File]::AppendAllText($path, '<!-- uncommitted -->')
 $failure = Bump $worker 104 $mergeCommit -ExpectFailure

@@ -16,7 +16,7 @@ This aint ya mamma's side scroller. Sam n' Ella (_previously, NetMan_) is a pixe
 From this repository folder, run:
 
 ```powershell
-dotnet run --project .\NetMan\NetMan.csproj
+dotnet run --project .\SamElla\SamElla.csproj
 ```
 
 See the game README for controls, editable text levels, and development checks.
@@ -54,13 +54,18 @@ stable releases at launch. Updates download without blocking the game. If a down
 finishes while the title screen is open, the app exits cleanly and restarts updated;
 otherwise it installs when the player exits. A pending downloaded update can also
 be applied automatically at the next launch. Offline play remains available, and
-update failures are logged to `%LocalAppData%/NetMan/Logs/updates.log`.
+update failures are logged to `%LocalAppData%/SamElla/Logs/updates.log`.
 
 The Velopack package ID is `SuessLabs.SamElla`. This is a new installation identity:
 users of the former `SuessLabs.NetMan` package must install the new setup EXE once.
 This release does not provide an automatic migration between those package IDs.
+The desktop and Start menu shortcuts are named `Sam-Ella`.
+User content, audio settings, and update logs now live under `%LocalAppData%/SamElla`.
+To preserve previous custom content and settings, close the game and copy the
+`Content` folder and `audio-settings.txt` from `%LocalAppData%/NetMan` into
+`%LocalAppData%/SamElla` before launching the new version.
 
-The original `NetMan-vX.Y.Z.zip` remains available as an unmanaged portable build;
+The original `SamElla-vX.Y.Z.zip` remains available as an unmanaged portable build;
 it does not self-update. Existing ZIP users must install the setup EXE or use the
 Velopack-generated portable ZIP once to enable automatic updates.
 
@@ -80,7 +85,7 @@ version: `Major.Minor.(Revision * 65536 + Build)`. For example, `0.5.0.71` becom
 Revision or Build increases. Verify the mapping with `./scripts/Test-PackageVersion.ps1`.
 
 For managed installations, editable levels and assets live in
-`%LocalAppData%/NetMan/Content/Levels` and `.../Assets`, outside the replaceable app
+`%LocalAppData%/SamElla/Content/Levels` and `.../Assets`, outside the replaceable app
 directory. New defaults are copied forward only if the old copy was not edited;
 custom files and intentionally deleted defaults are preserved. Unmodified retired
 defaults are removed. The existing `--levels <directory>` override still works.
@@ -91,5 +96,5 @@ NetMan started out as a side-scrolling DOS pixle art game. The orginal code can 
 
 ## Developer Notes
 
-* Active development lives in [NetMan](NetMan/README.md)
+* Active development lives in [SamElla](SamElla/README.md)
 * More [developer notes](Docs/dev-notes.md)
