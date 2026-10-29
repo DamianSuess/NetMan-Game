@@ -267,7 +267,7 @@ try
     if (wasDying)
     {
       game.Paused = false;
-      if (window.AnyKeyPressed && game.ContinueAfterDeath())
+      if (DeathScreen.HandleInput(game, window.KeyPresses, window.Active))
         accumulator = 0;
     }
     else

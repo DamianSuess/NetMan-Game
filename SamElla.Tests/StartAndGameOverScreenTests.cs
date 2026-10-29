@@ -155,12 +155,33 @@ public sealed class StartAndGameOverScreenTests : GameTestBase
 
     var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
     renderer.Draw(game, 0, 0);
-    Assert.AreEqual(0xFF17263F, renderer.Frame.Pixels[0]);
+    Assert.AreEqual(0xFF781C29u, renderer.Frame.Pixels[0]);
 
     var expected = new PixelBuffer(PixelRenderer.Width, PixelRenderer.Height);
-    PixelFont.Draw(expected, "GAME OVER", 122, 38, 0xFFFF6B6B, 4);
+    PixelFont.Draw(expected, "GAME OVER", 122, 24, 0xFFF6F4DF, 4);
+
     int quoteX = (PixelRenderer.Width - (((game.GameOverQuote.Length * 4) - 1) * 2)) / 2;
-    PixelFont.Draw(expected, game.GameOverQuote, quoteX, 96, 0xFFF6F4DF, 2);
+    PixelFont.Draw(expected, game.GameOverQuote, quoteX, 171, 0xFFF6F4DF, 2);
+
+    const string RestartPrompt = "PRESS ENTER TO START OVER";
+    int promptX = (PixelRenderer.Width - ((RestartPrompt.Length * 4) - 1)) / 2;
+
+    PixelFont.Draw(expected, RestartPrompt, promptX, 226, 0xFFFFD56B);
+
+    var assets = Path.Combine(AppContext.BaseDirectory, "Assets");
+    var stone = Sprite.Load(Path.Combine(assets, "tombstone.sprite"), Sprite.LoadPalette(Path.Combine(assets, "palette.txt")));
+    int stoneX = (PixelRenderer.Width - (stone.Width * 3)) / 2;
+
+    for (int y = 0; y < stone.Height; y++)
+    {
+      for (int x = 0; x < stone.Width; x++)
+      {
+        uint color = stone.Pixel(x, y);
+        if ((color >> 24) != 0)
+          expected.Fill(stoneX + (x * 3), 72 + (y * 3), 3, 3, color);
+      }
+    }
+
     AssertTextPixels(expected, renderer.Frame);
     Assert.IsTrue(game.ContinueAfterDeath());
     Assert.AreEqual(3, game.Lives);
@@ -168,6 +189,56 @@ public sealed class StartAndGameOverScreenTests : GameTestBase
 
     renderer.Draw(game, 0, 0);
     Assert.IsFalse(renderer.Frame.Pixels.Contains(0xFFFF6B6B));
+  }
+
+  [TestMethod]
+  [DataRow(0x20)] // Space
+  [DataRow(0x52)] // R
+  [DataRow(0x41)] // A
+  [DataRow(0x27)] // Right
+  [DataRow(0x1B)] // Escape
+  public void GameOverIgnoresOtherKeysAndStartsFreshOnlyOnEnter(int code)
+  {
+    CreatePit();
+    var game = new Game([LevelPath]);
+    LoseAllLives(game);
+    Assert.IsFalse(DeathScreen.HandleInput(game, [code], true), "Other keys cannot bypass the last death animation.");
+    Tick(game, Game.DeathDurationTicks);
+    Assert.IsFalse(DeathScreen.HandleInput(game, [code], true));
+    Assert.AreEqual(0, game.Lives);
+    Assert.IsTrue(game.AwaitingRestart);
+    Assert.IsFalse(DeathScreen.HandleInput(game, [0x0D], false), "Unfocused Enter is ignored.");
+    Assert.IsTrue(DeathScreen.HandleInput(game, [0x0D], true));
+    Assert.AreEqual(3, game.Lives);
+    Assert.AreEqual(1, game.LevelNumber);
+    Assert.AreEqual(0, game.Score);
+    Assert.AreEqual(0, game.TotalDeaths);
+    Assert.IsFalse(game.IsDying);
+  }
+
+  [TestMethod]
+  public void GameOverNeedsAFreshEnterPressButOrdinaryDeathsStillAcceptAnyKey()
+  {
+    CreatePit();
+    var game = new Game([LevelPath]);
+
+    Die(game);
+    Assert.IsTrue(DeathScreen.HandleInput(game, [0x20], true));
+    Assert.AreEqual(2, game.Lives);
+
+    Die(game);
+    Assert.IsTrue(DeathScreen.HandleInput(game, [0x41], true));
+
+    Die(game);
+    Tick(game, Game.DeathDurationTicks);
+    var keyboard = new GameKeyboard();
+    keyboard.KeyDown(0x0D);
+    keyboard.BeginFrame();
+    keyboard.KeyDown(0x0D, isRepeat: true);
+    Assert.IsFalse(DeathScreen.HandleInput(game, keyboard.KeyPresses, true));
+    keyboard.KeyUp(0x0D);
+    keyboard.KeyDown(0x0D);
+    Assert.IsTrue(DeathScreen.HandleInput(game, keyboard.KeyPresses, true));
   }
 
   [TestMethod]
