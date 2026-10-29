@@ -37,12 +37,12 @@ jobs:
       - name: Verify native installer bootstrap hook
         shell: pwsh
         run: |
-          [xml]$project = Get-Content NetMan/NetMan.csproj
+          [xml]$project = Get-Content SamElla/SamElla.csproj
           $version = [string]($project.Project.PropertyGroup.FileVersion | Where-Object { $_ } | Select-Object -First 1)
-          $name = 'NetMan-v' + (($version.Split('.'))[0..2] -join '.')
-          $native = Join-Path $PWD "Publish/$name/NetMan.exe"
+          $name = 'SamElla-v' + (($version.Split('.'))[0..2] -join '.')
+          $native = Join-Path $PWD "Publish/$name/SamElla.exe"
           . ./scripts/Get-PackageVersion.ps1
-          $packageVersion = Get-NetManPackageVersion $version
+          $packageVersion = Get-SamEllaPackageVersion $version
           $process = Start-Process -FilePath $native -ArgumentList '--veloapp-install', $packageVersion -WindowStyle Hidden -PassThru
           if (-not $process.WaitForExit(10000)) {
             Stop-Process -Id $process.Id
@@ -57,7 +57,7 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           $assets = @(Get-ChildItem Publish/Velopack/win-x64 -File | ForEach-Object FullName)
-          $assets += @(Get-ChildItem Publish -File -Filter 'NetMan-v*.zip' | ForEach-Object FullName)
+          $assets += @(Get-ChildItem Publish -File -Filter 'SamElla-v*.zip' | ForEach-Object FullName)
           if ($assets.Count -lt 4) { throw 'Release assets are missing.' }
           gh release upload --repo "$env:GITHUB_REPOSITORY" --clobber -- "$env:RELEASE_TAG" @assets
           if ($LASTEXITCODE -ne 0) { throw 'GitHub release upload failed.' }

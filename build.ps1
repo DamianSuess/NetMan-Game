@@ -7,7 +7,7 @@ Builds and packages Sam n' Ella as a size-optimized, trimmed Native AOT executab
 Run on Windows with the .NET 10 SDK and Visual Studio's Desktop development
 with C++ workload installed. Paths are based on this script, not the current
 directory. The first three FileVersion components determine the archive name.
-Output: Publish/NetMan-vX.Y.Z/, Publish/NetMan-vX.Y.Z.zip, and
+Output: Publish/SamElla-vX.Y.Z/, Publish/SamElla-vX.Y.Z.zip, and
 Publish/Velopack/<runtime>/ containing the installer, update feed, and packages.
 .EXAMPLE
 .\build.ps1
@@ -111,8 +111,8 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue))
   throw 'The .NET 10 SDK is required. Install it and ensure dotnet is on PATH.'
 }
 
-$projectPath = Join-Path $PSScriptRoot 'NetMan/NetMan.csproj'
-$testProjectPath = Join-Path $PSScriptRoot 'NetMan.Tests/NetMan.Tests.csproj'
+$projectPath = Join-Path $PSScriptRoot 'SamElla/SamElla.csproj'
+$testProjectPath = Join-Path $PSScriptRoot 'SamElla.Tests/SamElla.Tests.csproj'
 $publishRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'Publish'))
 
 if (-not (Test-Path -LiteralPath $projectPath -PathType Leaf))
@@ -138,8 +138,8 @@ if ($fileVersion -notmatch '^\d+\.\d+\.\d+(\.\d+)?$')
 
 $versionParts = $fileVersion.Split('.')
 . (Join-Path $PSScriptRoot 'scripts/Get-PackageVersion.ps1')
-$packageVersion = Get-NetManPackageVersion -FileVersion $fileVersion
-$releaseName = 'NetMan-v' + ($versionParts[0..2] -join '.')
+$packageVersion = Get-SamEllaPackageVersion -FileVersion $fileVersion
+$releaseName = 'SamElla-v' + ($versionParts[0..2] -join '.')
 $releasePath = Join-Path $publishRoot $releaseName
 $archivePath = Join-Path $publishRoot ($releaseName + '.zip')
 $stagingRoot = Join-Path $publishRoot ('.staging-' + [Guid]::NewGuid().ToString('N'))
@@ -181,7 +181,7 @@ try
     '--self-contained', 'true',
     '--output', $payloadPath,
     '--nologo',
-    '-p:NetManDistribution=true',
+    '-p:SamEllaDistribution=true',
     '-p:PublishAot=true',
     '-p:PublishTrimmed=true',
     '-p:TrimMode=full',
@@ -239,9 +239,9 @@ try
       # Native AOT has no managed entry-point metadata for vpk to inspect. The application
       # calls VelopackApp.Run before normal startup; verify its fast-exit hook in native smoke tests.
       Invoke-DotNet -Arguments @('tool', 'run', 'vpk', '--', 'pack',
-        '--packId', 'SuessLabs.NetMan', '--packTitle', "Sam n' Ella",
+        '--packId', 'SuessLabs.SamElla', '--packTitle', 'Sam-Ella',
         '--packAuthors', 'Damian Suess, Xeno Innovations, (DBA) Suess Labs',
-        '--icon', (Join-Path $PSScriptRoot 'NetMan/Assets/AppIcon/app.ico'),
+        '--icon', (Join-Path $PSScriptRoot 'SamElla/Assets/AppIcon/app.ico'),
         '--packVersion', $packageVersion, '--packDir', $payloadPath,
         '--mainExe', $executableName, '--runtime', $Runtime,
         '--channel', $Runtime, '--outputDir', $stagedInstaller, '--skipVeloAppCheck')

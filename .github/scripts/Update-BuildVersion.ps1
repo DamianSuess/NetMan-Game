@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-Increments NetMan's fourth version component once per merged develop PR.
+Increments SamElla's fourth version component once per merged develop PR.
 .DESCRIPTION
 Use only in a dedicated, clean CI checkout. Fetches develop, commits the version
 change, and pushes normally. A commit trailer makes reruns idempotent. Rejected
@@ -29,7 +29,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $repo = [System.IO.Path]::GetFullPath($RepositoryPath)
-$projectRelativePath = 'NetMan/NetMan.csproj'
+$projectRelativePath = 'SamElla/SamElla.csproj'
 $projectPath = Join-Path $repo $projectRelativePath
 
 function Invoke-RepositoryGit
@@ -56,7 +56,7 @@ function Read-ProjectVersion
   $assemblyNodes = $document.SelectNodes('/Project/PropertyGroup/AssemblyVersion')
   if ($fileNodes.Count -ne 1 -or $assemblyNodes.Count -ne 1)
   {
-    throw 'Expected exactly one FileVersion and one AssemblyVersion in NetMan.csproj.'
+    throw 'Expected exactly one FileVersion and one AssemblyVersion in SamElla.csproj.'
   }
   $version = $fileNodes[0].InnerText.Trim()
   if ($version -notmatch '^\d+\.\d+\.\d+\.\d+$' -or $assemblyNodes[0].InnerText.Trim() -ne $version)
@@ -118,7 +118,7 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++)
     return
   }
 
-  foreach ($path in @((Join-Path $repo 'NetMan'), $projectPath))
+  foreach ($path in @((Join-Path $repo 'SamElla'), $projectPath))
   {
     if (((Get-Item -LiteralPath $path -Force).Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)
     {
