@@ -42,7 +42,7 @@ internal sealed class WindowsGameWindow : IGameWindow
 
     var bounds = new NativeMethods.Rectangle { Right = width * 3, Bottom = height * 3 };
     NativeMethods.AdjustWindowRect(ref bounds, WindowStyle, false);
-    _handle = NativeMethods.CreateWindowExW(0, _className, "NetMan - Pixel Adventure", WindowStyle,
+    _handle = NativeMethods.CreateWindowExW(0, _className, "Sam n' Ella", WindowStyle,
       80, 80, bounds.Right - bounds.Left, bounds.Bottom - bounds.Top, 0, 0, _instance, 0);
 
     if (_handle == 0)
@@ -152,7 +152,7 @@ internal sealed class WindowsGameWindow : IGameWindow
     }
   }
 
-  public static void ShowError(string message) => NativeMethods.MessageBoxW(0, message, "NetMan", 0x10);
+  public static void ShowError(string message) => NativeMethods.MessageBoxW(0, message, "Sam n' Ella", 0x10);
 
   private nint HandleMessage(nint window, uint message, nuint wParam, nint lParam)
   {

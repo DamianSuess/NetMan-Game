@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-Builds and packages NetMan as a size-optimized, trimmed Native AOT executable.
+Builds and packages Sam n' Ella as a size-optimized, trimmed Native AOT executable.
 .DESCRIPTION
 Run on Windows with the .NET 10 SDK and Visual Studio's Desktop development
 with C++ workload installed. Paths are based on this script, not the current
@@ -103,7 +103,7 @@ function Assert-PublishChild
 
 if ($env:OS -ne 'Windows_NT')
 {
-  throw 'NetMan currently has a Windows backend. Build this Native AOT release on Windows.'
+  throw "Sam n' Ella currently has a Windows backend. Build this Native AOT release on Windows."
 }
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue))

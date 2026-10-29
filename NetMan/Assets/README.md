@@ -1,4 +1,4 @@
-# NetMan pixel art
+# Sam n' Ella pixel art
 
 Death messages are editable in `death-quotes.txt`. Each nonblank, non-comment line is one possible quote beneath the large `YOU DIED!` title. Lines beginning with `;` are comments. There are 42 bundled quotes, including "You bring shame to your family" and "Dishonorable and destitute". Add, remove, or replace quotes, then relaunch the game; long quotes wrap automatically. One quote is randomly selected per death and stays unchanged until respawn, including explosion deaths and the last life.
 

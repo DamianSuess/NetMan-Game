@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>NetMan</AssemblyName>
+    <Title>Sam n' Ella</Title>
+    <Product>Sam n' Ella</Product>
     <ApplicationIcon>Assets\AppIcon\app.ico</ApplicationIcon>
     <Copyright>Copyright 2026 Xeno Innovations, Inc.</Copyright>
     <PackageProjectUrl>https://github.com/DamianSuess/NetMan-Game</PackageProjectUrl>

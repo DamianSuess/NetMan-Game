@@ -25,7 +25,7 @@ try
 #endif
 
   if (!OperatingSystem.IsWindows())
-    throw new PlatformNotSupportedException("NetMan currently has a Windows backend. Its game and pixel renderer are portable; other window backends can be added later.");
+    throw new PlatformNotSupportedException("Sam n' Ella currently has a Windows backend. Its game and pixel renderer are portable; other window backends can be added later.");
 
   using var updates = new AppUpdates(new VelopackUpdateBackend(), exception =>
   {
@@ -327,7 +327,7 @@ catch (Exception exception) when (exception is IOException or ArgumentException 
   or PlatformNotSupportedException or System.ComponentModel.Win32Exception)
 {
 #if !NETMAN_DISTRIBUTION
-  Console.Error.WriteLine($"NetMan: {exception.Message}");
+  Console.Error.WriteLine($"Sam n' Ella: {exception.Message}");
 #endif
 
   if (OperatingSystem.IsWindows() && !args.Contains("--export-art"))
