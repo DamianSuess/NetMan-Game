@@ -279,23 +279,44 @@ internal sealed class PixelRenderer
 
   private void DrawGameOver(Game game)
   {
-    Frame.Clear(Ink);
-    Frame.Fill(12, 22, Width - 24, 1, 0xFFFF6B6B);
-    DrawTitleText("GAME OVER", 38, 0xFFFF6B6B, 4);
-    DrawTitleText("OUT OF LIVES. OUT OF EXCUSES.", 70, Gold, 1);
-    DrawWrappedCentered(game.GameOverQuote, 96, White, maxLines: 4);
-    DrawTitleText($"LEVEL {game.LevelNumber}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 177, White, 1);
-    Frame.Fill(12, 198, Width - 24, 1, 0xFF355575);
-    DrawTitleText("PRESS ANY KEY TO TRY AGAIN", 213, Gold, 1);
+    Frame.Clear(0xFF781C29);
+    Frame.Fill(12, 12, Width - 24, 1, 0xFFFF6B6B);
+    DrawTitleText("GAME OVER", 24, White, 4);
+    DrawTitleText("OUT OF LIVES. OUT OF EXCUSES.", 54, Gold, 1);
+
+    const int Scale = 3;
+    const int StoneY = 72;
+    var stone = _sprites["tombstone"];
+    int stoneX = (Width - (stone.Width * Scale)) / 2;
+    Frame.Fill(stoneX - 8, StoneY + (stone.Height * Scale), (stone.Width * Scale) + 16, 3, 0xFF43101B);
+
+    for (int y = 0; y < stone.Height; y++)
+    {
+      for (int x = 0; x < stone.Width; x++)
+      {
+        uint color = stone.Pixel(x, y);
+        if ((color >> 24) != 0)
+          Frame.Fill(stoneX + (x * Scale), StoneY + (y * Scale), Scale, Scale, color);
+      }
+    }
+
+    DrawTitleText("YOU DIED", 151, White, 2);
+    DrawWrappedCentered(game.GameOverQuote, 171, White, maxLines: 2);
+    DrawTitleText($"LEVEL {game.LevelNumber}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 202, White, 1);
+
+    Frame.Fill(12, 215, Width - 24, 1, 0xFFFF6B6B);
+    DrawTitleText("PRESS ENTER TO START OVER", 226, Gold, 1);
   }
 
   private void DrawWrappedCentered(string text, int y, uint color, int maxLines = 3)
   {
     const int MaxCharacters = 42;
     string remaining = text.Trim();
+
     for (int index = 0; index < maxLines && remaining.Length > 0; index++)
     {
       int length = Math.Min(MaxCharacters, remaining.Length);
+
       if (length < remaining.Length)
       {
         int space = remaining.LastIndexOf(' ', length - 1, length);
@@ -516,7 +537,7 @@ internal sealed class PixelRenderer
     if (game.IsDying)
     {
       DrawDeathMessage(game.DeathQuote);
-      const string Prompt = "PRESS ANY KEY TO CONTINUE";
+      string Prompt = game.Lives == 0 ? "PRESS ENTER TO START OVER" : "PRESS ANY KEY TO CONTINUE";
       int promptScale = game.AwaitingRestart ? 2 : 1;
       int promptY = game.AwaitingRestart ? 112 : Height - 9;
       if (!game.AwaitingRestart)
