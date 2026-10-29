@@ -147,6 +147,8 @@ public sealed class RenderingTests
         "toaster-cat-squashed.sprite" => asset.Width == 32 && asset.Height == 16,
         "zombie-walk-1.sprite" or "zombie-walk-2.sprite" => asset.Width == 32 && asset.Height == 32,
         "zombie-squashed.sprite" => asset.Width == 32 && asset.Height == 16,
+        string name when name.StartsWith("creepy-crawler-", StringComparison.Ordinal)
+          => asset.Width == 32 && asset.Height == 16,
         "dog-walk-1.sprite" or "dog-walk-2.sprite" or "dog-squashed.sprite" => asset.Width == 24 && asset.Height == 16,
         "poop-screen-splatter.sprite" => asset.Width == 128 && asset.Height == 96,
         "reward-plus-one.sprite" => true,

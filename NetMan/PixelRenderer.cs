@@ -49,6 +49,13 @@ internal sealed class PixelRenderer
       "zombie-walk-1",
       "zombie-walk-2",
       "zombie-squashed",
+      "creepy-crawler-buried",
+      "creepy-crawler-emerge-1",
+      "creepy-crawler-emerge-2",
+      "creepy-crawler-emerge-3",
+      "creepy-crawler-crawl-1",
+      "creepy-crawler-crawl-2",
+      "creepy-crawler-squashed",
       "dog-walk-1",
       "dog-walk-2",
       "dog-squashed",
@@ -367,6 +374,9 @@ internal sealed class PixelRenderer
     {
       string name = enemy.Kind switch
       {
+        EnemyKind.CreepyCrawler => enemy.IsBuried ? "creepy-crawler-buried"
+          : enemy.IsEmerging ? $"creepy-crawler-emerge-{enemy.EmergenceFrameIndex + 1}"
+          : $"creepy-crawler-crawl-{(int)(_animationTime * 4) % 2 + 1}",
         EnemyKind.Zombie => $"zombie-walk-{(int)(_animationTime * 3) % 2 + 1}",
         EnemyKind.Dog => $"dog-walk-{(int)(_animationTime * 6) % 2 + 1}",
         EnemyKind.ToasterCat => Math.Abs(enemy.VelocityY) > 0.01 ? "toaster-cat-jump" : $"toaster-cat-run-{animationFrame + 1}",
@@ -380,6 +390,7 @@ internal sealed class PixelRenderer
     {
       string name = enemy.Kind switch
       {
+        EnemyKind.CreepyCrawler => "creepy-crawler-squashed",
         EnemyKind.Zombie => "zombie-squashed",
         EnemyKind.Dog => "dog-squashed",
         EnemyKind.ToasterCat => "toaster-cat-squashed",

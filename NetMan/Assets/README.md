@@ -73,6 +73,21 @@ Reward popup: `reward-plus-one.sprite` is an 8 x 6 pixel image containing the go
 
 Restart `dotnet run` after editing source art. Running the project copies assets into its build output. For the original plain ZIP, edit the `.sprite` files and palette inside the `Assets` directory beside `NetMan.exe`, then relaunch. Installer and Velopack-managed portable builds use `%LocalAppData%/NetMan/Content/Assets` instead; edits there are preserved during automatic updates. Relaunch after editing.
 
+## Creepy-Crawler
+
+The `creepy-crawler-*.sprite` files are editable 32 x 16 pixel grids using the
+shared zombie palette. `buried` shows a cracked dirt mound. `emerge-1` through
+`emerge-3` show a hand, head, and torn torso clawing out over one second. The two
+`crawl-*` frames alternate as the zombie drags its legless half-body along the
+ground. `squashed` is its blood, skin, and torn-clothing splatter. All frames face
+left and are mirrored when moving right. They are anchored at the terrain
+surface, including supported bricks on the nighttime jumping courses.
+
+Place `R` in the empty tile above solid terrain on a nighttime map. The bundled
+campaign introduces it on Level 5. `[Creepy-Crawler]` in `enemies.txt` controls its
+speed and health independently of the standing zombie; default speed is 1.5,
+health is 2, and hopping is disabled.
+
 ## PNG previews
 
 `Previews` contains standard transparent PNG exports for inspecting or sharing the art. They are generated from the `.sprite` sources; editing a preview PNG does not change the game. From the NetMan project directory, regenerate them with:
@@ -95,7 +110,7 @@ Duplicate flamethrower burn: `player-burning-1.sprite` through `player-burning-4
 
 Flamethrower pickup quotes: `flamethrower-quotes.txt` contains ten editable messages, including Light Em' If you Got Em! and Make Flamethrowers Great Again. Put one quote on each line without surrounding quotation marks; blank lines and lines starting with `;` are ignored. Relaunch after editing. Equipping the weapon picks one message at random and shows it in a centered, wrapping banner for three seconds. Pausing freezes the timer. Restarting, changing levels, dying, or losing the weapon clears it; a duplicate pickup triggers the burn penalty instead of a new success quote. Missing or empty files use the first requested quote as a fallback.
 
-Night scenery: `moon.sprite` is a 32 x 32 cratered moon. `tombstone.sprite` and `tombstone-cross.sprite` are 16 x 24 gravestones. Edit these pixel grids and relaunch to customize the night background on Levels 4 and 5. Gravestones are drawn behind level tiles and characters, anchored near the ground and repeated in two scrolling layers; they have no collisions. Each level chooses Day or Night with its first-line `Background=Day` or `Background=Night` header. The bundled Levels 4 and 5 select Night, and the rest select Day. Files without the header default to Day. The title screen retains its daytime background.
+Night scenery: `moon.sprite` is a 32 x 32 cratered moon. `tombstone.sprite` and `tombstone-cross.sprite` are 16 x 24 gravestones. Edit these pixel grids and relaunch to customize the night background on Levels 4, 5, 8, and 9. Gravestones are drawn behind level tiles and characters, anchored near the ground and repeated in two scrolling layers; they have no collisions. Each level chooses Day or Night with its first-line `Background=Day` or `Background=Night` header. The bundled Levels 4, 5, 8, and 9 select Night, and the rest select Day. Files without the header default to Day. The title screen retains its daytime background.
 
 Level-start advice is editable in `uncle-quotes.txt`. The file contains 30 demotivating lines, including Try not to die this time and You dropped your pocket. A level-start page chooses one quote and displays the level number, filename-derived name, and remaining lives for five seconds, or until a fresh keypress. Gameplay freezes during the page; losing focus freezes its countdown. The page appears before the first level, subsequent levels, and retries.
 

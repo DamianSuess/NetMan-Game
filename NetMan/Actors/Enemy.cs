@@ -6,6 +6,9 @@ public sealed class Enemy
   public const int HopIntervalTicks = 24;
   public const int StompStunTicks = 20;
   public const int PoopIntervalTicks = 180;
+  public const int CrawlerEmergenceDurationTicks = 60;
+  public const double CrawlerBodyHeight = 0.5;
+  public const double CrawlerWakeDistance = 12;
 
   public Enemy(double x, double y, EnemyKind kind = EnemyKind.Walker, EnemySettings? settings = null)
   {
@@ -17,10 +20,12 @@ public sealed class Enemy
       EnemyKind.ToasterCat => EnemyConfiguration.DefaultToasterCat,
       EnemyKind.Zombie => EnemyConfiguration.DefaultZombie,
       EnemyKind.Dog => EnemyConfiguration.DefaultDog,
+      EnemyKind.CreepyCrawler => EnemyConfiguration.DefaultCreepyCrawler,
       _ => EnemyConfiguration.DefaultWalker,
     });
 
     Health = Settings.PowerLevel;
+    IsBuried = kind == EnemyKind.CreepyCrawler;
   }
 
   public int Direction = -1;
@@ -31,7 +36,18 @@ public sealed class Enemy
 
   public EnemySettings Settings { get; }
 
-  public double BodyHeight => Kind == EnemyKind.Zombie ? Game.LargeBodyHeight : Game.BodyHeight;
+  public double BodyHeight => Kind switch
+  {
+    EnemyKind.Zombie => Game.LargeBodyHeight,
+    EnemyKind.CreepyCrawler => CrawlerBodyHeight,
+    _ => Game.BodyHeight,
+  };
+
+  public bool IsBuried { get; private set; }
+  public int EmergenceTicksRemaining { get; private set; }
+  public bool IsEmerging => EmergenceTicksRemaining > 0;
+  public int EmergenceFrameIndex => Math.Min(2, (CrawlerEmergenceDurationTicks - EmergenceTicksRemaining) / 20);
+  public bool CanInteract => Alive && !IsBuried && !IsEmerging;
 
   public int Health { get; private set; }
 
@@ -44,6 +60,39 @@ public sealed class Enemy
   internal int StunTicksRemaining { get; set; }
 
   internal int PoopTicksRemaining { get; set; } = PoopIntervalTicks;
+
+  internal bool AdvanceEmergence(double playerX, double playerY, bool supported = true)
+  {
+    if (Kind != EnemyKind.CreepyCrawler)
+      return false;
+
+    if (!supported)
+    {
+      IsBuried = false;
+      EmergenceTicksRemaining = 0;
+      return false;
+    }
+
+    if (IsBuried)
+    {
+      if (Math.Abs(X - playerX) <= CrawlerWakeDistance && Math.Abs(Y - playerY) <= 4)
+      {
+        IsBuried = false;
+        EmergenceTicksRemaining = CrawlerEmergenceDurationTicks;
+        Direction = playerX < X ? -1 : 1;
+      }
+
+      return true;
+    }
+
+    if (IsEmerging)
+    {
+      EmergenceTicksRemaining--;
+      return true;
+    }
+
+    return false;
+  }
 
   internal void AdvanceSquash()
   {
@@ -64,7 +113,7 @@ public sealed class Enemy
     if (damage is < 1 or > 12)
       throw new ArgumentOutOfRangeException(nameof(damage));
 
-    if (!Alive)
+    if (!CanInteract)
       return false;
 
     Health = Math.Max(0, Health - damage);

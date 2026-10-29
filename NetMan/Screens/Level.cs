@@ -26,6 +26,7 @@ public sealed class Level
   public List<(int X, int Y)> ToasterCatSpawns { get; } = [];
   public List<(int X, int Y)> ZombieSpawns { get; } = [];
   public List<(int X, int Y)> DogSpawns { get; } = [];
+  public List<(int X, int Y)> CreepyCrawlerSpawns { get; } = [];
 
   private Level(string name, char[,] tiles, BackgroundTheme background)
   {
@@ -65,7 +66,7 @@ public sealed class Level
       for (int x = 0; x < map.Width; x++)
       {
         char tile = x < lines[y].Length ? lines[y][x] : '.';
-        if (!". #B?MFQo^PpSGECZD".Contains(tile))
+        if (!". #B?MFQo^PpSGECZDR".Contains(tile))
           throw new InvalidDataException($"{name}: unknown tile '{tile}' at column {x + 1}, row {y + 1}.");
 
         if (tile == 'S')
@@ -75,13 +76,14 @@ public sealed class Level
           tile = '.';
         }
 
-        if (tile is 'E' or 'C' or 'Z' or 'D')
+        if (tile is 'E' or 'C' or 'Z' or 'D' or 'R')
         {
           var spawns = tile switch
           {
             'C' => map.ToasterCatSpawns,
             'Z' => map.ZombieSpawns,
             'D' => map.DogSpawns,
+            'R' => map.CreepyCrawlerSpawns,
             _ => map.EnemySpawns,
           };
 
@@ -103,6 +105,15 @@ public sealed class Level
     {
       if (spawn.Y == 0 || map.Solid(spawn.X, spawn.Y - 1))
         throw new InvalidDataException($"{name}: zombie at column {spawn.X + 1}, row {spawn.Y + 1} needs an empty tile above it.");
+    }
+
+    foreach (var spawn in map.CreepyCrawlerSpawns)
+    {
+      if (background != BackgroundTheme.Night)
+        throw new InvalidDataException($"{name}: Creepy-Crawler at column {spawn.X + 1}, row {spawn.Y + 1} requires Background=Night.");
+
+      if (spawn.Y + 1 >= map.Height || !map.Solid(spawn.X, spawn.Y + 1))
+        throw new InvalidDataException($"{name}: Creepy-Crawler at column {spawn.X + 1}, row {spawn.Y + 1} needs solid terrain directly below it.");
     }
 
     return map;
