@@ -363,5 +363,6 @@ finally
 if ($Run)
 {
   Write-Host "Launching $releaseName..."
-  Start-Process -FilePath (Join-Path $releasePath $executableName) -WorkingDirectory $releasePath -WindowStyle Hidden
+  # This is the interactive game: Hidden would suppress its first ShowWindow call.
+  Start-Process -FilePath (Join-Path $releasePath $executableName) -WorkingDirectory $releasePath -WindowStyle Normal
 }
