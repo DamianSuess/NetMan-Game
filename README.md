@@ -79,6 +79,47 @@ applications contain no GitHub credentials. Draft and prerelease releases are no
 offered by the app. If using immutable GitHub releases, build locally and attach the
 assets while the release is still a draft, before publishing it.
 
+### Local self-signing
+
+To create or reuse a local development signing certificate and sign a release:
+
+```powershell
+.\build.bat -SelfSign
+```
+
+This signs `SamElla.exe` and Velopack's generated executables during packaging,
+before the package hashes and archives are finalized. `-SkipInstaller -SelfSign`
+also signs the standalone executable. The Windows SDK's `signtool.exe` is required.
+Signing or timestamp failures stop the build before existing release outputs are replaced.
+If a game is running from the normal release folder, use a separate destination:
+`.\build.bat -SelfSign -PublishDirectory .\Publish\SelfSigned`.
+
+The certificate is stored in the current user's Personal certificate store. Its
+private key is non-exportable and is never written into this repository. The same
+certificate is reused on later builds while it remains valid. A public-only copy
+is exported to ignored `output/Signing/SamElla-SelfSigned.cer`. No certificate is
+automatically installed into a trusted certificate store.
+
+Self-signing does **not** remove public SmartScreen or unknown-publisher warnings.
+It is for development and controlled testing; users do not trust this certificate
+by default. PowerShell may report `NotTrusted` or `UnknownError` for the untrusted root.
+The build verifies the signature and file integrity with Windows WinVerifyTrust,
+allowing only a successful check or the specific untrusted-root result. Do not distribute private signing keys or ask public users to
+disable Windows security features.
+
+To use an existing code-signing certificate from `Cert:\CurrentUser\My` instead:
+
+```powershell
+.\build.bat -SigningCertificateThumbprint YOUR_40_CHARACTER_THUMBPRINT
+```
+
+The default RFC 3161 timestamp server is `http://timestamp.digicert.com`; override
+it with `-TimestampUrl`. Builds without signing arguments remain unsigned,
+including the current GitHub release workflow. A local non-exportable private key
+is not available on GitHub-hosted runners. SignPath integration will require a
+separate CI signing configuration; it can replace this local signing option while
+keeping `SuessLabs.SamElla` as the package ID.
+
 The four-part Windows FileVersion is preserved. Velopack uses a three-part package
 version: `Major.Minor.(Revision * 65536 + Build)`. For example, `0.5.0.71` becomes
 `0.5.71`, and `0.5.1.0` becomes `0.5.65536`. This preserves ordering when either

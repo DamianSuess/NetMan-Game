@@ -29,4 +29,5 @@
   * Enhanced level designer
   * Sloped ramps to walk up/down
 * Save game stats (sqlite?)
-* (Squirrel) Installer
+* ~~(Squirrel) Installer~~
+  * [Sign application](https://signpath.org/)

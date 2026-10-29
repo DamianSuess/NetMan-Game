@@ -15,6 +15,8 @@ Publish/Velopack/<runtime>/ containing the installer, update feed, and packages.
 .\build.ps1 -Runtime win-arm64 -SkipTests
 .EXAMPLE
 .\build.ps1 -Run
+.EXAMPLE
+.\build.ps1 -SelfSign
 #>
 
 [CmdletBinding()]
@@ -26,7 +28,16 @@ param(
 
   [switch]$SkipInstaller,
 
-  [switch]$Run
+  [switch]$Run,
+
+  [string]$PublishDirectory = (Join-Path $PSScriptRoot 'Publish'),
+
+  [switch]$SelfSign,
+
+  [string]$SigningCertificateThumbprint = '',
+
+  [ValidatePattern('^https?://[^\s"\r\n]+$')]
+  [string]$TimestampUrl = 'http://timestamp.digicert.com'
 )
 
 Set-StrictMode -Version Latest
@@ -111,9 +122,30 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue))
   throw 'The .NET 10 SDK is required. Install it and ensure dotnet is on PATH.'
 }
 
+$signingCertificate = $null
+$signTool = $null
+$signParameters = $null
+
+if ($SelfSign -or $SigningCertificateThumbprint)
+{
+  . (Join-Path $PSScriptRoot 'scripts/CodeSigning.ps1')
+  $signTool = Get-SamEllaSignTool
+  $signingCertificate = Get-SamEllaSigningCertificate -SelfSign:$SelfSign -Thumbprint $SigningCertificateThumbprint
+  $signParameters = "/sha1 $($signingCertificate.Thumbprint) /s My /fd SHA256 /td SHA256 /tr $TimestampUrl"
+  Write-Host "Signing with: $($signingCertificate.Subject) [$($signingCertificate.Thumbprint)]"
+
+  if ($SelfSign)
+  {
+    Write-Warning 'Self-signing does not establish public Windows trust or remove SmartScreen warnings.'
+    $certificateDirectory = Join-Path $PSScriptRoot 'output/Signing'
+    New-Item -ItemType Directory -Path $certificateDirectory -Force | Out-Null
+    Export-Certificate -Cert $signingCertificate -FilePath (Join-Path $certificateDirectory 'SamElla-SelfSigned.cer') -Force | Out-Null
+  }
+}
+
 $projectPath = Join-Path $PSScriptRoot 'SamElla/SamElla.csproj'
 $testProjectPath = Join-Path $PSScriptRoot 'SamElla.Tests/SamElla.Tests.csproj'
-$publishRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'Publish'))
+$publishRoot = [System.IO.Path]::GetFullPath($PublishDirectory)
 
 if (-not (Test-Path -LiteralPath $projectPath -PathType Leaf))
 {
@@ -238,13 +270,20 @@ try
       Invoke-DotNet -Arguments @('tool', 'restore', '--tool-manifest', (Join-Path $PSScriptRoot '.config/dotnet-tools.json'))
       # Native AOT has no managed entry-point metadata for vpk to inspect. The application
       # calls VelopackApp.Run before normal startup; verify its fast-exit hook in native smoke tests.
-      Invoke-DotNet -Arguments @('tool', 'run', 'vpk', '--', 'pack',
+      $packArguments = @('tool', 'run', 'vpk', '--', 'pack',
         '--packId', 'SuessLabs.SamElla', '--packTitle', 'Sam-Ella',
         '--packAuthors', 'Damian Suess, Xeno Innovations, (DBA) Suess Labs',
         '--icon', (Join-Path $PSScriptRoot 'SamElla/Assets/AppIcon/app.ico'),
         '--packVersion', $packageVersion, '--packDir', $payloadPath,
         '--mainExe', $executableName, '--runtime', $Runtime,
         '--channel', $Runtime, '--outputDir', $stagedInstaller, '--skipVeloAppCheck')
+
+      if ($signingCertificate)
+      {
+        $packArguments += @('--signParams', $signParameters)
+      }
+
+      Invoke-DotNet -Arguments $packArguments
     }
     finally
     {
@@ -253,6 +292,25 @@ try
     if (-not (Test-Path -LiteralPath (Join-Path $stagedInstaller ("releases." + $Runtime + '.json'))))
     {
       throw 'Velopack did not produce the expected update feed.'
+    }
+  }
+
+  if ($signingCertificate)
+  {
+    # Velopack signs its staging copies; the standalone release needs its own signature.
+    & $signTool sign /sha1 $signingCertificate.Thumbprint /s My /fd SHA256 /td SHA256 /tr $TimestampUrl (Join-Path $payloadPath $executableName)
+
+    if ($LASTEXITCODE -ne 0)
+    {
+      throw 'Signing the native executable failed. Existing releases were preserved.'
+    }
+
+    Assert-SamEllaSignature -Path (Join-Path $payloadPath $executableName) -Thumbprint $signingCertificate.Thumbprint
+
+    if (-not $SkipInstaller)
+    {
+      $setupPath = Join-Path $stagedInstaller ("SuessLabs.SamElla-$Runtime-Setup.exe")
+      Assert-SamEllaSignature -Path $setupPath -Thumbprint $signingCertificate.Thumbprint
     }
   }
 
