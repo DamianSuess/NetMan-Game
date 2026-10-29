@@ -10,7 +10,7 @@ namespace SamElla.Tests;
 public sealed class SettingsScreenTests
 {
   [TestMethod]
-  public void TogglesAreIndependentAndDisabledVolumesAreSkipped()
+  public void TogglesAreIndependentAndAllFiveRowsCanBeSelected()
   {
     var audio = new AudioSettings();
     var screen = new SettingsScreen(audio);
@@ -18,14 +18,16 @@ public sealed class SettingsScreenTests
     screen.HandleInput([0x25], true);
     Assert.IsFalse(audio.MusicEnabled);
     Assert.IsTrue(audio.SoundEffectsEnabled);
-    screen.HandleInput([0x28, 0x20], true);
-    Assert.AreEqual(1, screen.SelectedIndex);
+    screen.HandleInput([0x28, 0x28, 0x20], true);
+    Assert.AreEqual(2, screen.SelectedIndex);
     Assert.IsFalse(audio.SoundEffectsEnabled);
     screen.HandleInput([0x27], true);
     Assert.IsTrue(audio.SoundEffectsEnabled);
     Assert.IsFalse(audio.MusicEnabled);
     screen.HandleInput([0x28], true);
-    Assert.AreEqual(2, screen.SelectedIndex, "Navigation skips the disabled volume sliders.");
+    Assert.AreEqual(3, screen.SelectedIndex);
+    screen.HandleInput([0x28], true);
+    Assert.AreEqual(4, screen.SelectedIndex);
     screen.HandleInput([0x25, 0x27], true);
     Assert.IsTrue(screen.IsActive);
     screen.HandleInput([0x0D], true);
@@ -49,7 +51,72 @@ public sealed class SettingsScreenTests
     Assert.IsFalse(screen.Audio.MusicEnabled);
     Assert.AreEqual(0, screen.SelectedIndex);
     screen.HandleInput([0x26], true);
-    Assert.AreEqual(2, screen.SelectedIndex);
+    Assert.AreEqual(4, screen.SelectedIndex);
+    screen.HandleInput([0x28], true);
+    Assert.AreEqual(0, screen.SelectedIndex);
+  }
+
+  [TestMethod]
+  public void SlidersAdjustIndependentlyClampAndKeepValuesWhenReopened()
+  {
+    var audio = new AudioSettings();
+    var screen = new SettingsScreen(audio);
+    screen.Open();
+    screen.HandleInput([0x28, 0x25, 0x25], true);
+    Assert.AreEqual(90, audio.MusicVolume);
+    Assert.AreEqual(100, audio.SoundEffectsVolume);
+
+    screen.HandleInput([0x28, 0x28, 0x25], true);
+    Assert.AreEqual(95, audio.SoundEffectsVolume);
+    Assert.AreEqual(90, audio.MusicVolume);
+
+    for (int i = 0; i < 30; i++)
+      screen.HandleInput([0x25], true);
+
+    Assert.AreEqual(0, audio.SoundEffectsVolume);
+    Assert.IsTrue(audio.SoundEffectsEnabled, "Silent volume must not change the separate on/off switch.");
+
+    screen.HandleInput([0x27], true);
+    Assert.AreEqual(5, audio.SoundEffectsVolume);
+
+    for (int i = 0; i < 30; i++)
+      screen.HandleInput([0x27], true);
+
+    Assert.AreEqual(100, audio.SoundEffectsVolume);
+
+    screen.HandleInput([0x0D, 0x20], true);
+    Assert.AreEqual(100, audio.SoundEffectsVolume, "Enter/Space do not toggle a slider.");
+    Assert.IsTrue(screen.IsActive);
+
+    screen.HandleInput([0x1B], true);
+    screen.Open();
+    Assert.AreEqual(90, audio.MusicVolume);
+    Assert.AreEqual(100, audio.SoundEffectsVolume);
+  }
+
+  [TestMethod]
+  public void VolumeChangesWhileMutedKeepTheSwitchOffAndIgnoreUnfocusedInput()
+  {
+    var audio = new AudioSettings();
+    var screen = new SettingsScreen(audio);
+
+    screen.Open();
+    screen.HandleInput([0x25, 0x28, 0x25], true);
+    Assert.IsFalse(audio.MusicEnabled);
+    Assert.AreEqual(95, audio.MusicVolume);
+
+    screen.HandleInput([0x25, 0x28], false);
+    Assert.AreEqual(95, audio.MusicVolume);
+    Assert.AreEqual(1, screen.SelectedIndex);
+
+    screen.HandleInput([0x1B], true);
+    screen.HandleInput([0x25], true);
+    Assert.AreEqual(95, audio.MusicVolume);
+
+    audio.MusicVolume = -50;
+    audio.SoundEffectsVolume = 150;
+    Assert.AreEqual(0, audio.MusicVolume);
+    Assert.AreEqual(100, audio.SoundEffectsVolume);
   }
 
   [TestMethod]
@@ -73,10 +140,14 @@ public sealed class SettingsScreenTests
     {
       var defaults = AudioSettings.Load(path);
       Assert.IsTrue(defaults.MusicEnabled && defaults.SoundEffectsEnabled);
-      new AudioSettings { MusicEnabled = false, SoundEffectsEnabled = true }.Save(path);
+
+      new AudioSettings { MusicEnabled = false, SoundEffectsEnabled = true, MusicVolume = 25, SoundEffectsVolume = 75 }.Save(path);
       var restored = AudioSettings.Load(path);
       Assert.IsFalse(restored.MusicEnabled);
       Assert.IsTrue(restored.SoundEffectsEnabled);
+      Assert.AreEqual(100, restored.MusicVolume, "Volume persistence is intentionally deferred.");
+      Assert.AreEqual(100, restored.SoundEffectsVolume);
+
       File.WriteAllLines(path, ["MusicEnabled=invalid", "SoundEffectsEnabled=false", "garbage"]);
       restored = AudioSettings.Load(path);
       Assert.IsTrue(restored.MusicEnabled);
@@ -89,16 +160,23 @@ public sealed class SettingsScreenTests
   }
 
   [TestMethod]
-  public void OverlayBlendsWithUnderlyingScreenAndUsesGrayVolumeControls()
+  public void OverlayBlendsWithUnderlyingScreenAndDrawsSelectedVolumeThumb()
   {
     var renderer = new PixelRenderer(Path.Combine(AppContext.BaseDirectory, "Assets"));
     var screen = new SettingsScreen(new AudioSettings());
     screen.Open();
     renderer.Frame.Clear(0xFFFFFFFF);
     renderer.DrawSettings(screen);
+
     uint lightPanel = renderer.Frame.Pixels[(26 * PixelRenderer.Width) + 26];
     Assert.AreNotEqual(0xFF17263Fu, lightPanel, "The panel must allow the background to show through.");
-    Assert.AreEqual(0xFF838B98u, renderer.Frame.Pixels[(99 * PixelRenderer.Width) + 308]);
+    Assert.AreEqual(0xFFF6F4DFu, renderer.Frame.Pixels[(99 * PixelRenderer.Width) + 329]);
+
+    screen.HandleInput([0x28, 0x25], true);
+    renderer.Frame.Clear(0xFFFFFFFF);
+    renderer.DrawSettings(screen);
+    Assert.AreEqual(0xFFFFD56Bu, renderer.Frame.Pixels[(99 * PixelRenderer.Width) + 324]);
+
     renderer.Frame.Clear(0xFF000000);
     renderer.DrawSettings(screen);
     Assert.AreNotEqual(lightPanel, renderer.Frame.Pixels[(26 * PixelRenderer.Width) + 26]);

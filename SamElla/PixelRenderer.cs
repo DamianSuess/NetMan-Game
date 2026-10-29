@@ -173,7 +173,6 @@ internal sealed class PixelRenderer
 
   public void DrawSettings(SettingsScreen screen)
   {
-    const uint Disabled = 0xFF838B98;
     Frame.OverlayBlack(80);
     Frame.FillTranslucent(24, 24, Width - 48, 214, Ink, 225);
     Frame.FillTranslucent(26, 28, Width - 52, 32, Ink, 210);
@@ -182,18 +181,18 @@ internal sealed class PixelRenderer
     DrawTitleText("SETTINGS", 36, Gold, 3);
 
     DrawAudioToggle("BACKGROUND MUSIC", 68, screen.Audio.MusicEnabled, screen.SelectedIndex == 0);
-    DrawVolumePlaceholder("MUSIC VOLUME", 99, Disabled);
-    DrawAudioToggle("SOUND FX", 129, screen.Audio.SoundEffectsEnabled, screen.SelectedIndex == 1);
-    DrawVolumePlaceholder("SOUND FX VOLUME", 160, Disabled);
+    DrawVolumeSlider("MUSIC VOLUME", 99, screen.Audio.MusicVolume, screen.SelectedIndex == 1);
+    DrawAudioToggle("SOUND FX", 129, screen.Audio.SoundEffectsEnabled, screen.SelectedIndex == 2);
+    DrawVolumeSlider("SOUND FX VOLUME", 160, screen.Audio.SoundEffectsVolume, screen.SelectedIndex == 3);
 
     Frame.FillTranslucent(144, 184, 96, 24, Ink, 180);
-    if (screen.SelectedIndex == 2)
+    if (screen.SelectedIndex == 4)
       Frame.FillTranslucent(144, 187, 96, 17, Gold, 45);
 
-    DrawTitleText(screen.SelectedIndex == 2 ? "> BACK <" : "BACK", 192,
-      screen.SelectedIndex == 2 ? Gold : White, 1);
+    DrawTitleText(screen.SelectedIndex == 4 ? "> BACK <" : "BACK", 192,
+      screen.SelectedIndex == 4 ? Gold : White, 1);
 
-    DrawTitleText("UP/DOWN SELECT  LEFT/RIGHT OFF/ON", 220, White, 1);
+    DrawTitleText("UP/DOWN SELECT  LEFT/RIGHT ADJUST", 220, White, 1);
     DrawTitleText("ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
   }
 
@@ -210,12 +209,18 @@ internal sealed class PixelRenderer
     PixelFont.Draw(Frame, enabled ? "ON" : "OFF", SwitchX + (enabled ? 10 : 27), y + 4, White);
   }
 
-  private void DrawVolumePlaceholder(string label, int y, uint color)
+  private void DrawVolumeSlider(string label, int y, int volume, bool selected)
   {
+    if (selected)
+      Frame.FillTranslucent(36, y - 5, Width - 72, 24, Gold, 40);
+
+    uint color = selected ? Gold : White;
+    PixelFont.Draw(Frame, selected ? ">" : " ", 40, y, Gold);
     PixelFont.Draw(Frame, label, 52, y, color);
+    PixelFont.Draw(Frame, $"{volume}%", 208, y, color);
     Frame.Fill(244, y + 2, 92, 3, 0xFF525D70);
-    Frame.Fill(308, y - 1, 7, 9, color);
-    PixelFont.Draw(Frame, "COMING SOON", 52, y + 10, color);
+    Frame.Fill(244, y + 2, volume * 92 / 100, 3, Gold);
+    Frame.Fill(244 + (volume * 85 / 100), y - 1, 7, 9, color);
   }
 
   private static string PlayerSprite(PlayerCharacter character, string name) =>

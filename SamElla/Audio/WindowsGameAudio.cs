@@ -73,6 +73,10 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
   private bool _queuedMusicEnabled = true;
   private bool _queuedEffectsEnabled = true;
   private bool _effectsEnabled = true;
+  private int _queuedMusicVolume = 100;
+  private int _queuedEffectsVolume = 100;
+  private int _musicVolume = 100;
+  private int _effectsVolume = 100;
 
   public WindowsGameAudio()
   {
@@ -134,6 +138,28 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     _queuedMusicEnabled = musicEnabled;
     _queuedEffectsEnabled = effectsEnabled;
     _worker.Enqueue(() => SetEnabledCore(musicEnabled, effectsEnabled));
+  }
+
+  public void SetVolume(int musicVolume, int effectsVolume)
+  {
+    musicVolume = Math.Clamp(musicVolume, 0, 100);
+    effectsVolume = Math.Clamp(effectsVolume, 0, 100);
+    if (_queuedMusicVolume == musicVolume && _queuedEffectsVolume == effectsVolume)
+      return;
+
+    _queuedMusicVolume = musicVolume;
+    _queuedEffectsVolume = effectsVolume;
+    _worker.Enqueue(() => SetVolumeCore(musicVolume, effectsVolume));
+  }
+
+  private void SetVolumeCore(int musicVolume, int effectsVolume)
+  {
+    _musicVolume = musicVolume;
+    _effectsVolume = effectsVolume;
+    _music?.SetVolume(musicVolume);
+    _flamethrower?.SetVolume(effectsVolume);
+    foreach (var voice in _voices)
+      voice.SetVolume(effectsVolume);
   }
 
   private void SetEnabledCore(bool musicEnabled, bool effectsEnabled)
@@ -216,7 +242,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     if (music != GameMusic.None)
     {
       _music = CreateVoice(_musicSamples[music], GameMusicTracks.Loops(music),
-        paused: _musicPause.ShouldPause);
+        paused: _musicPause.ShouldPause, volume: _musicVolume);
     }
 
   }
@@ -235,9 +261,9 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     _music?.SetPaused(_musicPause.ShouldPause);
   }
 
-  private Voice? CreateVoice(GameSound sound, bool loop = false) => CreateVoice(_samples[sound], loop);
+  private Voice? CreateVoice(GameSound sound, bool loop = false) => CreateVoice(_samples[sound], loop, volume: _effectsVolume);
 
-  private Voice? CreateVoice(short[] samples, bool loop = false, bool paused = false)
+  private Voice? CreateVoice(short[] samples, bool loop = false, bool paused = false, int volume = 100)
   {
     var format = new WaveFormat
     {
@@ -253,23 +279,12 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     if (waveOutOpen(out nint device, uint.MaxValue, ref format, 0, 0, 0) != 0)
       return null;
 
-    var voice = new Voice(device, samples);
+    var voice = new Voice(device, samples, loop);
+    voice.SetVolume(volume);
     if (paused)
       voice.SetPaused(true);
 
-    if (waveOutPrepareHeader(device, voice.Header, (uint)sizeof(WaveHeader)) != 0)
-    {
-      voice.Dispose();
-      return null;
-    }
-
-    if (loop)
-    {
-      voice.Header->Flags |= 4 | 8; // WHDR_BEGINLOOP | WHDR_ENDLOOP
-      voice.Header->Loops = uint.MaxValue;
-    }
-
-    if (waveOutWrite(device, voice.Header, (uint)sizeof(WaveHeader)) != 0)
+    if (!voice.Start())
     {
       voice.Dispose();
       return null;
@@ -290,7 +305,9 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
 
   private void UpdateCore()
   {
-    if (_music is not null && (_music.Header->Flags & 1) != 0)
+    _music?.Update();
+    _flamethrower?.Update();
+    if (_music is not null && _music.Completed)
     {
       _music.Dispose();
       _music = null;
@@ -299,7 +316,8 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
 
     for (int i = _voices.Count - 1; i >= 0; i--)
     {
-      if ((_voices[i].Header->Flags & 1) == 0) // WHDR_DONE
+      _voices[i].Update();
+      if (!_voices[i].Completed)
         continue;
 
       bool notificationFinished = _musicPause.CompleteNotification(_voices[i]);
@@ -313,18 +331,46 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
 
   private sealed class Voice : IDisposable
   {
-    private readonly nint _device;
+    // Three 20 ms buffers keep playback continuous and volume changes responsive.
+    private const int BufferCount = 3;
+    private const int SamplesPerBuffer = GameSounds.SampleRate / 50;
 
-    public Voice(nint device, short[] samples)
+    private readonly nint _device;
+    private readonly SamplePlayback _playback;
+    private readonly WaveHeader* _headers;
+    private readonly bool[] _queued = new bool[BufferCount];
+    private bool _failed;
+
+    public Voice(nint device, short[] samples, bool loop)
     {
       _device = device;
-      Header = (WaveHeader*)NativeMemory.AllocZeroed((nuint)sizeof(WaveHeader));
-      Header->Length = (uint)(samples.Length * sizeof(short));
-      Header->Data = (nint)NativeMemory.Alloc(Header->Length);
-      Marshal.Copy(samples, 0, Header->Data, samples.Length);
+      _playback = new SamplePlayback(samples, loop);
+      _headers = (WaveHeader*)NativeMemory.AllocZeroed((nuint)(BufferCount * sizeof(WaveHeader)));
+      for (int i = 0; i < BufferCount; i++)
+      {
+        _headers[i].Length = SamplesPerBuffer * sizeof(short);
+        _headers[i].Data = (nint)NativeMemory.Alloc(_headers[i].Length);
+      }
     }
 
-    public WaveHeader* Header { get; }
+    public bool Completed => _failed || (!_playback.HasRemaining && !_queued.Any(queued => queued));
+
+    public bool Start()
+    {
+      for (int i = 0; i < BufferCount; i++)
+      {
+        if (waveOutPrepareHeader(_device, &_headers[i], (uint)sizeof(WaveHeader)) != 0)
+          return false;
+      }
+
+      Update();
+      return !_failed && !Completed;
+    }
+
+    public void SetVolume(int volume)
+    {
+      _playback.Volume = volume;
+    }
 
     public void SetPaused(bool paused)
     {
@@ -334,16 +380,47 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
         waveOutRestart(_device);
     }
 
+    public void Update()
+    {
+      if (_failed)
+        return;
+
+      for (int i = 0; i < BufferCount; i++)
+      {
+        WaveHeader* header = &_headers[i];
+        if (_queued[i] && (header->Flags & 1) == 0) // WHDR_DONE
+          continue;
+
+        _queued[i] = false;
+        // Never alter a buffer while the audio device is still playing it.
+        int count = _playback.Read(new Span<short>((void*)header->Data, SamplesPerBuffer));
+        if (count == 0)
+          continue;
+
+        header->Length = (uint)(count * sizeof(short));
+        if (waveOutWrite(_device, header, (uint)sizeof(WaveHeader)) != 0)
+        {
+          _failed = true;
+          return;
+        }
+
+        _queued[i] = true;
+      }
+    }
+
     public void Dispose()
     {
       waveOutReset(_device);
-      if ((Header->Flags & 2) != 0) // WHDR_PREPARED
-        waveOutUnprepareHeader(_device, Header, (uint)sizeof(WaveHeader));
+      for (int i = 0; i < BufferCount; i++)
+      {
+        if ((_headers[i].Flags & 2) != 0) // WHDR_PREPARED
+          waveOutUnprepareHeader(_device, &_headers[i], (uint)sizeof(WaveHeader));
+
+        NativeMemory.Free((void*)_headers[i].Data);
+      }
+
       waveOutClose(_device);
-      NativeMemory.Free((void*)Header->Data);
-      NativeMemory.Free(Header);
+      NativeMemory.Free(_headers);
     }
-
   }
-
 }

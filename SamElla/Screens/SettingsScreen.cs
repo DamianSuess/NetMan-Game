@@ -4,8 +4,13 @@ namespace SamElla.Screens;
 
 internal sealed class SettingsScreen(AudioSettings audio)
 {
+  private const int RowCount = 5;
+  private const int VolumeStep = 5;
+
   public AudioSettings Audio { get; } = audio;
+
   public bool IsActive { get; private set; }
+
   public int SelectedIndex { get; private set; }
 
   public void Open()
@@ -14,7 +19,6 @@ internal sealed class SettingsScreen(AudioSettings audio)
     IsActive = true;
   }
 
-  // The two disabled volume rows are deliberately excluded from navigation.
   public void HandleInput(IReadOnlyList<int> keyPresses, bool windowActive)
   {
     if (!IsActive || !windowActive)
@@ -31,23 +35,37 @@ internal sealed class SettingsScreen(AudioSettings audio)
           return;
 
         case 0x26: // Up
-          SelectedIndex = (SelectedIndex + 2) % 3;
+          SelectedIndex = (SelectedIndex + RowCount - 1) % RowCount;
           break;
 
         case 0x28: // Down
-          SelectedIndex = (SelectedIndex + 1) % 3;
+          SelectedIndex = (SelectedIndex + 1) % RowCount;
           break;
 
-        case 0x25: // Left: off
-        case 0x27: // Right: on
+        case 0x25: // Left: off / decrease volume
+        case 0x27: // Right: on / increase volume
         case 0x0D: // Enter
         case 0x20: // Space
-          if (SelectedIndex == 2)
+          if (SelectedIndex == 4)
           {
             if (code is 0x0D or 0x20)
             {
               IsActive = false;
               return;
+            }
+
+            break;
+          }
+
+          if (SelectedIndex is 1 or 3)
+          {
+            if (code is 0x25 or 0x27)
+            {
+              int change = code == 0x25 ? -VolumeStep : VolumeStep;
+              if (SelectedIndex == 1)
+                Audio.MusicVolume += change;
+              else
+                Audio.SoundEffectsVolume += change;
             }
 
             break;
