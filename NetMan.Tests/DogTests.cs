@@ -163,11 +163,13 @@ public sealed class DogTests : GameTestBase
     uint[] splashed = (uint[])renderer.Frame.Pixels.Clone();
     Tick(game, 119);
     renderer.Draw(game, 0, 0);
-    CollectionAssert.AreEqual(splashed, renderer.Frame.Pixels);
+    Assert.IsTrue(splashed.AsSpan(28 * PixelRenderer.Width)
+      .SequenceEqual(renderer.Frame.Pixels.AsSpan(28 * PixelRenderer.Width)), "Only the HUD countdown should change before the splatter expires.");
 
     Tick(game, 1);
     renderer.Draw(game, 0, 0);
-    Assert.IsFalse(splashed.SequenceEqual(renderer.Frame.Pixels));
+    Assert.IsFalse(splashed.AsSpan(28 * PixelRenderer.Width)
+      .SequenceEqual(renderer.Frame.Pixels.AsSpan(28 * PixelRenderer.Width)));
     Assert.AreEqual(180, game.SlowTicksRemaining);
   }
 

@@ -1,6 +1,6 @@
 namespace NetMan.Screens;
 
-internal readonly record struct CreditLine(string Text, int Y, int Scale, bool Highlight);
+internal readonly record struct CreditLine(string Text, int Y, int Scale, bool Highlight, bool PreserveCase = false);
 
 internal sealed class EndCreditsScreen
 {
@@ -30,7 +30,7 @@ internal sealed class EndCreditsScreen
     Add("Little Stinker", 3, true);
     _y += 24;
     Add("YOUR RUN", 3, true);
-    Add($"TIME {(int)completionTime.TotalHours:00}:{completionTime.Minutes:00}:{completionTime.Seconds:00}");
+    Add($"Time Wasted: {(int)completionTime.TotalHours:00}:{completionTime.Minutes:00}:{completionTime.Seconds:00}", preserveCase: true);
     Add($"TIMES DIED {deaths}");
     Add($"POINTS {score}");
     Add($"ITEMS MISSED {itemsMissed}");
@@ -49,9 +49,9 @@ internal sealed class EndCreditsScreen
 
   public IReadOnlyList<CreditLine> Lines => _lines;
 
-  private void Add(string text, int scale = 2, bool highlight = false)
+  private void Add(string text, int scale = 2, bool highlight = false, bool preserveCase = false)
   {
-    _lines.Add(new CreditLine(text, _y, scale, highlight));
+    _lines.Add(new CreditLine(text, _y, scale, highlight, preserveCase));
     _y += (5 * scale) + 18;
   }
 
