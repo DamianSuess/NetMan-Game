@@ -69,6 +69,12 @@ try
     Level.Load(file);
 
   using var audio = new WindowsGameAudio();
+  string audioSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "NetMan", "audio-settings.txt");
+
+  var settings = new SettingsScreen(AudioSettings.Load(audioSettingsPath));
+  audio.SetEnabled(settings.Audio.MusicEnabled, settings.Audio.SoundEffectsEnabled);
+
   Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam, int startingLevelIndex = 0)
   {
     var created = new Game(files,
@@ -120,6 +126,41 @@ try
     double elapsed = Math.Min(now - previous, 0.1);
     accumulator += elapsed;
     previous = now;
+
+    bool openedSettings = !settings.IsActive && levelSelect is null && window.Active
+      && (titleScreen.IsActive || (game.Paused && !game.IsDying && !game.Won && game.Lives > 0))
+      && window.KeyPresses.Any(code => code is 0x53 or 0x70);
+    if (openedSettings)
+      settings.Open();
+
+    if (settings.IsActive)
+    {
+      // Opening and closing keys belong to the overlay, never the screen beneath it.
+      if (!openedSettings)
+        settings.HandleInput(window.KeyPresses, window.Active);
+
+      audio.SetEnabled(settings.Audio.MusicEnabled, settings.Audio.SoundEffectsEnabled);
+
+      if (!settings.IsActive)
+        settings.Audio.Save(audioSettingsPath);
+
+      accumulator = 0;
+
+      if (titleScreen.IsActive)
+      {
+        titleScreen.Update(elapsed, startPressed: false, window.Active);
+        renderer.DrawTitle(titleScreen, updates.Status);
+      }
+      else
+        renderer.Draw(game, 0, 0);
+
+      if (settings.IsActive)
+        renderer.DrawSettings(settings);
+
+      window.Present(renderer.Frame);
+      WaitForFrame(frameStarted);
+      continue;
+    }
 
     bool openedLevelSelect = levelSelect is null && levelSelectCheat.HandleInput(window.KeyPresses, window.Active);
     if (openedLevelSelect)
@@ -262,6 +303,7 @@ try
     WaitForFrame(frameStarted);
   }
 
+  settings.Audio.Save(audioSettingsPath);
   updates.TryScheduleApply(restart: false, args);
 }
 catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException

@@ -70,6 +70,10 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
   private GameMusic _queuedMusic;
   private bool _queuedMusicPaused;
   private bool _queuedFlamethrower;
+  private bool _queuedMusicEnabled = true;
+  private bool _queuedEffectsEnabled = true;
+  private bool _musicEnabled = true;
+  private bool _effectsEnabled = true;
 
   public WindowsGameAudio()
   {
@@ -123,6 +127,34 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     _worker.Enqueue(StopCore);
   }
 
+  public void SetEnabled(bool musicEnabled, bool effectsEnabled)
+  {
+    if (_queuedMusicEnabled == musicEnabled && _queuedEffectsEnabled == effectsEnabled)
+      return;
+
+    _queuedMusicEnabled = musicEnabled;
+    _queuedEffectsEnabled = effectsEnabled;
+    _worker.Enqueue(() => SetEnabledCore(musicEnabled, effectsEnabled));
+  }
+
+  private void SetEnabledCore(bool musicEnabled, bool effectsEnabled)
+  {
+    _musicEnabled = musicEnabled;
+    _effectsEnabled = effectsEnabled;
+    _music?.SetPaused(_musicPaused || !_musicEnabled);
+    if (!_effectsEnabled)
+    {
+      foreach (var voice in _voices)
+        voice.Dispose();
+
+      _voices.Clear();
+      _flamethrower?.Dispose();
+      _flamethrower = null;
+    }
+    else if (_flamethrowerRequested && _flamethrower is null)
+      _flamethrower = CreateVoice(GameSound.Flamethrower, loop: true);
+  }
+
   private void ResetQueuedState()
   {
     _queuedMusic = GameMusic.None;
@@ -138,7 +170,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     if (sound == GameSound.Died)
       StopCore();
 
-    if (_voices.Count >= 8)
+    if (!_effectsEnabled || _voices.Count >= 8)
       return;
 
     var voice = CreateVoice(sound);
@@ -152,7 +184,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
       return;
 
     _flamethrowerRequested = active;
-    if (active)
+    if (active && _effectsEnabled)
       _flamethrower = CreateVoice(GameSound.Flamethrower, loop: true);
     else
     {
@@ -172,9 +204,8 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     _requestedMusic = music;
     if (music != GameMusic.None)
     {
-      _music = CreateVoice(_musicSamples[music], GameMusicTracks.Loops(music));
-      if (_musicPaused)
-        _music?.SetPaused(true);
+      _music = CreateVoice(_musicSamples[music], GameMusicTracks.Loops(music),
+        paused: _musicPaused || !_musicEnabled);
     }
 
   }
@@ -185,12 +216,12 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
       return;
 
     _musicPaused = paused;
-    _music?.SetPaused(paused);
+    _music?.SetPaused(paused || !_musicEnabled);
   }
 
   private Voice? CreateVoice(GameSound sound, bool loop = false) => CreateVoice(_samples[sound], loop);
 
-  private Voice? CreateVoice(short[] samples, bool loop = false)
+  private Voice? CreateVoice(short[] samples, bool loop = false, bool paused = false)
   {
     var format = new WaveFormat
     {
@@ -207,6 +238,9 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
       return null;
 
     var voice = new Voice(device, samples);
+    if (paused)
+      voice.SetPaused(true);
+
     if (waveOutPrepareHeader(device, voice.Header, (uint)sizeof(WaveHeader)) != 0)
     {
       voice.Dispose();

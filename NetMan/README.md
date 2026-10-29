@@ -34,8 +34,15 @@ Daytime levels cycle through three upbeat themes: Sunlit Sprint, Cloud Hopper, a
 | A / D or left / right | Move |
 | Space / W / up | Jump; hold for a higher jump |
 | P | Pause / resume |
+| S / F1 | Open Settings from the title or pause screen |
 | R | Restart the entire game |
 | Esc | Quit |
+
+Settings opens as a translucent overlay. Use Up/Down to select, Left/Right to
+switch background music or sound effects off/on, and Enter/Space to toggle.
+Escape or Back returns to the title or paused game. The gray volume sliders are
+disabled placeholders. Audio preferences are saved in
+`%LocalAppData%/NetMan/audio-settings.txt` and apply to every level and screen.
 
 You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter while gameplay freezes. PRESS ANY KEY TO CONTINUE appears immediately, and a fresh keypress can restart at any point during death. With no keypress, the original two-second death animation plays and then waits indefinitely. A fresh keypress reloads the current level; holding a key does not dismiss the screen. After the last life, a fresh key can immediately start a new run. Otherwise, the death animation finishes and a separate GAME OVER page displays a random roast. A fresh keypress starts a new run from level one with cleared rewards and the normal starting lives, or the cheat starting lives if enabled. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 

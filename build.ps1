@@ -44,6 +44,32 @@ function Invoke-DotNet
   }
 }
 
+function Assert-ReleaseAvailable
+{
+  param([string]$Executable)
+
+  if (-not (Test-Path -LiteralPath $Executable -PathType Leaf))
+  {
+    return
+  }
+
+  try
+  {
+    $probe = [System.IO.File]::Open($Executable, [System.IO.FileMode]::Open,
+      [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+
+    $probe.Dispose()
+  }
+  catch [System.IO.IOException]
+  {
+    throw "Cannot replace '$Executable'. Close the game running from this release folder and retry. Another process has the executable open."
+  }
+  catch [System.UnauthorizedAccessException]
+  {
+    throw "Cannot replace '$Executable'. Close any running copy of this release and check that the file and folder are writable."
+  }
+}
+
 function Assert-PublishChild
 {
   param([string]$Path)
@@ -126,6 +152,7 @@ Assert-PublishChild $releasePath
 Assert-PublishChild $archivePath
 Assert-PublishChild $stagingRoot
 Assert-PublishChild $installerPath
+Assert-ReleaseAvailable (Join-Path $releasePath $executableName)
 
 Write-Host "Building $releaseName for $Runtime..."
 Invoke-DotNet -Arguments @('build', $projectPath, '--configuration', 'Release', '--nologo')
@@ -232,6 +259,7 @@ try
   Compress-Archive -LiteralPath $payloadPath -DestinationPath $stagedArchive -CompressionLevel Optimal
 
   # Existing releases survive build/publish/ZIP failures; replace only after success.
+  Assert-ReleaseAvailable (Join-Path $releasePath $executableName)
   if (Test-Path -LiteralPath $releasePath)
   {
     Assert-PublishChild $releasePath

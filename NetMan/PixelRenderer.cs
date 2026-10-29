@@ -132,6 +132,7 @@ internal sealed class PixelRenderer
     }
     DrawTitleText("1 PLAYER  A/D OR ARROWS TO SELECT", 173, Gold, 1);
     DrawTitleText("ENTER / SPACE TO START", 186, White, 1);
+    DrawTitleText("S / F1 SETTINGS", 200, Gold, 1);
 
     long ticks = (long)(title.Elapsed * 60);
     DrawCreditsRunner($"player-run-{animationFrame}", ticks, 0, 38, false, 224);
@@ -156,6 +157,53 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, text, x + 2, y + 3, Ink, scale);
 
     PixelFont.Draw(Frame, text, x, y, color, scale);
+  }
+
+  public void DrawSettings(SettingsScreen screen)
+  {
+    const uint Disabled = 0xFF838B98;
+    Frame.OverlayBlack(80);
+    Frame.FillTranslucent(24, 24, Width - 48, 214, Ink, 225);
+    Frame.FillTranslucent(26, 28, Width - 52, 32, Ink, 210);
+    Frame.Fill(24, 24, Width - 48, 1, Gold);
+    Frame.Fill(24, 237, Width - 48, 1, 0xFF527787);
+    DrawTitleText("SETTINGS", 36, Gold, 3);
+
+    DrawAudioToggle("BACKGROUND MUSIC", 68, screen.Audio.MusicEnabled, screen.SelectedIndex == 0);
+    DrawVolumePlaceholder("MUSIC VOLUME", 99, Disabled);
+    DrawAudioToggle("SOUND FX", 129, screen.Audio.SoundEffectsEnabled, screen.SelectedIndex == 1);
+    DrawVolumePlaceholder("SOUND FX VOLUME", 160, Disabled);
+
+    Frame.FillTranslucent(144, 184, 96, 24, Ink, 180);
+    if (screen.SelectedIndex == 2)
+      Frame.FillTranslucent(144, 187, 96, 17, Gold, 45);
+
+    DrawTitleText(screen.SelectedIndex == 2 ? "> BACK <" : "BACK", 192,
+      screen.SelectedIndex == 2 ? Gold : White, 1);
+
+    DrawTitleText("UP/DOWN SELECT  LEFT/RIGHT OFF/ON", 220, White, 1);
+    DrawTitleText("ENTER/SPACE TOGGLE  ESC BACK", 230, White, 1);
+  }
+
+  private void DrawAudioToggle(string label, int y, bool enabled, bool selected)
+  {
+    if (selected)
+      Frame.FillTranslucent(36, y - 5, Width - 72, 24, Gold, 40);
+
+    PixelFont.Draw(Frame, selected ? ">" : " ", 40, y + 3, Gold);
+    PixelFont.Draw(Frame, label, 52, y + 3, selected ? Gold : White);
+    const int SwitchX = 272;
+    Frame.Fill(SwitchX, y - 1, 64, 16, enabled ? 0xFF3A806C : 0xFF535D70);
+    Frame.Fill(SwitchX + (enabled ? 47 : 2), y + 1, 15, 12, enabled ? White : 0xFFAFB4BF);
+    PixelFont.Draw(Frame, enabled ? "ON" : "OFF", SwitchX + (enabled ? 10 : 27), y + 4, White);
+  }
+
+  private void DrawVolumePlaceholder(string label, int y, uint color)
+  {
+    PixelFont.Draw(Frame, label, 52, y, color);
+    Frame.Fill(244, y + 2, 92, 3, 0xFF525D70);
+    Frame.Fill(308, y - 1, 7, 9, color);
+    PixelFont.Draw(Frame, "COMING SOON", 52, y + 10, color);
   }
 
   private static string PlayerSprite(PlayerCharacter character, string name) =>
@@ -450,6 +498,8 @@ internal sealed class PixelRenderer
       Frame.Fill(72, 92, 240, 1, Gold);
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
       PixelFont.Draw(Frame, hint, (Width - (hint.Length * 4)) / 2, 130, White);
+      if (game.Paused && !game.Won && game.Lives > 0)
+        DrawTitleText("S / F1 SETTINGS", 142, Gold, 1);
     }
   }
 
