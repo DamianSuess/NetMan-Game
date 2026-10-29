@@ -17,7 +17,7 @@ Install the .NET 10 SDK, open Windows Terminal in this folder, and run:
 dotnet run
 ```
 
-The game opens a separate resizable window. It renders at 384 x 240 pixels and starts at 3x scale (1152 x 720 client area). Resizing uses whole-number scaling and letterboxing to keep the pixel art crisp. Keyboard input is received only by the game window. Switching to another app automatically pauses the game; press P to resume after returning.
+The game opens a separate resizable window. It renders at 384 x 240 pixels and starts at 3x scale (1152 x 720 client area). Resizing uses whole-number scaling and letterboxing to keep the pixel art crisp. Keyboard input is received only by the game window. Switching to another app automatically pauses the game; select Resume Game and press Enter after returning.
 
 This version runs on Windows. The gameplay, text-level loader, sprite loader, pixel renderer, and PNG exporter use portable .NET code. `IGameWindow` separates those components from the Win32 backend; Linux and macOS would need their own window/input/presentation implementations and testing.
 
@@ -33,10 +33,14 @@ Daytime levels cycle through three upbeat themes: Sunlit Sprint, Cloud Hopper, a
 | --- | --- |
 | A / D or left / right | Move |
 | Space / W / up | Jump; hold for a higher jump |
-| P | Pause / resume |
+| Enter | Open pause menu; confirm the selected menu item |
 | S / F1 | Open Settings from the title or pause screen |
 | R | Restart the entire game |
 | Esc | Quit |
+
+On the title screen, use Up/Down to select Start Game or Settings, then Enter to
+confirm. During gameplay, Enter opens the pause menu; Up/Down selects Resume Game
+or Settings, and Enter confirms. Returning from Settings keeps the game paused.
 
 Settings opens as a translucent overlay. Use Up/Down to select, Left/Right to
 switch background music or sound effects off/on, and Enter/Space to toggle.
@@ -50,7 +54,7 @@ You have three lives. Enemy side contact, landing on a spike tip from above, and
 
 For level debugging, type `deadbeef` at any time to open Level Select: on the title, during gameplay or a pause, on a level intro or death screen, at Game Over, or during credits. The menu freezes the underlying screen and pauses music; Esc returns to that screen with the current game and pause state preserved. The menu discovers the current level directory (`Levels` or `--levels`) each time it opens and lists levels in game order with their number, name, and Daytime/Nighttime theme. Eight entries appear per page. Use Up/Down or W/S to select, Left/Right or Page Up/Page Down to change pages, and Enter to start a fresh run at the selected level, keeping your character and Konami setting. New `.txt` levels appear automatically when the menu is reopened. Selection preserves the full level numbering and normal progression; retries stay on the chosen level, while R restarts from level one. The Konami code itself remains a title-screen cheat.
 
-The animated title screen opens before Level 1. Choose Sam or Ella with A/D or the Left/Right arrow keys. Both previews show the powered-up size; Ella wears purple and has a ponytail. Press Enter or Space to start, or Esc to quit. Gameplay begins at normal size; the selection preview does not grant a power-up. The selected character remains active through growth, shrinking, deaths, level changes, and restarts. Both characters use the same movement and power settings. Characters move along the bottom beneath the selection, and the copyright appears in the bottom-right corner. Losing window focus freezes the title animation.
+The animated title screen opens before Level 1. Choose Sam or Ella with A/D or the Left/Right arrow keys. Both previews show the powered-up size; Ella wears purple and has a ponytail. Use Up/Down to select Start Game or Settings, then Enter to confirm, or Esc to quit. Gameplay begins at normal size; the selection preview does not grant a power-up. The selected character remains active through growth, shrinking, deaths, level changes, and restarts. Both characters use the same movement and power settings. Characters move along the bottom beneath the selection, and the copyright appears in the bottom-right corner. Losing window focus freezes the title animation.
 
 On the title screen, enter the Konami code with fresh keypresses: Up, Up, Down, Down, Left, Right, Left, Right, B, A. A confirmation appears when it activates. You can then press Left or Right again to choose Sam or Ella before pressing Enter. The cheat starts the game with 30 lives, growth, and the flamethrower, including in Level 1. Holding a key does not count as repeated code entries. Normal damage and deaths still apply; respawning does not refill lives or restore lost powers. R starts a fresh cheat run with the original 30 lives and starting powers. Ordinary runs keep their usual three lives and small starting size.
 

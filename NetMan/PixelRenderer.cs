@@ -130,9 +130,9 @@ internal sealed class PixelRenderer
       if (selected)
         PixelFont.Draw(Frame, ">", left + 10, 126, Gold);
     }
-    DrawTitleText("1 PLAYER  A/D OR ARROWS TO SELECT", 173, Gold, 1);
-    DrawTitleText("ENTER / SPACE TO START", 186, White, 1);
-    DrawTitleText("S / F1 SETTINGS", 200, Gold, 1);
+    DrawTitleText("LEFT/RIGHT PLAYER  UP/DOWN MENU  ENTER SELECT", 173, White, 1);
+    DrawMenuChoice("START GAME", 186, title.SelectedMenuIndex == 0);
+    DrawMenuChoice("SETTINGS", 200, title.SelectedMenuIndex == 1);
 
     long ticks = (long)(title.Elapsed * 60);
     DrawCreditsRunner($"player-run-{animationFrame}", ticks, 0, 38, false, 224);
@@ -157,6 +157,11 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, text, x + 2, y + 3, Ink, scale);
 
     PixelFont.Draw(Frame, text, x, y, color, scale);
+  }
+
+  private void DrawMenuChoice(string text, int y, bool selected)
+  {
+    DrawTitleText(selected ? $"> {text} <" : text, y, selected ? Gold : White, 1);
   }
 
   public void DrawSettings(SettingsScreen screen)
@@ -293,7 +298,7 @@ internal sealed class PixelRenderer
     }
   }
 
-  public void Draw(Game game, int direction, double elapsed = Game.Step)
+  public void Draw(Game game, int direction, double elapsed = Game.Step, int pauseSelection = 0)
   {
     if (game.Lives == 0 && game.AwaitingRestart)
     {
@@ -464,6 +469,9 @@ internal sealed class PixelRenderer
     if (game.Won && game.Credits is { } credits)
     {
       DrawCredits(game, credits);
+      if (game.Paused)
+        DrawPauseMenu(pauseSelection);
+
       return;
     }
 
@@ -489,18 +497,28 @@ internal sealed class PixelRenderer
       PixelFont.Draw(Frame, Prompt, promptX + 1, promptY + 1, Ink, promptScale);
       PixelFont.Draw(Frame, Prompt, promptX, promptY, Gold, promptScale);
     }
-    else if (game.Paused || game.Won || game.Lives == 0)
+    else if (game.Paused && !game.Won && game.Lives > 0)
+      DrawPauseMenu(pauseSelection);
+    else if (game.Won || game.Lives == 0)
     {
       string title = game.Won ? "LEVELS COMPLETE!" : game.Lives == 0 ? "GAME OVER" : "PAUSED";
-      string hint = game.Won || game.Lives == 0 ? "R TO PLAY AGAIN" : "P TO RESUME";
+      const string hint = "R TO PLAY AGAIN";
 
       Frame.Fill(70, 90, 244, 60, Ink);
       Frame.Fill(72, 92, 240, 1, Gold);
       PixelFont.Draw(Frame, title, (Width - (title.Length * 8)) / 2, 105, Gold, 2);
       PixelFont.Draw(Frame, hint, (Width - (hint.Length * 4)) / 2, 130, White);
-      if (game.Paused && !game.Won && game.Lives > 0)
-        DrawTitleText("S / F1 SETTINGS", 142, Gold, 1);
     }
+  }
+
+  private void DrawPauseMenu(int selection)
+  {
+    Frame.FillTranslucent(70, 76, 244, 104, Ink, 230);
+    Frame.Fill(72, 78, 240, 1, Gold);
+    DrawTitleText("PAUSED", 89, Gold, 2);
+    DrawMenuChoice("RESUME GAME", 116, selection == 0);
+    DrawMenuChoice("SETTINGS", 135, selection == 1);
+    DrawTitleText("UP/DOWN SELECT  ENTER CONFIRM", 161, White, 1);
   }
 
   private void DrawWeaponQuote(string quote, string title)
@@ -761,6 +779,6 @@ internal sealed class PixelRenderer
     PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
 
     Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
-    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  X/CTRL FIRE  P PAUSE  R RESTART  ESC QUIT", 8, Height - 9, White);
+    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  X/CTRL FIRE  ENTER PAUSE  R RESTART  ESC QUIT", 8, Height - 9, White);
   }
 }

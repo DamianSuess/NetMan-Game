@@ -5,7 +5,6 @@ internal enum GameKey
   Left,
   Right,
   Jump,
-  Pause,
   Restart,
   Escape,
   Start,

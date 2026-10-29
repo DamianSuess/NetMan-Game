@@ -90,6 +90,7 @@ try
   var renderer = new PixelRenderer(assetsPath);
   var game = CreateGame();
   var titleScreen = new TitleScreen();
+  var pauseScreen = new PauseScreen();
   LevelSelectScreen? levelSelect = null;
   var levelSelectCheat = new LevelSelectCheat();
   var levelStart = new LevelStartScreen(Path.Combine(assetsPath, "uncle-quotes.txt"));
@@ -152,7 +153,7 @@ try
         renderer.DrawTitle(titleScreen, updates.Status);
       }
       else
-        renderer.Draw(game, 0, 0);
+        renderer.Draw(game, 0, 0, pauseScreen.SelectedIndex);
 
       if (settings.IsActive)
         renderer.DrawSettings(settings);
@@ -211,7 +212,8 @@ try
       if (window.Active && window.Pressed(GameKey.Escape))
         break;
 
-      titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active);
+      if (titleScreen.HandleInput(elapsed, window.KeyPresses, window.Active) == MenuAction.Settings)
+        settings.Open();
 
       if (!titleScreen.IsActive)
       {
@@ -222,6 +224,8 @@ try
 
       accumulator = 0;
       renderer.DrawTitle(titleScreen, updates.Status);
+      if (settings.IsActive)
+        renderer.DrawSettings(settings);
 
       window.Present(renderer.Frame);
       WaitForFrame(frameStarted);
@@ -249,9 +253,9 @@ try
 
     if (!window.Active)
     {
-      game.Paused = true;
+      pauseScreen.Open(game);
       accumulator = 0;
-      renderer.Draw(game, 0, 0);
+      renderer.Draw(game, 0, 0, pauseScreen.SelectedIndex);
       window.Present(renderer.Frame);
       WaitForFrame(frameStarted);
       continue;
@@ -269,13 +273,26 @@ try
       if (window.Pressed(GameKey.Escape))
         break;
 
+      bool wasPaused = game.Paused;
       if (window.Pressed(GameKey.Restart))
         game.Restart();
 
-      if (window.Pressed(GameKey.Pause))
-        game.Paused = !game.Paused;
+      if (pauseScreen.HandleInput(game, window.KeyPresses, window.Active) == MenuAction.Settings)
+        settings.Open();
 
-      if (window.Pressed(GameKey.Jump))
+      if (game.Paused)
+      {
+        accumulator = 0;
+        renderer.Draw(game, 0, 0, pauseScreen.SelectedIndex);
+        if (settings.IsActive)
+          renderer.DrawSettings(settings);
+
+        window.Present(renderer.Frame);
+        WaitForFrame(frameStarted);
+        continue;
+      }
+
+      if (!wasPaused && window.Pressed(GameKey.Jump))
         game.QueueJump();
     }
 
