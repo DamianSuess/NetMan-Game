@@ -22,15 +22,12 @@ internal sealed class AudioSettings
   public bool MusicEnabled { get; set; } = true;
   public bool SoundEffectsEnabled { get; set; } = true;
 
-  public static AudioSettings Load(string path, string? fallbackPath = null)
+  public static AudioSettings Load(string path)
   {
     var settings = new AudioSettings();
 
     try
     {
-      if (!File.Exists(path) && fallbackPath is not null)
-        path = fallbackPath;
-
       foreach (string line in File.ReadAllLines(path))
       {
         string[] parts = line.Split('=', 2, StringSplitOptions.TrimEntries);

@@ -68,12 +68,12 @@ try
   foreach (var file in files)
     Level.Load(file);
 
-  using var audio = new WindowsGameAudio();
   string settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
     "SamElla", "settings.txt");
-  string legacyAudioSettingsPath = Path.Combine(Path.GetDirectoryName(settingsPath)!, "audio-settings.txt");
+  var settings = new SettingsScreen(AudioSettings.Load(settingsPath));
 
-  var settings = new SettingsScreen(AudioSettings.Load(settingsPath, legacyAudioSettingsPath));
+  // Restore saved audio preferences before starting any music or sound effects.
+  using var audio = new WindowsGameAudio();
   audio.SetEnabled(settings.Audio.MusicEnabled, settings.Audio.SoundEffectsEnabled);
   audio.SetVolume(settings.Audio.MusicVolume, settings.Audio.SoundEffectsVolume);
 

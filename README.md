@@ -61,11 +61,10 @@ users of the former `SuessLabs.NetMan` package must install the new setup EXE on
 This release does not provide an automatic migration between those package IDs.
 The desktop and Start menu shortcuts are named `Sam-Ella`.
 User content, audio settings, and update logs now live under `%LocalAppData%/SamElla`.
-To preserve previous custom content and settings, close the game and copy the
-`Content` folder and `audio-settings.txt` from `%LocalAppData%/NetMan` into
-`%LocalAppData%/SamElla` before launching the new version. The game reads the old
-`audio-settings.txt` when `settings.txt` is missing, then saves preferences as
-`settings.txt` when Settings closes or the game exits.
+To preserve previous custom content, close the game and copy the `Content`
+folder from `%LocalAppData%/NetMan` into `%LocalAppData%/SamElla` before launching
+the new version. Audio preferences are loaded at startup only from
+`%LocalAppData%/SamElla/settings.txt` and saved when Settings closes or the game exits.
 
 The original `SamElla-vX.Y.Z.zip` remains available as an unmanaged portable build;
 it does not self-update. Existing ZIP users must install the setup EXE or use the
