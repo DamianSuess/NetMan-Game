@@ -3,8 +3,8 @@ using System.Runtime.Versioning;
 
 namespace NetMan.Audio;
 
-// Each voice owns its native buffers until WinMM returns them. No callbacks or
-// background threads touch gameplay state, and overlapping effects can finish.
+// Native audio resources belong to a dedicated worker. Device operations may
+// block, so they must never run on the gameplay and input thread.
 [SupportedOSPlatform("windows")]
 internal sealed unsafe class WindowsGameAudio : IDisposable
 {
@@ -66,20 +66,77 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
   private GameMusic _requestedMusic;
   private bool _musicPaused;
 
+  private readonly AudioWorker _worker;
+  private GameMusic _queuedMusic;
+  private bool _queuedMusicPaused;
+  private bool _queuedFlamethrower;
+
+  public WindowsGameAudio()
+  {
+    _worker = new AudioWorker(UpdateCore, StopCore);
+  }
+
   public void Dispose()
   {
-    Stop();
+    _worker.Dispose();
     _disposed = true;
   }
 
   public void Play(GameSound sound)
   {
+    if (sound == GameSound.Died)
+      ResetQueuedState();
+
+    _worker.Enqueue(() => PlayCore(sound));
+  }
+
+  public void SetMusic(GameMusic music)
+  {
+    if (_queuedMusic == music)
+      return;
+
+    _queuedMusic = music;
+    _worker.Enqueue(() => SetMusicCore(music));
+  }
+
+  public void SetMusicPaused(bool paused)
+  {
+    if (_queuedMusicPaused == paused)
+      return;
+
+    _queuedMusicPaused = paused;
+    _worker.Enqueue(() => SetMusicPausedCore(paused));
+  }
+
+  public void SetFlamethrowerActive(bool active)
+  {
+    if (_queuedFlamethrower == active)
+      return;
+
+    _queuedFlamethrower = active;
+    _worker.Enqueue(() => SetFlamethrowerActiveCore(active));
+  }
+
+  public void Stop()
+  {
+    ResetQueuedState();
+    _worker.Enqueue(StopCore);
+  }
+
+  private void ResetQueuedState()
+  {
+    _queuedMusic = GameMusic.None;
+    _queuedFlamethrower = false;
+  }
+
+  private void PlayCore(GameSound sound)
+  {
     if (_disposed)
       return;
 
-    Update();
+    UpdateCore();
     if (sound == GameSound.Died)
-      Stop();
+      StopCore();
 
     if (_voices.Count >= 8)
       return;
@@ -89,7 +146,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
       _voices.Add(voice);
   }
 
-  public void SetFlamethrowerActive(bool active)
+  private void SetFlamethrowerActiveCore(bool active)
   {
     if (_disposed || active == _flamethrowerRequested)
       return;
@@ -105,7 +162,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
 
   }
 
-  public void SetMusic(GameMusic music)
+  private void SetMusicCore(GameMusic music)
   {
     if (_disposed || music == _requestedMusic)
       return;
@@ -122,7 +179,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
 
   }
 
-  public void SetMusicPaused(bool paused)
+  private void SetMusicPausedCore(bool paused)
   {
     if (_disposed || paused == _musicPaused)
       return;
@@ -171,16 +228,16 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
     return voice;
   }
 
-  public void Stop()
+  private void StopCore()
   {
-    SetFlamethrowerActive(false);
-    SetMusic(GameMusic.None);
+    SetFlamethrowerActiveCore(false);
+    SetMusicCore(GameMusic.None);
     foreach (var voice in _voices)
       voice.Dispose();
     _voices.Clear();
   }
 
-  public void Update()
+  private void UpdateCore()
   {
     if (_music is not null && (_music.Header->Flags & 1) != 0)
     {
@@ -196,6 +253,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
       _voices[i].Dispose();
       _voices.RemoveAt(i);
     }
+
   }
 
   private sealed class Voice : IDisposable
@@ -221,7 +279,6 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
         waveOutRestart(_device);
     }
 
-
     public void Dispose()
     {
       waveOutReset(_device);
@@ -231,5 +288,7 @@ internal sealed unsafe class WindowsGameAudio : IDisposable
       NativeMemory.Free((void*)Header->Data);
       NativeMemory.Free(Header);
     }
+
   }
+
 }

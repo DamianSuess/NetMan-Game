@@ -96,10 +96,18 @@ try
   double previous = clock.Elapsed.TotalSeconds;
   double accumulator = 0;
 
+  // Include simulation, drawing and native presentation in the frame budget.
+  void WaitForFrame(double started)
+  {
+    int milliseconds = (int)((Game.Step - (clock.Elapsed.TotalSeconds - started)) * 1000);
+    if (milliseconds > 0)
+      Thread.Sleep(milliseconds);
+  }
+
   while (!window.Closed)
   {
+    double frameStarted = clock.Elapsed.TotalSeconds;
     window.PumpEvents();
-    audio.Update();
     audio.SetMusicPaused(levelSelect is not null || !window.Active || (!titleScreen.IsActive && game.Paused));
     audio.SetMusic(GameMusicTracks.ForScreen(titleScreen.IsActive, game));
     audio.SetFlamethrowerActive(levelSelect is null && window.Active && !titleScreen.IsActive && !levelStart.IsActive
@@ -148,7 +156,7 @@ try
       {
         renderer.DrawLevelSelect(levelSelect);
         window.Present(renderer.Frame);
-        Thread.Sleep(16);
+        WaitForFrame(frameStarted);
       }
 
       continue;
@@ -175,7 +183,7 @@ try
       renderer.DrawTitle(titleScreen, updates.Status);
 
       window.Present(renderer.Frame);
-      Thread.Sleep(16);
+      WaitForFrame(frameStarted);
       continue;
     }
 
@@ -194,7 +202,7 @@ try
       accumulator = 0;
       renderer.DrawLevelStart(levelStart);
       window.Present(renderer.Frame);
-      Thread.Sleep(16);
+      WaitForFrame(frameStarted);
       continue;
     }
 
@@ -204,7 +212,7 @@ try
       accumulator = 0;
       renderer.Draw(game, 0, 0);
       window.Present(renderer.Frame);
-      Thread.Sleep(20);
+      WaitForFrame(frameStarted);
       continue;
     }
 
@@ -251,7 +259,7 @@ try
 
     renderer.Draw(game, direction, elapsed);
     window.Present(renderer.Frame);
-    Thread.Sleep(16);
+    WaitForFrame(frameStarted);
   }
 
   updates.TryScheduleApply(restart: false, args);

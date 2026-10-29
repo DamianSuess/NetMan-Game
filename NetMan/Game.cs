@@ -752,6 +752,8 @@ public sealed class Game
   private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit, double height = BodyHeight)
   {
     hit = false;
+    // Snapshot contacts before bumping tiles, without allocating per body or substep.
+    Span<(int X, int Y)> collisions = stackalloc (int, int)[2 * ((int)Math.Ceiling(height) + 1)];
     int steps = Math.Max(1, (int)Math.Ceiling(Math.Abs(distance) / 0.15));
 
     for (int i = 0; i < steps; i++)
@@ -762,15 +764,20 @@ public sealed class Game
       double bodyBottom = y + height;
 
       // Spike sides block entry like a pipe. Vertical contact is handled separately at the tip.
-      var collisions = Cells(nx, ny, height).Where(
-        cell => Level.Solid(cell.X, cell.Y) ||
-        (horizontal
-        && Level.Tile(cell.X, cell.Y) == '^'
-        && bodyBottom > cell.Y + SpikeTipOffset + 0.00001
-        && ((distance > 0 && previousX + BodyWidth <= cell.X + 0.00001) || (distance < 0 && previousX >= cell.X + 1 - 0.00001))
-        )).ToArray();
+      int count = 0;
+      for (int ty = (int)Math.Floor(ny + 0.00001); ty <= (int)Math.Floor(ny + height - 0.00001); ty++)
+      {
+        for (int tx = (int)Math.Floor(nx + 0.00001); tx <= (int)Math.Floor(nx + BodyWidth - 0.00001); tx++)
+        {
+          if (Level.Solid(tx, ty) || (horizontal && Level.Tile(tx, ty) == '^'
+            && bodyBottom > ty + SpikeTipOffset + 0.00001
+            && ((distance > 0 && previousX + BodyWidth <= tx + 0.00001)
+              || (distance < 0 && previousX >= tx + 1 - 0.00001))))
+            collisions[count++] = (tx, ty);
+        }
+      }
 
-      if (collisions.Length == 0)
+      if (count == 0)
       {
         x = nx;
         y = ny;
@@ -779,7 +786,7 @@ public sealed class Game
 
       hit = true;
 
-      foreach (var cell in collisions)
+      foreach (var cell in collisions[..count])
       {
         if (bump && distance < 0)
         {
@@ -809,10 +816,18 @@ public sealed class Game
         }
       }
 
+      int boundary = horizontal ? collisions[0].X : collisions[0].Y;
+      for (int contact = 1; contact < count; contact++)
+      {
+        int coordinate = horizontal ? collisions[contact].X : collisions[contact].Y;
+        boundary = distance > 0 ? Math.Min(boundary, coordinate) : Math.Max(boundary, coordinate);
+      }
+
       if (horizontal)
-        x = distance > 0 ? collisions.Min(c => c.X) - BodyWidth : collisions.Max(c => c.X) + 1;
+        x = distance > 0 ? boundary - BodyWidth : boundary + 1;
       else
-        y = distance > 0 ? collisions.Min(c => c.Y) - height : collisions.Max(c => c.Y) + 1;
+        y = distance > 0 ? boundary - height : boundary + 1;
+
       break;
     }
   }
