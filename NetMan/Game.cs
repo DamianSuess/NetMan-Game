@@ -398,7 +398,17 @@ public sealed class Game
       bool stunned = enemy.StunTicksRemaining > 0;
       if (stunned)
         enemy.StunTicksRemaining--;
-      Move(ref ex, ref ey, stunned ? 0 : enemy.Direction * enemy.Settings.Speed * Step, true, false, out bool wall, enemy.BodyHeight);
+      double patrolDistance = stunned ? 0 : enemy.Direction * enemy.Settings.Speed * Step;
+      if (Level.EnemiesAvoidLedges && patrolDistance != 0 && HasPatrolSupport(ex, enemy.PatrolFloorRow)
+        && !HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
+      {
+        enemy.Direction *= -1;
+        patrolDistance = enemy.Direction * enemy.Settings.Speed * Step;
+        if (!HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
+          patrolDistance = 0;
+      }
+
+      Move(ref ex, ref ey, patrolDistance, true, false, out bool wall, enemy.BodyHeight);
 
       if (wall)
         enemy.Direction *= -1;
@@ -409,6 +419,7 @@ public sealed class Game
 
       if (floor)
       {
+        enemy.PatrolFloorRow = (int)Math.Round(ey + enemy.BodyHeight);
         enemy.VelocityY = 0;
         if (!stunned && enemy.Kind != EnemyKind.CreepyCrawler && enemy.Settings.HopVelocity > 0 && enemyVertical > 0)
         {
@@ -462,6 +473,14 @@ public sealed class Game
 
   // The level-start page replaces the short in-game transition delay.
   internal void CompleteLevelStart() => _transition = 0;
+
+  private bool HasPatrolSupport(double x, int floorRow)
+  {
+    int left = (int)Math.Floor(x + 0.00001);
+    int right = (int)Math.Floor(x + BodyWidth - 0.00001);
+    return left >= 0 && right < Level.Width && floorRow >= 0 && floorRow < Level.Height
+      && Level.Solid(left, floorRow) && Level.Solid(right, floorRow);
+  }
 
   private static IEnumerable<(int X, int Y)> Cells(double x, double y, double height = BodyHeight)
   {

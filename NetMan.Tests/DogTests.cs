@@ -17,7 +17,7 @@ public sealed class DogTests : GameTestBase
     for (int index = 0; index < paths.Length; index++)
     {
       var level = Level.Load(paths[index]);
-      Assert.AreEqual(index is >= 4 and <= 6, level.DogSpawns.Count > 0, paths[index]);
+      Assert.AreEqual(index >= 4, level.DogSpawns.Count > 0, paths[index]);
       foreach (var spawn in level.DogSpawns)
         Assert.AreEqual('.', level.Tile(spawn.X, spawn.Y));
     }

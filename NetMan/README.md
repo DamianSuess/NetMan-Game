@@ -74,11 +74,23 @@ have no floor: hold jump for the full arc and control your landing on
 each staggered platform. Missing a jump costs a life. Both routes work at normal
 and powered-up size.
 
+Level 8 has 14 enemies and Level 9 has 17, mixing walkers, hopping Toaster Cats,
+zombies, dogs, and hidden Creepy-Crawlers. These patrols turn at platform edges,
+including during hops, so the guarded landings stay dangerous. Time your jumps
+and stomps, leave space for crawlers to emerge, and recover from dog slowdown
+before committing to a gap. Breaking their supporting bricks can still drop
+enemies into the void.
+
 Before each level begins, a start page shows its number, its filename-derived name, remaining lives, and a random demotivating uncle quote. It lasts five seconds or dismisses on any fresh keypress. Gameplay and completion timing stay frozen during the page, and losing window focus freezes the countdown. The page also appears on retries and when restarting the game. Level names omit a leading numeric prefix and replace hyphens or underscores with spaces; for example, `04-zombie-ate-my.txt` displays ZOMBIE ATE MY. Edit the 30 lines in `Assets/uncle-quotes.txt` to customize the advice.
 
 When the last life is lost, the usual two-second death animation plays unless interrupted by a restart keypress, followed by a full GAME OVER page with a random quote from `Assets/game-over-quotes.txt`, plus the level, score, and death count. The quote remains fixed until a fresh keypress restarts the run. The file contains 15 roasts. Both quote files accept one quote per line and ignore blank lines and lines beginning with `;`; long text wraps and is shortened if necessary. Relaunch after editing.
 
 ## Make levels
+
+Use `EnemyLedges=Turn` after the `Background` header to make enemies guard their
+platforms. Levels 8 and 9 enable it. Omit it or use `EnemyLedges=Fall` for the
+original patrol behavior used by earlier levels. Headers do not change map
+coordinates.
 
 Edit `Levels/*.txt` in any text editor, then restart the game. `dotnet run` copies them into the output directory. Files play in alphabetical order: use names such as `01-meadow.txt`, `02-ruins.txt`, `03-your-level.txt`. The game discovers additional `.txt` files automatically on startup.
 
