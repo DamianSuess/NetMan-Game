@@ -74,6 +74,7 @@ try
 
   var settings = new SettingsScreen(AudioSettings.Load(audioSettingsPath));
   audio.SetEnabled(settings.Audio.MusicEnabled, settings.Audio.SoundEffectsEnabled);
+  audio.SetVolume(settings.Audio.MusicVolume, settings.Audio.SoundEffectsVolume);
 
   Game CreateGame(bool cheat = false, PlayerCharacter character = PlayerCharacter.Sam, int startingLevelIndex = 0)
   {
@@ -141,6 +142,7 @@ try
         settings.HandleInput(window.KeyPresses, window.Active);
 
       audio.SetEnabled(settings.Audio.MusicEnabled, settings.Audio.SoundEffectsEnabled);
+      audio.SetVolume(settings.Audio.MusicVolume, settings.Audio.SoundEffectsVolume);
 
       if (!settings.IsActive)
         settings.Audio.Save(audioSettingsPath);

@@ -2,6 +2,22 @@ namespace SamElla.Audio;
 
 internal sealed class AudioSettings
 {
+  private int _musicVolume = 100;
+  private int _soundEffectsVolume = 100;
+
+  // Volume changes last for this session; only the existing on/off flags are saved.
+  public int MusicVolume
+  {
+    get => _musicVolume;
+    set => _musicVolume = Math.Clamp(value, 0, 100);
+  }
+
+  public int SoundEffectsVolume
+  {
+    get => _soundEffectsVolume;
+    set => _soundEffectsVolume = Math.Clamp(value, 0, 100);
+  }
+
   public bool MusicEnabled { get; set; } = true;
   public bool SoundEffectsEnabled { get; set; } = true;
 
