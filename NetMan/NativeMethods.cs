@@ -33,7 +33,13 @@ internal static class NativeMethods
   internal static extern nint GetModuleHandleW(string? moduleName);
 
   [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern int GetSystemMetrics(int index);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
   internal static extern nint LoadCursorW(nint instance, nint name);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern nint LoadImageW(nint instance, nint name, uint type, int width, int height, uint flags);
 
   [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
   internal static extern int MessageBoxW(nint owner, string text, string caption, uint type);
@@ -52,6 +58,9 @@ internal static class NativeMethods
 
   [DllImport("user32.dll", ExactSpelling = true)]
   internal static extern int ReleaseDC(nint window, nint dc);
+
+  [DllImport("user32.dll", ExactSpelling = true)]
+  internal static extern nint SendMessageW(nint window, uint message, nuint wParam, nint lParam);
 
   [DllImport("user32.dll", ExactSpelling = true)]
   internal static extern bool SetProcessDPIAware();

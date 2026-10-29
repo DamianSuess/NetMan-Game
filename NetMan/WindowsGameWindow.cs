@@ -32,6 +32,7 @@ internal sealed class WindowsGameWindow : IGameWindow
     {
       Procedure = _procedure,
       Instance = _instance,
+      Icon = LoadApplicationIcon(_instance, small: false),
       Cursor = NativeMethods.LoadCursorW(0, 32512),
       ClassName = _className,
     };
@@ -51,6 +52,7 @@ internal sealed class WindowsGameWindow : IGameWindow
       throw new Win32Exception(error);
     }
 
+    NativeMethods.SendMessageW(_handle, 0x0080, 0, LoadApplicationIcon(_instance, small: true)); // WM_SETICON, ICON_SMALL
     NativeMethods.ShowWindow(_handle, 5);
   }
 
@@ -77,6 +79,13 @@ internal sealed class WindowsGameWindow : IGameWindow
 
     NativeMethods.UnregisterClassW(_className, _instance);
     GC.KeepAlive(_procedure);
+  }
+
+  private static nint LoadApplicationIcon(nint instance, bool small)
+  {
+    // The SDK embeds ApplicationIcon as resource 32512. LR_SHARED owns its lifetime.
+    return NativeMethods.LoadImageW(instance, 32512, 1,
+      NativeMethods.GetSystemMetrics(small ? 49 : 11), NativeMethods.GetSystemMetrics(small ? 50 : 12), 0x8000);
   }
 
   public unsafe void Present(PixelBuffer frame)
