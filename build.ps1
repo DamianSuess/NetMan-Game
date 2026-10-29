@@ -239,7 +239,7 @@ try
       # Native AOT has no managed entry-point metadata for vpk to inspect. The application
       # calls VelopackApp.Run before normal startup; verify its fast-exit hook in native smoke tests.
       Invoke-DotNet -Arguments @('tool', 'run', 'vpk', '--', 'pack',
-        '--packId', 'SuessLabs.NetMan', '--packTitle', "Sam n' Ella",
+        '--packId', 'SuessLabs.SamElla', '--packTitle', "Sam n' Ella",
         '--packAuthors', 'Damian Suess, Xeno Innovations, (DBA) Suess Labs',
         '--icon', (Join-Path $PSScriptRoot 'NetMan/Assets/AppIcon/app.ico'),
         '--packVersion', $packageVersion, '--packDir', $payloadPath,

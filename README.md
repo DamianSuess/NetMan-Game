@@ -47,14 +47,18 @@ This runs the same Release build, tests, Native AOT publish, and ZIP packaging, 
 
 ## Install and automatically update
 
-Install `SuessLabs.NetMan-win-x64-Setup.exe` from the project's
-[GitHub Releases](https://github.com/DamianSuess/NetMan-Game/releases).
+Install `SuessLabs.SamElla-win-x64-Setup.exe` from the project's
+[GitHub Releases](https://github.com/SuessLabs/Sam-n-Ella-Game/releases).
 Velopack-managed installations and its generated portable ZIP check that repository's
 stable releases at launch. Updates download without blocking the game. If a download
 finishes while the title screen is open, the app exits cleanly and restarts updated;
 otherwise it installs when the player exits. A pending downloaded update can also
 be applied automatically at the next launch. Offline play remains available, and
 update failures are logged to `%LocalAppData%/NetMan/Logs/updates.log`.
+
+The Velopack package ID is `SuessLabs.SamElla`. This is a new installation identity:
+users of the former `SuessLabs.NetMan` package must install the new setup EXE once.
+This release does not provide an automatic migration between those package IDs.
 
 The original `NetMan-vX.Y.Z.zip` remains available as an unmanaged portable build;
 it does not self-update. Existing ZIP users must install the setup EXE or use the
