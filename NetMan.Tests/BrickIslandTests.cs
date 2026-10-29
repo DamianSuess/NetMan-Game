@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetMan.Actors;
 
 namespace NetMan.Tests;
 
@@ -29,7 +30,7 @@ public sealed class BrickIslandTests
   [DataRow("08-moonlit-stepping-stones.txt", true)]
   [DataRow("09-midnight-brickfall.txt", false)]
   [DataRow("09-midnight-brickfall.txt", true)]
-  public void NighttimeBrickIslandsCanBeCrossedWithNormalRunningJumps(string name, bool large)
+  public void GuardedBrickIslandsCanBeCompletedWithJumpsAndStomps(string name, bool large)
   {
     var game = new Game([Path.Combine(AppContext.BaseDirectory, "Levels", name)], konamiCheat: large);
     game.CompleteLevelStart();
@@ -52,42 +53,78 @@ public sealed class BrickIslandTests
 
     islands = islands.OrderBy(island => island.Left).ToList();
     Assert.AreEqual(BackgroundTheme.Night, game.Level.Background);
+    Assert.IsTrue(game.Level.EnemiesAvoidLedges);
+    Assert.IsGreaterThanOrEqualTo(12, game.Enemies.Count);
     Assert.IsGreaterThanOrEqualTo(16, islands.Count);
     Assert.IsGreaterThanOrEqualTo(6, islands.Select(island => island.Top).Distinct().Count());
     for (int tick = 0; tick < 60 && !game.Grounded; tick++)
       game.Update(0, false);
 
-    for (int index = 1; index < islands.Count; index++)
+    for (int index = 0; index < islands.Count && !game.Won; index++)
     {
-      var previous = islands[index - 1];
-      var target = islands[index];
-      Assert.IsGreaterThan(previous.Right, target.Left, "Every island must have a bottomless gap before it.");
-      double takeoff = previous.Right - 1;
-      for (int tick = 0; tick < 90 && game.X < takeoff && !game.IsDying; tick++)
-        game.Update(1, false);
+      var island = islands[index];
+      LandAndClearIsland(game, island, index == 0, name);
+      if (game.Won)
+        break;
 
-      Assert.IsTrue(game.Grounded, $"{name}: safe takeoff required on island {index}.");
-      game.QueueJump();
-      bool landed = false;
-      for (int tick = 0; tick < 120 && !game.IsDying; tick++)
+      if (index == islands.Count - 1)
       {
-        game.Update(game.X < target.Left + 0.5 ? 1 : 0, true);
-        if (game.Grounded && Math.Abs(game.Y + game.PlayerHeight - target.Top) < 0.001
-          && game.X >= target.Left)
-        {
-          landed = true;
-          break;
-        }
+        for (int tick = 0; tick < 120 && !game.Won && !game.IsDying; tick++)
+          game.Update(1, false);
+
+        break;
       }
 
-      Assert.IsTrue(landed,
-        $"{name}: jump {index} to ({target.Left}, {target.Top}) failed at ({game.X:F2}, {game.Y:F2}).");
-    }
+      Assert.IsGreaterThan(island.Right, islands[index + 1].Left, "Every island must have a bottomless gap before it.");
+      double takeoff = island.Right - 1;
+      for (int tick = 0; tick < 180 && game.X < takeoff && !game.IsDying; tick++)
+        game.Update(game.Grounded ? 1 : 0, false);
 
-    for (int tick = 0; tick < 60 && !game.Won && !game.IsDying; tick++)
-      game.Update(1, false);
+      // A dog can slow the player. Recover full speed before committing to a gap.
+      for (int tick = 0; tick < 400 && (!game.Grounded || game.SlowTicksRemaining > 0) && !game.IsDying; tick++)
+        game.Update(0, false);
+
+      Assert.IsTrue(game.Grounded && !game.IsDying, $"{name}: safe takeoff required on island {index + 1}.");
+      game.QueueJump();
+    }
 
     Assert.IsTrue(game.Won, $"{name}: the last brick island must lead to the goal.");
     Assert.AreEqual(large ? 30 : 3, game.Lives);
+    Assert.IsGreaterThanOrEqualTo(8, game.Enemies.Count(enemy => !enemy.Alive), "The route must handle the guarded landings.");
+  }
+
+  private static void LandAndClearIsland(Game game, (int Left, int Right, int Top) island, bool first, string name)
+  {
+    bool entered = first;
+    for (int tick = 0; tick < 900 && !game.IsDying && !game.Won; tick++)
+    {
+      var enemy = game.Enemies.FirstOrDefault(enemy => enemy.Alive && enemy.PatrolFloorRow == island.Top
+        && enemy.X >= island.Left - 0.01 && enemy.X < island.Right);
+      bool landed = game.Grounded && Math.Abs(game.Y + game.PlayerHeight - island.Top) < 0.001;
+      entered |= landed;
+      if (enemy is null && landed)
+        return;
+
+      // Land on open space, or intercept a tall zombie from above for a stomp.
+      double aim = enemy is null || (!entered && enemy.Kind != EnemyKind.Zombie) ? island.Left + 0.5
+        : Math.Clamp(enemy.X, island.Left + 0.1, island.Right - Game.BodyWidth - 0.1);
+      if (enemy is not null && entered && !enemy.CanInteract)
+        aim = Math.Clamp(enemy.X - Game.BodyWidth - 0.4, island.Left + 0.1, island.Right - Game.BodyWidth - 0.1);
+
+      int direction = Math.Abs(game.X - aim) < 0.15 ? 0 : game.X < aim ? 1 : -1;
+      if (enemy is not null && enemy.CanInteract && entered && game.X >= island.Left - 0.3
+        && game.Y + game.PlayerHeight > enemy.Y - 0.1)
+        direction = 0;
+
+      if (game.X < island.Left - 0.3)
+        direction = 1;
+
+      if (enemy is not null && enemy.CanInteract && landed)
+        game.QueueJump();
+
+      game.Update(direction, true);
+    }
+
+    Assert.IsTrue(game.Won, $"{name}: failed to clear island ({island.Left}, {island.Top}) at ({game.X:F2}, {game.Y:F2}).");
   }
 }
