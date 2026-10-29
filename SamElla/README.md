@@ -55,8 +55,10 @@ in 5% steps from 0% (silent) to 100%. Volume changes apply immediately to curren
 and future playback. Selecting Back and pressing Enter/Space saves background
 music on/off and volume, plus sound effects on/off and volume, then returns to the
 title or paused game. Closing Settings with Escape, S, or F1 also saves. All four
-preferences are stored in `%LocalAppData%/SamElla/audio-settings.txt` and restored
-on the next launch. Older settings files without volume levels default to 100%.
+preferences are stored in `%LocalAppData%/SamElla/settings.txt` and restored
+on the next launch. Older settings files without volume levels default to 100%. If `settings.txt` is
+missing, the game reads the previous `audio-settings.txt` and saves to the new
+filename when Settings closes or the game exits.
 
 You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter while gameplay freezes. PRESS ANY KEY TO CONTINUE appears immediately, and a fresh keypress can restart at any point during death. With no keypress, the original two-second death animation plays and then waits indefinitely. A fresh keypress reloads the current level; holding a key does not dismiss the screen. After the last life, only a fresh Enter press can start a new run. Otherwise, the death animation finishes and a red GAME OVER page displays a tombstone and a random roast. Enter starts a new run from level one with cleared rewards and the normal starting lives, or the cheat starting lives if enabled. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 
@@ -185,7 +187,7 @@ Example:
 ##############################
 ```
 
-Maps support 10Ã¢â‚¬â€œ10000 columns and 3Ã¢â‚¬â€œ100 rows. Shorter rows are padded with air. Place the spawn and enemies in empty space above solid ground. Leave openings in the bottom ground rows to make pits. The camera follows horizontally and vertically, so maps can exceed the visible screen. A full jump rises roughly 2.8 tiles; start with obstacles up to two tiles tall and gaps up to four tiles wide. Test every map to ensure the goal is reachable. The loader validates map syntax and reports the file and position of unknown characters.
+Maps support 10ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“10000 columns and 3ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“100 rows. Shorter rows are padded with air. Place the spawn and enemies in empty space above solid ground. Leave openings in the bottom ground rows to make pits. The camera follows horizontally and vertically, so maps can exceed the visible screen. A full jump rises roughly 2.8 tiles; start with obstacles up to two tiles tall and gaps up to four tiles wide. Test every map to ensure the goal is reachable. The loader validates map syntax and reports the file and position of unknown characters.
 
 To load maps directly from another folder:
 

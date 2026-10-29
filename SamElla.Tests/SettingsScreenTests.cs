@@ -162,6 +162,40 @@ public sealed class SettingsScreenTests
   }
 
   [TestMethod]
+  public void LegacyFilenameIsUsedOnlyUntilTheNewSettingsFileIsSaved()
+  {
+    string folder = Path.Combine(Path.GetTempPath(), $"samella-settings-rename-{Guid.NewGuid():N}");
+    string path = Path.Combine(folder, "settings.txt");
+    string legacyPath = Path.Combine(folder, "audio-settings.txt");
+    try
+    {
+      new AudioSettings { MusicEnabled = false, MusicVolume = 25, SoundEffectsVolume = 75 }.Save(legacyPath);
+      var settings = AudioSettings.Load(path, legacyPath);
+      Assert.IsFalse(settings.MusicEnabled);
+      Assert.AreEqual(25, settings.MusicVolume);
+      Assert.AreEqual(75, settings.SoundEffectsVolume);
+      settings.SoundEffectsEnabled = false;
+      settings.MusicVolume = 60;
+      settings.Save(path);
+
+      var restored = AudioSettings.Load(path, legacyPath);
+      Assert.IsFalse(restored.MusicEnabled);
+      Assert.IsFalse(restored.SoundEffectsEnabled);
+      Assert.AreEqual(60, restored.MusicVolume, "The new filename must take precedence over the legacy file.");
+      Assert.AreEqual(75, restored.SoundEffectsVolume);
+      Assert.AreEqual(25, AudioSettings.Load(legacyPath).MusicVolume, "The legacy file is preserved.");
+    }
+
+    finally
+    {
+      File.Delete(path);
+      File.Delete(legacyPath);
+      if (Directory.Exists(folder))
+        Directory.Delete(folder);
+    }
+  }
+
+  [TestMethod]
   public void OlderSettingsFilesPreserveSwitchesAndUseFullVolumeDefaults()
   {
     string path = Path.Combine(Path.GetTempPath(), $"samella-legacy-audio-{Guid.NewGuid():N}.txt");
