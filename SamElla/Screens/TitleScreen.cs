@@ -7,7 +7,7 @@ internal sealed class TitleScreen
 {
   private static readonly int[] KonamiCode = [0x26, 0x26, 0x28, 0x28, 0x25, 0x27, 0x25, 0x27, 0x42, 0x41];
   private readonly Queue<int> _recentKeys = new();
-  private readonly ScreenMenu _menu = new();
+  private readonly ScreenMenu _menu = new(includeLeaderboard: true);
 
   public bool IsActive { get; private set; } = true;
   public bool KonamiCodeEnabled { get; private set; }

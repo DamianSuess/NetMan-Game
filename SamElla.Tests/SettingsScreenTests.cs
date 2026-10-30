@@ -145,14 +145,59 @@ public sealed class SettingsScreenTests
       var restored = AudioSettings.Load(path);
       Assert.IsFalse(restored.MusicEnabled);
       Assert.IsTrue(restored.SoundEffectsEnabled);
-      Assert.AreEqual(100, restored.MusicVolume, "Volume persistence is intentionally deferred.");
-      Assert.AreEqual(100, restored.SoundEffectsVolume);
+      Assert.AreEqual(25, restored.MusicVolume);
+      Assert.AreEqual(75, restored.SoundEffectsVolume);
 
-      File.WriteAllLines(path, ["MusicEnabled=invalid", "SoundEffectsEnabled=false", "garbage"]);
+      File.WriteAllLines(path, ["MusicEnabled=invalid", "SoundEffectsEnabled=false", "MusicVolume=invalid", "SoundEffectsVolume=999999999999", "garbage"]);
       restored = AudioSettings.Load(path);
       Assert.IsTrue(restored.MusicEnabled);
       Assert.IsFalse(restored.SoundEffectsEnabled);
+      Assert.AreEqual(100, restored.MusicVolume);
+      Assert.AreEqual(100, restored.SoundEffectsVolume);
     }
+    finally
+    {
+      File.Delete(path);
+    }
+  }
+
+  [TestMethod]
+  public void MissingVolumeValuesUseFullVolumeDefaults()
+  {
+    string path = Path.Combine(Path.GetTempPath(), $"samella-legacy-audio-{Guid.NewGuid():N}.txt");
+    try
+    {
+      File.WriteAllLines(path, ["MusicEnabled=false", "SoundEffectsEnabled=false"]);
+      var restored = AudioSettings.Load(path);
+      Assert.IsFalse(restored.MusicEnabled);
+      Assert.IsFalse(restored.SoundEffectsEnabled);
+      Assert.AreEqual(100, restored.MusicVolume);
+      Assert.AreEqual(100, restored.SoundEffectsVolume);
+    }
+
+    finally
+    {
+      File.Delete(path);
+    }
+  }
+
+  [TestMethod]
+  [DataRow(-20, 150, 0, 100)]
+  [DataRow(0, 100, 0, 100)]
+  [DataRow(65, 35, 65, 35)]
+  public void LoadingVolumeLevelsClampsToSliderRange(int music, int effects, int expectedMusic, int expectedEffects)
+  {
+    string path = Path.Combine(Path.GetTempPath(), $"samella-volume-settings-{Guid.NewGuid():N}.txt");
+    try
+    {
+      File.WriteAllLines(path, [$"MusicVolume = {music}", $"SoundEffectsVolume = {effects}"]);
+      var restored = AudioSettings.Load(path);
+      Assert.AreEqual(expectedMusic, restored.MusicVolume);
+      Assert.AreEqual(expectedEffects, restored.SoundEffectsVolume);
+      Assert.IsTrue(restored.MusicEnabled);
+      Assert.IsTrue(restored.SoundEffectsEnabled);
+    }
+
     finally
     {
       File.Delete(path);
