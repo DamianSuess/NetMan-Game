@@ -102,6 +102,51 @@ applications contain no GitHub credentials. Draft and prerelease releases are no
 offered by the app. If using immutable GitHub releases, build locally and attach the
 assets while the release is still a draft, before publishing it.
 
+### Automatic releases from merged PRs
+
+| Merged into | Version | Tag | GitHub publication |
+| --- | --- | --- | --- |
+| `develop` | Increment the fourth component first | `v0.7.0.108-develop` | Pre-release |
+| `master` | Use the version already promoted from develop | `v0.7.0.108` | Stable, marked Latest |
+
+Merging a PR into `develop` now runs the existing build-version increment,
+then builds and tests that exact versioned commit, checks the native installer
+hook, and publishes a GitHub **Pre-release** with the installer, update feed,
+packages, and standalone ZIP. Tags use `v<FileVersion>-develop`, for example
+`v0.7.0.108-develop`. Closing an unmerged PR does not publish anything.
+
+The tag is created only after the build succeeds. Assets upload to a draft
+before publication, and these prereleases never replace the stable Latest
+release. Retrying a failed run reuses its original versioned commit, resumes
+an unfinished draft, and leaves an already published prerelease untouched.
+Existing tags pointing at another commit are rejected rather than moved.
+
+Merging into `master` runs the same build, tests, and packaging against the
+exact master merge commit, then publishes a separate stable release marked
+**Latest**. It does not increment the version again. Its tag has no `-develop`
+suffix, and the earlier develop prerelease remains available. Publish each
+stable version once; a different commit cannot reuse an existing stable tag.
+
+These paths take effect when their workflows are merged into `develop` and
+`master`, respectively;
+previously merged PRs are not retroactively published. Keep the workflows on
+the default branch (`master`) updated as well for fork/Dependabot PR events.
+The existing `VERSION_BUMP_TOKEN` option still applies if branch protection
+requires it. Release publication uses GitHub's built-in token with
+`contents: write`; no additional release secret is required. The build workflow
+is reused directly, since bot-created release events do not trigger another
+workflow. Manually published releases keep their existing build/upload flow.
+
+Validate the automation locally with PowerShell 7:
+
+```powershell
+pwsh -NoProfile -File .github/scripts/Test-BuildVersion.ps1
+pwsh -NoProfile -File .github/scripts/Test-ReleasePublishing.ps1
+```
+
+These checks use disposable local Git repositories and a mocked GitHub CLI;
+they do not push to GitHub or publish releases.
+
 ### Local self-signing
 
 To create or reuse a local development signing certificate and sign a release:

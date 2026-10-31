@@ -47,10 +47,19 @@ function Check
 
 function Bump
 {
-  param([string]$Directory, [int]$Number, [string]$Commit, [switch]$ExpectFailure)
-  $output = @(& $powershellPath -NoLogo -NoProfile -File $scriptPath -RepositoryPath $Directory `
-    -PullRequestNumber $Number -MergeCommit $Commit 2>&1)
-  $code = $LASTEXITCODE
+  param([string]$Directory, [int]$Number, [string]$Commit, [switch]$ExpectFailure, [string]$OutputPath)
+  $previousOutput = $env:GITHUB_OUTPUT
+  try
+  {
+    $env:GITHUB_OUTPUT = $OutputPath
+    $output = @(& $powershellPath -NoLogo -NoProfile -File $scriptPath -RepositoryPath $Directory `
+      -PullRequestNumber $Number -MergeCommit $Commit 2>&1)
+    $code = $LASTEXITCODE
+  }
+  finally
+  {
+    $env:GITHUB_OUTPUT = $previousOutput
+  }
   if (($ExpectFailure -and $code -eq 0) -or (-not $ExpectFailure -and $code -ne 0))
   {
     throw "Unexpected bump exit code $code`: $($output -join [Environment]::NewLine)"
@@ -143,6 +152,14 @@ foreach ($number in @(101, 102, 103))
 }
 $null = Bump $worker 102 $mergeCommit
 Check ((Remote-Version) -eq '0.4.0.63') 'A raced PR remains idempotent on rerun'
+
+$outputsPath = Join-Path $testRoot 'bump-outputs.txt'
+$null = Bump $worker 101 $mergeCommit -OutputPath $outputsPath
+$outputs = ConvertFrom-StringData ([IO.File]::ReadAllText($outputsPath))
+Check ($outputs.version -eq '0.4.0.61') 'An older PR rerun reports its original version instead of the newest develop version'
+Check ($outputs.commit -eq $afterFirst) 'Release output pins the exact original version-bump commit'
+Check ($outputs.updated -eq 'false') 'An older PR rerun does not bump again'
+Check ((Remote-Version) -eq '0.4.0.63') 'Reporting an older release never rewinds develop'
 
 $path = Join-Path $worker 'SamElla/SamElla.csproj'
 $original = [System.IO.File]::ReadAllText($path)
