@@ -17,6 +17,8 @@ Publish/Velopack/<runtime>/ containing the installer, update feed, and packages.
 .\build.ps1 -Run
 .EXAMPLE
 .\build.ps1 -SelfSign
+.EXAMPLE
+.\build.ps1 -Offline
 #>
 
 [CmdletBinding()]
@@ -27,6 +29,8 @@ param(
   [switch]$SkipTests,
 
   [switch]$SkipInstaller,
+
+  [switch]$Offline,
 
   [switch]$Run,
 
@@ -47,10 +51,28 @@ function Invoke-DotNet
 {
   param([string[]]$Arguments)
 
+  if ($Offline)
+  {
+    if ($Arguments[0] -in @('build', 'test', 'publish'))
+    {
+      # Restore from the local package cache even when obj/ has been cleaned.
+      $Arguments += @("-p:RestoreConfigFile=$offlineConfigPath", '-p:NuGetAudit=false')
+    }
+    elseif ($Arguments[0] -eq 'tool' -and $Arguments[1] -eq 'restore')
+    {
+      $Arguments += @('--configfile', $offlineConfigPath)
+    }
+  }
+
   & dotnet @Arguments | Out-Host
 
   if ($LASTEXITCODE -ne 0)
   {
+    if ($Offline)
+    {
+      throw "Offline dotnet $($Arguments[0]) failed (exit code $LASTEXITCODE). Offline builds require cached dependencies and installed build tools. Run .\build.bat -Runtime $Runtime while connected first, then retry -Offline. See the output above for the missing dependency or build error. No new release was packaged."
+    }
+
     throw "dotnet $($Arguments[0]) failed (exit code $LASTEXITCODE). No new release was packaged; see the build output above."
   }
 }
@@ -120,6 +142,18 @@ if ($env:OS -ne 'Windows_NT')
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue))
 {
   throw 'The .NET 10 SDK is required. Install it and ensure dotnet is on PATH.'
+}
+
+$offlineConfigPath = Join-Path $PSScriptRoot 'scripts/NuGet.Offline.config'
+
+if ($Offline)
+{
+  if ($SelfSign -or $SigningCertificateThumbprint)
+  {
+    throw 'Offline builds cannot use signing options because signing requires an online timestamp server. Omit -SelfSign/-SigningCertificateThumbprint, or build without -Offline.'
+  }
+
+  Write-Host 'Offline build: using cached packages only; NuGet feeds, auditing, and Velopack update checks are disabled.'
 }
 
 $signingCertificate = $null
@@ -277,6 +311,11 @@ try
         '--packVersion', $packageVersion, '--packDir', $payloadPath,
         '--mainExe', $executableName, '--runtime', $Runtime,
         '--channel', $Runtime, '--outputDir', $stagedInstaller, '--skipVeloAppCheck')
+
+      if ($Offline)
+      {
+        $packArguments += '--skip-updates'
+      }
 
       if ($signingCertificate)
       {

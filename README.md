@@ -45,6 +45,28 @@ To publish and launch the game, double-click `build-exec.bat` or run:
 
 This runs the same Release build, tests, Native AOT publish, and ZIP packaging, then opens the newly published game. If any step fails, the game is not launched. Build options are forwarded, for example `.\build-exec.bat -SkipTests`. The PowerShell equivalent is `.\build.ps1 -Run`.
 
+### Build offline
+
+Run a normal release build while connected once to cache dependencies for the
+target runtime and install the pinned Velopack tool. Keep the .NET 10 SDK,
+Visual Studio C++ build tools, and NuGet package cache installed. Then use:
+
+```powershell
+.\build.bat -Offline
+# Build and launch instead:
+.\build-exec.bat -Offline
+```
+
+PowerShell also supports `.\build.ps1 -Offline`. This option builds, tests, and
+packages using cached dependencies, with NuGet feeds, vulnerability auditing,
+and Velopack update checks disabled. It can restore deleted `obj` files from the
+cache. Missing packages fail without attempting a download; reconnect and run
+the normal build for the same `-Runtime` to populate the cache. New dependencies
+or a different SDK/runtime can require another connected build.
+
+`-SkipTests`, `-SkipInstaller`, and `-Runtime` work with `-Offline`. Signing options
+require the normal connected build because they contact a timestamp server.
+
 ## Install and automatically update
 
 Install `SuessLabs.SamElla-win-x64-Setup.exe` from the project's
