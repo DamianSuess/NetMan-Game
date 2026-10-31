@@ -2,6 +2,7 @@ namespace SamElla.Actors;
 
 public sealed class Enemy
 {
+  public const int BossThrowIntervalTicks = 100;
   public const int SquashDurationTicks = 60;
   public const int HopIntervalTicks = 24;
   public const int StompStunTicks = 20;
@@ -12,11 +13,13 @@ public sealed class Enemy
 
   public Enemy(double x, double y, EnemyKind kind = EnemyKind.Walker, EnemySettings? settings = null)
   {
+    PatrolOriginX = x;
     X = x;
     Y = y;
     Kind = kind;
     Settings = settings ?? (kind switch
     {
+      EnemyKind.DungBag => new EnemySettings(2.5, 10, 0),
       EnemyKind.ToasterCat => EnemyConfiguration.DefaultToasterCat,
       EnemyKind.Zombie => EnemyConfiguration.DefaultZombie,
       EnemyKind.Dog => EnemyConfiguration.DefaultDog,
@@ -34,12 +37,15 @@ public sealed class Enemy
   public double X, Y, VelocityY;
 
   public EnemyKind Kind { get; }
+  public string Name => Kind == EnemyKind.DungBag ? "Dung-Bag" : Kind.ToString();
+  internal double PatrolOriginX { get; }
+  internal int ThrowTicksRemaining { get; set; } = BossThrowIntervalTicks;
 
   public EnemySettings Settings { get; }
 
   public double BodyHeight => Kind switch
   {
-    EnemyKind.Zombie => Game.LargeBodyHeight,
+    EnemyKind.Zombie or EnemyKind.DungBag => Game.LargeBodyHeight,
     EnemyKind.CreepyCrawler => CrawlerBodyHeight,
     _ => Game.BodyHeight,
   };

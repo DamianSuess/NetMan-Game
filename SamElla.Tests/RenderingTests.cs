@@ -136,6 +136,8 @@ public sealed class RenderingTests
       var asset = Sprite.Load(file, gamePalette);
       bool validSize = Path.GetFileName(file).Replace("ella-", "player-", StringComparison.Ordinal) switch
       {
+        "dung-bag-walk-1.sprite" or "dung-bag-walk-2.sprite" or "dung-bag-squashed.sprite"
+          => asset.Width == 20 && asset.Height == 32,
         "moon.sprite" => asset.Width == 32 && asset.Height == 32,
         "tombstone.sprite" or "tombstone-cross.sprite" => asset.Width == 16 && asset.Height == 24,
         "player-burning-1.sprite" or "player-burning-2.sprite" or "player-burning-3.sprite" or "player-burning-4.sprite"

@@ -7,4 +7,5 @@ public enum EnemyKind
   Zombie,
   Dog,
   CreepyCrawler,
+  DungBag,
 }

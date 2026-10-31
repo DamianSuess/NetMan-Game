@@ -58,22 +58,23 @@ public sealed class SectionLevelTests
   }
 
   [TestMethod]
-  public void CampaignHasFiveLevelsThenBossPlaceholderAndSectionTwo()
+  public void CampaignHasFiveLevelsThenBossAndSectionTwo()
   {
     string[] files = LevelSelectScreen.Discover(Path.Combine(AppContext.BaseDirectory, "Levels"));
     CollectionAssert.AreEqual(new[] { "01-01", "01-02", "01-03", "01-04", "01-05", "01-06", "02-01", "02-02", "02-03", "02-04" },
       files.Select(file => Level.Load(file).SectionLevelNumber).ToArray());
     foreach (string file in files)
     {
-      StringAssert.Matches(Path.GetFileName(file), new System.Text.RegularExpressions.Regex(@"^\d{2}-\d{2}-[a-z]+(?:-[a-z]+)*\.txt$"));
+      StringAssert.Matches(Path.GetFileName(file), new System.Text.RegularExpressions.Regex(@"^\d{2}-\d{2}-[A-Za-z]+(?:-[A-Za-z]+)*\.txt$"));
       Assert.IsTrue(File.ReadLines(file).Any(line => line.StartsWith("Name=")));
       Assert.IsTrue(Level.Load(file).DisplayName.Length is >= 1 and <= 32);
     }
 
-    Assert.AreEqual("01-06-boss-fight.txt", Path.GetFileName(files[5]));
+    Assert.AreEqual("01-06-Boss-Fight.txt", Path.GetFileName(files[5]));
     var game = new Game(files, startingLevelIndex: 5);
-    Assert.AreEqual("Boss Fight (Placeholder)", game.Level.DisplayName);
-    Assert.IsEmpty(game.Enemies);
+    Assert.AreEqual("Boss Fight - Dung-Bag", game.Level.DisplayName);
+    Assert.IsNotNull(game.Boss);
+    game.Boss.Squash();
     for (int tick = 0; tick < 600 && game.LevelNumber == 6; tick++)
       game.Update(1, false);
 
@@ -88,7 +89,7 @@ public sealed class SectionLevelTests
     string[] files = LevelSelectScreen.Discover(Path.Combine(AppContext.BaseDirectory, "Levels"));
     var selection = new LevelSelectScreen(files);
     Assert.AreEqual("01-06", selection.Levels[5].DisplayNumber);
-    Assert.AreEqual("Boss Fight (Placeholder)", selection.Levels[5].Name);
+    Assert.AreEqual("Boss Fight - Dung-Bag", selection.Levels[5].Name);
     var game = new Game(files, startingLevelIndex: 6);
     var intro = new LevelStartScreen(Path.Combine(AppContext.BaseDirectory, "Assets", "uncle-quotes.txt"));
     intro.Show(game);

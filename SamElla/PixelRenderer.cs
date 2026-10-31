@@ -60,6 +60,9 @@ internal sealed class PixelRenderer
       "dog-walk-2",
       "dog-squashed",
       "poop",
+      "dung-bag-walk-1",
+      "dung-bag-walk-2",
+      "dung-bag-squashed",
       "poop-screen-splatter",
       "grass",
       "dirt",
@@ -444,6 +447,10 @@ internal sealed class PixelRenderer
     foreach (var pile in game.PoopPiles)
       Frame.Draw(_sprites["poop"], (pile.X * TileSize) - cameraX, HeaderHeight + (pile.Y * TileSize) - TileSize - cameraY);
 
+    foreach (var poop in game.ThrownPoop)
+      Frame.Draw(_sprites["poop"], (int)Math.Round(poop.X * TileSize) - cameraX,
+        HeaderHeight + (int)Math.Round((poop.Y + Effects.ThrownPoop.Height) * TileSize) - TileSize - cameraY);
+
     foreach (var effect in game.BlockBreakEffects)
     {
       var sprite = _sprites[effect.FrameIndex == 0 ? "brick-rubble" : "brick-dust"];
@@ -452,6 +459,14 @@ internal sealed class PixelRenderer
 
     foreach (var heart in game.GrowthHearts)
       DrawActor(_sprites[heart.IsBoomStick ? "boom-stick-pickup" : heart.IsFlamethrower ? "flamethrower-pickup" : $"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
+
+    if (game.Boss is { } boss && game.X >= boss.PatrolOriginX - 14)
+    {
+      int labelX = Width / 2 - 42;
+      PixelFont.Draw(Frame, $"DUNG-BAG {boss.Health}/10", labelX, HeaderHeight + 4, Gold);
+      Frame.Fill(labelX, HeaderHeight + 12, 84, 4, Ink);
+      Frame.Fill(labelX + 1, HeaderHeight + 13, 82 * boss.Health / 10, 2, 0xFFE83B3B);
+    }
 
     int animationFrame = (int)(_animationTime * 9) % 2;
 
@@ -473,6 +488,7 @@ internal sealed class PixelRenderer
 
       string name = enemy.Kind switch
       {
+        EnemyKind.DungBag => $"dung-bag-walk-{animationFrame + 1}",
         EnemyKind.CreepyCrawler => $"creepy-crawler-crawl-{(int)(_animationTime * 4) % 2 + 1}",
         EnemyKind.Zombie => $"zombie-walk-{(int)(_animationTime * 3) % 2 + 1}",
         EnemyKind.Dog => $"dog-walk-{(int)(_animationTime * 6) % 2 + 1}",
@@ -487,6 +503,7 @@ internal sealed class PixelRenderer
     {
       string name = enemy.Kind switch
       {
+        EnemyKind.DungBag => "dung-bag-squashed",
         EnemyKind.CreepyCrawler => "creepy-crawler-squashed",
         EnemyKind.Zombie => "zombie-squashed",
         EnemyKind.Dog => "dog-squashed",
