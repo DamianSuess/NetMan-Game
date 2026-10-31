@@ -17,6 +17,39 @@ Install the .NET 10 SDK, open Windows Terminal in this folder, and run:
 dotnet run
 ```
 
+## Building Source
+
+### Building and Executing
+
+Performs building the app and checks for vulnerabilities.
+
+```
+.\build.bat
+.\build-exec.bat
+```
+
+### Offline Builds
+
+The following skips online vulnerability checks.
+
+```
+.\build.bat -Offline
+.\build-exec.bat -Offline
+```
+
+## Game Play
+
+| Key | Action |
+| --- | --- |
+| A / D or left / right | Move |
+| Space / W / up | Jump; hold for a higher jump |
+| Enter | Open pause menu; confirm the selected menu item |
+| S / F1 | Open Settings from the title or pause screen |
+| R | Restart the entire game |
+| Esc | Quit |
+
+## Game Details
+
 The game opens a separate resizable window. It renders at 384 x 240 pixels and starts at 3x scale (1152 x 720 client area). Resizing uses whole-number scaling and letterboxing to keep the pixel art crisp. Keyboard input is received only by the game window. Switching to another app automatically pauses the game; select Resume Game and press Enter after returning.
 
 This version runs on Windows. The gameplay, text-level loader, sprite loader, pixel renderer, and PNG exporter use portable .NET code. `IGameWindow` separates those components from the Win32 backend; Linux and macOS would need their own window/input/presentation implementations and testing.
@@ -35,14 +68,7 @@ Original chiptune music plays on three screens: a bright looping title theme, a 
 
 Daytime levels cycle through three upbeat themes: Sunlit Sprint, Cloud Hopper, and Meadow Parade. Nighttime levels independently cycle through three dark themes: Graveyard Watch, Something Follows, and Below the Moon. Each song loops for its level. Retrying keeps that level's song, restarting resets the sequence, and music pauses with gameplay or loss of window focus. Player death stops level music before the death sound.
 
-| Key | Action |
-| --- | --- |
-| A / D or left / right | Move |
-| Space / W / up | Jump; hold for a higher jump |
-| Enter | Open pause menu; confirm the selected menu item |
-| S / F1 | Open Settings from the title or pause screen |
-| R | Restart the entire game |
-| Esc | Quit |
+### Controls
 
 On the title screen, use Up/Down to select Start Game, Settings, or Top 10, then Enter to
 confirm. During gameplay, Enter opens the pause menu; Up/Down selects Resume Game
@@ -62,7 +88,7 @@ Missing or invalid preferences use the defaults: music and effects on, both at
 
 You have three lives. Enemy side contact, landing on a spike tip from above, and falling into a pit cost a life. Spikes block sideways movement like pipes without causing side-contact damage. Touching them from below is safe. The player becomes a blood-and-clothing splatter while gameplay freezes. PRESS ANY KEY TO CONTINUE appears immediately, and a fresh keypress can restart at any point during death. With no keypress, the original two-second death animation plays and then waits indefinitely. A fresh keypress reloads the current level; holding a key does not dismiss the screen. After the last life, only a fresh Enter press can start a new run. Otherwise, the death animation finishes and a red GAME OVER page displays a tombstone and a random roast. Enter starts a new run from level one with cleared rewards and the normal starting lives, or the cheat starting lives if enabled. Pausing freezes the death timers. Land on an enemy from above to stomp it. Dead enemies become a flattened splatter of blood and their original colors for one second, then disappear. Enemy and player splatters can appear together and expire independently. Hit `?` blocks from below for a coin; brick blocks break when hit from below. Scores and collected coin totals persist through level respawns; the current map resets. Reach the goal in every level to win.
 
-## Top 10 leaderboard
+### Top 10 leaderboard
 
 Choose **Top 10** on the title menu to view the ten highest submitted scores,
 ranked by points, with three-character initials and the date. The board is saved
@@ -78,7 +104,7 @@ and cheat codes are suspended while entering initials. The next Enter continues
 to victory credits or starts a fresh run after Game Over. Each run is submitted
 at most once. Nonqualifying runs keep the usual credits or Game Over behavior.
 
-## Player records
+### Player records
 
 The game saves the highest score, fastest successful completion, and fastest Game
 Over, each with the date and time the record was set. Records are loaded at startup
@@ -94,7 +120,7 @@ the final life is lost, before the last death animation. A successful completion
 time is recorded only after reaching the final goal. Times are stored as exact
 TimeSpan ticks and dates as ISO 8601 timestamps with a timezone offset.
 
-## Title screen
+### Title screen
 
 For level debugging, type `deadbeef` at any time to open Level Select: on the title, during gameplay or a pause, on a level intro or death screen, at Game Over, or during credits. The menu freezes the underlying screen and pauses music; Esc returns to that screen with the current game and pause state preserved. The menu discovers the current level directory (`Levels` or `--levels`) each time it opens and lists levels in game order with their number, name, and Daytime/Nighttime theme. Eight entries appear per page. Use Up/Down or W/S to select, Left/Right or Page Up/Page Down to change pages, and Enter to start a fresh run at the selected level, keeping your character and Konami setting. New `.txt` levels appear automatically when the menu is reopened. Selection preserves the full level numbering and normal progression; retries stay on the chosen level, while R restarts from level one. The Konami code itself remains a title-screen cheat.
 
@@ -123,7 +149,7 @@ Before each level begins, a start page shows its section-level number, display n
 
 When the last life is lost, the usual two-second death animation plays unless interrupted by Enter, followed by a red GAME OVER page with a tombstone, a random quote from `Assets/game-over-quotes.txt`, and the level, score, and death count. The quote remains fixed until a fresh Enter press restarts the run; other keys and held Enter do not restart it. The file contains 15 roasts. Both quote files accept one quote per line and ignore blank lines and lines beginning with `;`; long text wraps and is shortened if necessary. Relaunch after editing.
 
-## Make levels
+## Make Your Own Levels
 
 Each level has a countdown shown in the HUD. It defaults to 100 seconds and
 turns red for the last 10 seconds. Add `TimeLimit=150` to a level's header to use
@@ -175,6 +201,8 @@ Within the map, each character is one tile. Rows run from top to bottom; columns
 | `^` | Spike; blocks sideways movement and is deadly only when landing on its tip from above |
 | `G` | Green goal flag; at least one per map |
 
+### Enemies
+
 Creepy-Crawler is a legless, half-body zombie introduced on nighttime Level 01-05,
 with more encounters in Levels 02-03 and 02-04. It waits completely hidden beneath the
 terrain, with no visible mound. When the player comes within 4 tiles, it spends
@@ -193,7 +221,11 @@ Zombies appear from Level 01-04 onward. They match the powered-up player in heig
 
 Dogs appear from Level 01-05 onward. Put `D` in a level to spawn one. They leave smiling poop emoji piles behind them every three seconds of grounded walking. Stepping in a pile removes it and halves running speed for five seconds, with a translucent screen splatter for two seconds. Jump over piles to avoid them. Another pile refreshes both timers without stacking the slowdown. Jump strength remains unchanged. Pausing freezes the dog and both effect timers; reloading a level clears the piles and effects. Dog speed, health, and hopping are configurable under `[Dog]` in `Assets/enemies.txt` (defaults: speed 2, health 1, no hopping). Stomps and side contact follow the existing enemy rules.
 
+### Player Settings
+
 Player settings are in the same file under `[Player.PowerLevel1]` (small) and `[Player.PowerLevel2]` (large). For each form, `Speed` controls running, `HopVelocity` controls jump takeoff, and `PowerLevel` controls stomp damage (1-10). Defaults are speed 12 and jump velocity 15 for both forms, with power 1 when small and power 2 when large. Each stomp subtracts the current player power from enemy health, so a default Toaster Cat needs two small-player stomps or one large-player stomp. Growing and shrinking immediately switch the active settings. The growth-heart overload limit remains unchanged.
+
+### Power-Ups
 
 The Level 01-02 power-up is a handheld flamethrower. Put `F` in a level for a question block that releases the weapon; chase and collect it to gain 100 points and equip it. Weapon blocks appear from Level 01-02 onward; Level 01-01 has none. Only a fully grown player can collect the flamethrower. Small players leave the pickup untouched and receive no growth or points from it. Sam and Ella can both use it. Equipping the weapon displays one random quote in a banner for three seconds. Edit `Assets/flamethrower-quotes.txt` to change the ten bundled quotes; use one quote per line, with blank lines and `;` comment lines ignored. Long quotes wrap, and pausing freezes the display timer. Hold X or Ctrl to fire in the direction you face. Four editable fire frames animate every 100 ms, reaching up to three tiles from the player and stopping at solid walls, pipes, and blocks. The stream deals current stomp damage plus one (normally 3 when large), at most once every 0.3 seconds. Each burst lasts at most one second; release and press fire again to start another burst. The first hit is immediate, and tapping fire cannot bypass the damage interval. Fire kills award the same points and one-second enemy splatter as stomps. It does not break terrain. Taking damage removes the weapon first while keeping the large form and granting the usual protection; the next unprotected hit shrinks the player. The weapon carries into the next level and is cleared by death or restarting. Collecting another flamethrower while already equipped immediately removes the weapon and sets the player on fire for three seconds. Four translucent fire frames animate around the character; this penalty does not cost a life or remove growth. Movement continues, pausing freezes the timer, and new weapon pickups cannot be collected until the flames go out. Death, restarting, or changing levels clears the fire effect. Growth hearts keep their existing overload behavior.
 
@@ -203,7 +235,11 @@ Use `M` for selected question blocks that release growth hearts and `?` for coin
 
 The growth-heart limit is one growth reward at a time; the separate flamethrower provides the second power-up tier. Collecting another heart while enlarged (or while growth is waiting for headroom) causes an overload: the player grows one extra size and explodes, losing one life. Four editable animation frames show the oversized rupture, body fragments, spreading blood and guts, and final splatter. Each frame lasts 100 ms, for a 0.4-second animation. After the final explosion frame, the player disappears while the two-second death delay finishes, then waits for a fresh keypress to restart the level. Pausing freezes the animation. Coin blocks (`?`) do not count toward this limit, and shrinking frees the growth slot again.
 
+### Player Deaths
+
 Every death displays a large `YOU DIED!` title with a randomly chosen quote underneath during the two-second death delay and, when lives remain, while waiting for a keypress to continue. The last life instead leads to the separate game-over page after that delay. Edit `Assets/death-quotes.txt` to customize the messages: one quote per line, without surrounding quotation marks. Blank lines and lines starting with `;` are ignored. The file includes 42 quotes; add, remove, or replace lines as desired, then relaunch the game. Longer messages wrap to three lines and are shortened with an ellipsis if needed. A missing or empty file uses a fallback quote.
+
+## End of Game
 
 Completing the final level starts scrolling end credits over a translucent black overlay, with characters running across the bottom. The credits open with a random dark-humored victory quote, credit Damian Suess, Suess Labs, and Xeno Innovations, and give special thanks to Little Stinker. Your run statistics show completion time as `Time Wasted: HH:MM:SS`, deaths, points, and items missed. Completion time includes active gameplay across all attempts, level transitions, and death animations, while excluding pauses, waiting for a respawn key, and the credits themselves. Missed items are coins and reward-block contents never collected during the run; hearts only count as collected when touched, and items found before a death are remembered across retries. Brick obstacles and enemies are not counted as missed items.
 
@@ -221,7 +257,7 @@ Example:
 ##############################
 ```
 
-Maps support 10ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ10000 columns and 3ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ100 rows. Shorter rows are padded with air. Place the spawn and enemies in empty space above solid ground. Leave openings in the bottom ground rows to make pits. The camera follows horizontally and vertically, so maps can exceed the visible screen. A full jump rises roughly 2.8 tiles; start with obstacles up to two tiles tall and gaps up to four tiles wide. Test every map to ensure the goal is reachable. The loader validates map syntax and reports the file and position of unknown characters.
+Maps support 10-10000 columns and 3-100 rows. Shorter rows are padded with air. Place the spawn and enemies in empty space above solid ground. Leave openings in the bottom ground rows to make pits. The camera follows horizontally and vertically, so maps can exceed the visible screen. A full jump rises roughly 2.8 tiles; start with obstacles up to two tiles tall and gaps up to four tiles wide. Test every map to ensure the goal is reachable. The loader validates map syntax and reports the file and position of unknown characters.
 
 To load maps directly from another folder:
 
