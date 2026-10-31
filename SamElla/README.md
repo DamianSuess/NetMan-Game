@@ -98,8 +98,10 @@ place. Equal scores keep existing entries ahead of newer ones.
 
 After completing the final level, a qualifying run prompts for initials before
 the credits begin. A qualifying Game Over prompts after the final death animation,
-before the run can restart. Type exactly three letters or digits (A-Z / 0-9,
-including the numeric keypad); Backspace edits, and Enter saves. Game controls
+before the run can restart. Use Up/Down to cycle the selected character through A-Z, 0-9, and space;
+Left/Right selects one of the three positions, and Enter accepts. Slots start
+at AAA. Direct typing (including the numeric keypad and space) still works;
+Backspace clears the previous typed position. Spaces are preserved when saved. Game controls
 and cheat codes are suspended while entering initials. The next Enter continues
 to victory credits or starts a fresh run after Game Over. Each run is submitted
 at most once. Nonqualifying runs keep the usual credits or Game Over behavior.
