@@ -15,6 +15,7 @@ public sealed class NewLevelTests
   [DataRow("01-05-pipe-terraces.txt", 2)]
   [DataRow("02-01-ruins-crossing.txt", 0)]
   [DataRow("02-02-brick-summit.txt", 0)]
+  [DataRow("02-05-canes-end-crossing.txt", 0)]
   public void RebalancedLevelsCanBeCompletedWithoutLosingALife(string name, int groundedWait)
   {
     var path = Path.Combine(AppContext.BaseDirectory, "Levels", name);
