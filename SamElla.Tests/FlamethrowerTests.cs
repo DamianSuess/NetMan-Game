@@ -230,18 +230,18 @@ public sealed class FlamethrowerTests : GameTestBase
   }
 
   [TestMethod]
-  public void BurstStopsAfterTwoSecondsAndNeedsReleaseBeforeRestarting()
+  public void BurstStopsAfterOneSecondAndNeedsReleaseBeforeRestarting()
   {
     var game = Arm();
     var enemy = AddEnemy(game, 3, 10);
-    for (int tick = 0; tick < 120; tick++)
+    for (int tick = 0; tick < 60; tick++)
       game.Update(0, false, true);
     Assert.IsNotNull(game.Flame);
     Assert.IsFalse(enemy.Alive);
     var nextEnemy = AddEnemy(game, 3, 10);
     game.Update(0, false, true);
     Assert.IsNull(game.Flame);
-    for (int tick = 0; tick < 120; tick++)
+    for (int tick = 0; tick < 60; tick++)
       game.Update(0, false, true);
     Assert.IsNull(game.Flame);
     Assert.AreEqual(10, nextEnemy.Health);

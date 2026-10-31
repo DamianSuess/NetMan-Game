@@ -52,7 +52,7 @@ public sealed class LevelTests
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     for (int index = 0; index < paths.Length; index++)
     {
-      bool night = index is 3 or 4 or 5 or 8 or 9;
+      bool night = index is 3 or 4 or 5 or 8 or 9 or 10 or 11;
       Assert.AreEqual(night ? "Background=Night" : "Background=Day", File.ReadLines(paths[index]).First());
       Assert.AreEqual(night ? BackgroundTheme.Night : BackgroundTheme.Day, Level.Load(paths[index]).Background);
     }

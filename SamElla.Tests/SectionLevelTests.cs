@@ -61,7 +61,7 @@ public sealed class SectionLevelTests
   public void CampaignHasFiveLevelsThenBossAndSectionTwo()
   {
     string[] files = LevelSelectScreen.Discover(Path.Combine(AppContext.BaseDirectory, "Levels"));
-    CollectionAssert.AreEqual(new[] { "01-01", "01-02", "01-03", "01-04", "01-05", "01-06", "02-01", "02-02", "02-03", "02-04" },
+    CollectionAssert.AreEqual(new[] { "01-01", "01-02", "01-03", "01-04", "01-05", "01-06", "02-01", "02-02", "02-03", "02-04", "02-05", "02-06" },
       files.Select(file => Level.Load(file).SectionLevelNumber).ToArray());
     foreach (string file in files)
     {
@@ -70,7 +70,7 @@ public sealed class SectionLevelTests
       Assert.IsTrue(Level.Load(file).DisplayName.Length is >= 1 and <= 32);
     }
 
-    Assert.AreEqual("01-06-Boss-Fight.txt", Path.GetFileName(files[5]));
+    Assert.AreEqual("01-06-boss-fight.txt", Path.GetFileName(files[5]).ToLowerInvariant());
     var game = new Game(files, startingLevelIndex: 5);
     Assert.AreEqual("Boss Fight - Dung-Bag", game.Level.DisplayName);
     Assert.IsNotNull(game.Boss);

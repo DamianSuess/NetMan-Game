@@ -64,6 +64,7 @@ public sealed class RenderingTests
         renderer.Frame.Pixels.Contains(gamePalette['T']),
         "Expired enemy splatter is removed without removing player splatter");
     }
+
     finally
     {
       File.Delete(combinedLevelPath);
@@ -117,6 +118,7 @@ public sealed class RenderingTests
       Assert.IsTrue(renderer.Frame.Pixels[(61 * PixelRenderer.Width) + 18] != gamePalette['O'],
         "Finished brick animation leaves no rubble or dust on screen");
     }
+
     finally
     {
       File.Delete(brickLevelPath);
@@ -138,6 +140,8 @@ public sealed class RenderingTests
       {
         "dung-bag-walk-1.sprite" or "dung-bag-walk-2.sprite" or "dung-bag-squashed.sprite"
           => asset.Width == 20 && asset.Height == 32,
+        string name when name.StartsWith("old-man-", StringComparison.Ordinal)
+          => asset.Width == 32 && asset.Height == 32,
         "moon.sprite" => asset.Width == 32 && asset.Height == 32,
         "tombstone.sprite" or "tombstone-cross.sprite" => asset.Width == 16 && asset.Height == 24,
         "player-burning-1.sprite" or "player-burning-2.sprite" or "player-burning-3.sprite" or "player-burning-4.sprite"
@@ -200,6 +204,7 @@ public sealed class RenderingTests
       Assert.IsTrue(renderer.Frame.Pixels[(107 * PixelRenderer.Width) + 13] != gamePalette['F'],
         "Expired blood splatter disappears from the rendered scene");
     }
+
     finally
     {
       File.Delete(stompLevelPath);
@@ -217,6 +222,7 @@ public sealed class RenderingTests
         Sprite.Parse("bad", lines, palette);
         return false;
       }
+
       catch (InvalidDataException)
       {
         return true;
@@ -291,6 +297,7 @@ public sealed class RenderingTests
         Assert.IsTrue(deathGame.ContinueAfterDeath());
       }
     }
+
     finally
     {
       File.Delete(deathLevelPath);
@@ -339,6 +346,7 @@ public sealed class RenderingTests
         renderer.Frame.Pixels[(52 * PixelRenderer.Width) + 25] != gamePalette['Y'],
         "Expired reward text is removed from the rendered scene");
     }
+
     finally
     {
       File.Delete(rewardLevelPath);
