@@ -21,7 +21,7 @@ public sealed class Game
   public const int ExplosionFrameTicks = 6;
 
   public const int FlameDamageIntervalTicks = 18;
-  public const int FlameMaxDurationTicks = 120;
+  public const int FlameMaxDurationTicks = 60;
   public const double FlameRange = 3;
   public const int FlamethrowerQuoteDurationTicks = 180;
   public const double LargeBodyHeight = 1.8;
@@ -153,7 +153,7 @@ public sealed class Game
   public double PlayerSpeed => PlayerSettings.Speed * (SlowTicksRemaining > 0 ? PoopSpeedMultiplier : 1);
   public IReadOnlyList<PoopPile> PoopPiles => _poopPiles;
   public IReadOnlyList<ThrownPoop> ThrownPoop => _thrownPoop;
-  public Enemy? Boss => Enemies.FirstOrDefault(enemy => enemy.Kind == EnemyKind.DungBag && enemy.Alive);
+  public Enemy? Boss => Enemies.FirstOrDefault(enemy => enemy.IsBoss && enemy.Alive);
   public int PoopSplatterTicksRemaining { get; private set; }
   public int PowerUpLevel => HasBoomStick ? 3 : HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
   public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
@@ -377,7 +377,7 @@ public sealed class Game
         case 'G':
           if (Boss is not null)
           {
-            Message = "Defeat Dung-Bag to open the exit!";
+            Message = $"Defeat {Boss.Name} to open the exit!";
             break;
           }
 
@@ -410,7 +410,7 @@ public sealed class Game
 
     foreach (var enemy in Enemies.Where(enemy => enemy.Alive))
     {
-      if (enemy.Kind == EnemyKind.DungBag && X < enemy.PatrolOriginX - 14)
+      if (enemy.IsBoss && X < enemy.PatrolOriginX - 14)
         continue;
 
       bool supported = enemy.Kind != EnemyKind.CreepyCrawler || enemy.CanInteract
@@ -422,15 +422,15 @@ public sealed class Game
       bool stunned = enemy.StunTicksRemaining > 0;
       if (stunned)
         enemy.StunTicksRemaining--;
-      double patrolDistance = stunned ? 0 : enemy.Direction * enemy.Settings.Speed * Step;
-      if (enemy.Kind == EnemyKind.DungBag && patrolDistance != 0
+      double patrolDistance = stunned || enemy.CaneSwingTicksRemaining > 0 ? 0 : enemy.Direction * enemy.Settings.Speed * Step;
+      if (enemy.IsBoss && patrolDistance != 0
         && (ex + patrolDistance < enemy.PatrolOriginX - 5 || ex + patrolDistance > enemy.PatrolOriginX + 4))
       {
         enemy.Direction *= -1;
         patrolDistance = enemy.Direction * enemy.Settings.Speed * Step;
       }
 
-      if ((Level.EnemiesAvoidLedges || enemy.Kind == EnemyKind.DungBag) && patrolDistance != 0 && HasPatrolSupport(ex, enemy.PatrolFloorRow)
+      if ((Level.EnemiesAvoidLedges || enemy.IsBoss) && patrolDistance != 0 && HasPatrolSupport(ex, enemy.PatrolFloorRow)
         && !HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
       {
         enemy.Direction *= -1;
@@ -475,6 +475,13 @@ public sealed class Game
         _thrownPoop.Add(new ThrownPoop(enemy.X + aim * 0.85, enemy.Y + 0.2, aim * 6));
       }
 
+      if (enemy.Kind == EnemyKind.OldMan)
+      {
+        AdvanceCaneAttack(enemy, stunned);
+        if (IsDying)
+          return;
+      }
+
       if (ey > Level.Height + 2)
       {
         enemy.Y = Level.Height - enemy.BodyHeight;
@@ -486,7 +493,7 @@ public sealed class Game
 
       if (vertical > 0 && Y + PlayerHeight - vertical <= ey + 0.25)
       {
-        bool defeated = enemy.Stomp(enemy.Kind == EnemyKind.DungBag && !IsLarge ? 1 : PlayerPowerLevel);
+        bool defeated = enemy.Stomp(enemy.IsBoss && !IsLarge ? 1 : PlayerPowerLevel);
         Y = ey - PlayerHeight;
         VelocityY = -10;
 
@@ -496,8 +503,8 @@ public sealed class Game
         }
 
         SoundRequested?.Invoke(defeated ? GameSound.EnemyDied : GameSound.EnemySmash);
-        Message = enemy.Kind == EnemyKind.DungBag
-          ? defeated ? "Dung-Bag defeated! Exit open!" : $"Dung-Bag: {enemy.Health}/10"
+        Message = enemy.IsBoss
+          ? defeated ? $"{enemy.Name} defeated! Exit open!" : $"{enemy.Name}: {enemy.Health}/10"
           : defeated ? "Stomp!" : $"Still kicking! {enemy.Health} hits left";
       }
       else
@@ -510,6 +517,58 @@ public sealed class Game
 
     AdvanceThrownPoop();
     StepInPoop();
+  }
+
+  private void AdvanceCaneAttack(Enemy enemy, bool stunned)
+  {
+    enemy.AirWaveLength = 0;
+    if (stunned)
+    {
+      enemy.CaneSwingTicksRemaining = 0;
+      return;
+    }
+
+    if (enemy.CaneSwingTicksRemaining == 0)
+    {
+      if (--enemy.CaneAttackTicksRemaining > 0)
+        return;
+
+      enemy.CaneAttackTicksRemaining = Enemy.CaneAttackIntervalTicks;
+      enemy.CaneSwingTicksRemaining = Enemy.CaneSwingDurationTicks;
+      enemy.AttackDirection = X < enemy.X ? -1 : 1;
+      enemy.Direction = enemy.AttackDirection;
+    }
+    else
+      enemy.CaneSwingTicksRemaining--;
+
+    int ticks = enemy.CaneSwingTicksRemaining;
+    if (ticks > Enemy.CaneWaveDurationTicks || ticks == 0)
+      return;
+
+    if (ticks == Enemy.CaneWaveDurationTicks)
+    {
+      enemy.AirWaveX = enemy.X + (enemy.AttackDirection > 0 ? BodyWidth : 0);
+      enemy.AirWaveY = enemy.Y + enemy.BodyHeight - 1;
+    }
+
+    double length = Enemy.CaneWaveRange * (Enemy.CaneWaveDurationTicks + 1 - ticks) / Enemy.CaneWaveDurationTicks;
+    // Clip the gust against terrain throughout its one-block height.
+    for (double distance = 0; distance <= length; distance += 0.05)
+    {
+      int column = (int)Math.Floor(enemy.AirWaveX + enemy.AttackDirection * distance);
+      if (Level.Solid(column, (int)Math.Floor(enemy.AirWaveY))
+        || Level.Solid(column, (int)Math.Floor(enemy.AirWaveY + 0.99)))
+      {
+        length = Math.Max(0, distance - 0.05);
+        break;
+      }
+    }
+
+    enemy.AirWaveLength = length;
+    double left = enemy.AttackDirection < 0 ? enemy.AirWaveX - length : enemy.AirWaveX;
+    if (length > 0 && X < left + length && X + BodyWidth > left
+      && Y < enemy.AirWaveY + 1 && Y + PlayerHeight > enemy.AirWaveY)
+      TakeDamage();
   }
 
   // The level-start page replaces the short in-game transition delay.
@@ -729,7 +788,6 @@ public sealed class Game
         Score += 200 * enemy.Settings.PowerLevel;
         SoundRequested?.Invoke(GameSound.EnemyDied);
       }
-
     }
 
     Message = "BOOM-STICK!";
@@ -814,6 +872,7 @@ public sealed class Game
       .Concat(Level.DogSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Dog, _enemyConfiguration.Dog)))
       .Concat(Level.CreepyCrawlerSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + 1 - Enemy.CrawlerBodyHeight,
         EnemyKind.CreepyCrawler, _enemyConfiguration.CreepyCrawler)))
+      .Concat(Level.OldManSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.OldMan)))
       .Concat(Level.BossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.DungBag)))
       .ToList();
     TryGrow();

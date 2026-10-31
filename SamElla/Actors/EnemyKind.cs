@@ -8,4 +8,5 @@ public enum EnemyKind
   Dog,
   CreepyCrawler,
   DungBag,
+  OldMan,
 }

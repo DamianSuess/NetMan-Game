@@ -60,6 +60,11 @@ internal sealed class PixelRenderer
       "dog-walk-2",
       "dog-squashed",
       "poop",
+      "old-man-walk-1",
+      "old-man-walk-2",
+      "old-man-windup",
+      "old-man-swing",
+      "old-man-squashed",
       "dung-bag-walk-1",
       "dung-bag-walk-2",
       "dung-bag-squashed",
@@ -140,6 +145,7 @@ internal sealed class PixelRenderer
       if (selected)
         PixelFont.Draw(Frame, ">", left + 10, 126, Gold);
     }
+
     DrawTitleText("LEFT/RIGHT PLAYER  UP/DOWN MENU  ENTER SELECT", 173, White, 1);
 
     long ticks = (long)(title.Elapsed * 60);
@@ -385,6 +391,7 @@ internal sealed class PixelRenderer
         if (space > 0)
           length = space;
       }
+
       string line = remaining[..length].Trim();
       remaining = remaining[length..].TrimStart();
       if (index == maxLines - 1 && remaining.Length > 0)
@@ -463,7 +470,7 @@ internal sealed class PixelRenderer
     if (game.Boss is { } boss && game.X >= boss.PatrolOriginX - 14)
     {
       int labelX = Width / 2 - 42;
-      PixelFont.Draw(Frame, $"DUNG-BAG {boss.Health}/10", labelX, HeaderHeight + 4, Gold);
+      PixelFont.Draw(Frame, $"{boss.Name.ToUpperInvariant()} {boss.Health}/10", labelX, HeaderHeight + 4, Gold);
       Frame.Fill(labelX, HeaderHeight + 12, 84, 4, Ink);
       Frame.Fill(labelX + 1, HeaderHeight + 13, 82 * boss.Health / 10, 2, 0xFFE83B3B);
     }
@@ -488,6 +495,8 @@ internal sealed class PixelRenderer
 
       string name = enemy.Kind switch
       {
+        EnemyKind.OldMan => enemy.CaneSwingTicksRemaining > Enemy.CaneWaveDurationTicks ? "old-man-windup"
+          : enemy.CaneSwingTicksRemaining > 0 ? "old-man-swing" : $"old-man-walk-{animationFrame + 1}",
         EnemyKind.DungBag => $"dung-bag-walk-{animationFrame + 1}",
         EnemyKind.CreepyCrawler => $"creepy-crawler-crawl-{(int)(_animationTime * 4) % 2 + 1}",
         EnemyKind.Zombie => $"zombie-walk-{(int)(_animationTime * 3) % 2 + 1}",
@@ -499,10 +508,26 @@ internal sealed class PixelRenderer
       DrawActor(_sprites[name], enemy.X, enemy.Y, cameraX, cameraY, enemy.Direction > 0, bodyHeight: enemy.BodyHeight);
     }
 
+    foreach (var enemy in game.Enemies.Where(enemy => enemy.Alive && enemy.AirWaveLength > 0))
+    {
+      int origin = (int)Math.Round(enemy.AirWaveX * TileSize) - cameraX;
+      int top = HeaderHeight + (int)Math.Round(enemy.AirWaveY * TileSize) - cameraY;
+      int reach = (int)Math.Round(enemy.AirWaveLength * TileSize);
+      for (int row = 1; row < 15; row++)
+      {
+        int curve = Math.Abs(8 - row) / 3;
+        int front = origin + enemy.AttackDirection * Math.Max(0, reach - curve);
+        Frame.Fill(front - (enemy.AttackDirection > 0 ? 2 : 0), top + row, Math.Min(2, reach), 1, 0xFF6FBBD1);
+        if (row % 4 == 0)
+          Frame.Fill(Math.Min(origin, front), top + row, Math.Abs(front - origin), 1, White);
+      }
+    }
+
     foreach (var enemy in game.Enemies.Where(enemy => enemy.SquashTicksRemaining > 0))
     {
       string name = enemy.Kind switch
       {
+        EnemyKind.OldMan => "old-man-squashed",
         EnemyKind.DungBag => "dung-bag-squashed",
         EnemyKind.CreepyCrawler => "creepy-crawler-squashed",
         EnemyKind.Zombie => "zombie-squashed",
@@ -660,6 +685,7 @@ internal sealed class PixelRenderer
         if (space > 0)
           length = space;
       }
+
       string line = remaining[..length].Trim();
       remaining = remaining[length..].TrimStart();
       if (lines.Count == 2 && remaining.Length > 0)
@@ -867,6 +893,7 @@ internal sealed class PixelRenderer
         int y = 34 + ((index * 29) % 66);
         Frame.Fill(x, y, 1, 1, 0xFFBFD7E8);
       }
+
       Frame.Draw(_sprites["moon"], 295, 38);
     }
     else

@@ -2,6 +2,10 @@ namespace SamElla.Actors;
 
 public sealed class Enemy
 {
+  public const int CaneAttackIntervalTicks = 120;
+  public const int CaneSwingDurationTicks = 36;
+  public const int CaneWaveDurationTicks = 18;
+  public const double CaneWaveRange = 2;
   public const int BossThrowIntervalTicks = 100;
   public const int SquashDurationTicks = 60;
   public const int HopIntervalTicks = 24;
@@ -19,6 +23,7 @@ public sealed class Enemy
     Kind = kind;
     Settings = settings ?? (kind switch
     {
+      EnemyKind.OldMan => new EnemySettings(1.5, 10, 0),
       EnemyKind.DungBag => new EnemySettings(2.5, 10, 0),
       EnemyKind.ToasterCat => EnemyConfiguration.DefaultToasterCat,
       EnemyKind.Zombie => EnemyConfiguration.DefaultZombie,
@@ -37,7 +42,14 @@ public sealed class Enemy
   public double X, Y, VelocityY;
 
   public EnemyKind Kind { get; }
-  public string Name => Kind == EnemyKind.DungBag ? "Dung-Bag" : Kind.ToString();
+  public bool IsBoss => Kind is EnemyKind.DungBag or EnemyKind.OldMan;
+  public string Name => Kind == EnemyKind.OldMan ? "Old Man" : Kind == EnemyKind.DungBag ? "Dung-Bag" : Kind.ToString();
+  public int CaneSwingTicksRemaining { get; internal set; }
+  public int AttackDirection { get; internal set; } = -1;
+  public double AirWaveX { get; internal set; }
+  public double AirWaveY { get; internal set; }
+  public double AirWaveLength { get; internal set; }
+  internal int CaneAttackTicksRemaining { get; set; } = CaneAttackIntervalTicks;
   internal double PatrolOriginX { get; }
   internal int ThrowTicksRemaining { get; set; } = BossThrowIntervalTicks;
 
@@ -45,7 +57,7 @@ public sealed class Enemy
 
   public double BodyHeight => Kind switch
   {
-    EnemyKind.Zombie or EnemyKind.DungBag => Game.LargeBodyHeight,
+    EnemyKind.Zombie or EnemyKind.DungBag or EnemyKind.OldMan => Game.LargeBodyHeight,
     EnemyKind.CreepyCrawler => CrawlerBodyHeight,
     _ => Game.BodyHeight,
   };
@@ -141,6 +153,8 @@ public sealed class Enemy
     if (!Alive)
       return;
 
+    AirWaveLength = 0;
+    CaneSwingTicksRemaining = 0;
     Alive = false;
     Health = 0;
     VelocityY = 0;

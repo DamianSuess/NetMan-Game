@@ -23,6 +23,8 @@ public sealed class Level
 
   public (int X, int Y) Spawn { get; private set; }
 
+  public List<(int X, int Y)> OldManSpawns { get; } = [];
+
   public List<(int X, int Y)> BossSpawns { get; } = [];
 
   public List<(int X, int Y)> EnemySpawns { get; } = [];
@@ -112,7 +114,7 @@ public sealed class Level
       for (int x = 0; x < map.Width; x++)
       {
         char tile = x < lines[y].Length ? lines[y][x] : '.';
-        if (!". #B?MFQo^PpSGECZDRU".Contains(tile))
+        if (!". #B?MFQo^PpSGECZDRUA".Contains(tile))
           throw new InvalidDataException($"{name}: unknown tile '{tile}' at column {x + 1}, row {y + 1}.");
 
         if (tile == 'S')
@@ -122,10 +124,11 @@ public sealed class Level
           tile = '.';
         }
 
-        if (tile is 'E' or 'C' or 'Z' or 'D' or 'R' or 'U')
+        if (tile is 'E' or 'C' or 'Z' or 'D' or 'R' or 'U' or 'A')
         {
           var spawns = tile switch
           {
+            'A' => map.OldManSpawns,
             'U' => map.BossSpawns,
             'C' => map.ToasterCatSpawns,
             'Z' => map.ZombieSpawns,
@@ -148,7 +151,7 @@ public sealed class Level
     if (starts != 1 || goals == 0)
       throw new InvalidDataException($"{name}: use exactly one S (start) and at least one G (goal).");
 
-    foreach (var spawn in map.ZombieSpawns.Concat(map.BossSpawns))
+    foreach (var spawn in map.ZombieSpawns.Concat(map.BossSpawns).Concat(map.OldManSpawns))
     {
       if (spawn.Y == 0 || map.Solid(spawn.X, spawn.Y - 1))
         throw new InvalidDataException($"{name}: tall enemy at column {spawn.X + 1}, row {spawn.Y + 1} needs an empty tile above it.");
