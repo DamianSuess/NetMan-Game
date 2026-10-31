@@ -11,24 +11,6 @@ internal sealed class Leaderboard
 
   public IReadOnlyList<LeaderboardEntry> Entries => _entries;
 
-  public bool Qualifies(int score) => score > 0 &&
-    (_entries.Count < Capacity || score > _entries[^1].Score);
-
-  public int RankFor(int score) => _entries.Count(entry => entry.Score >= score) + 1;
-
-  public bool TryAdd(string initials, int score, DateTimeOffset recordedAt)
-  {
-    if (!ValidInitials(initials) || !Qualifies(score))
-      return false;
-
-    int index = RankFor(score) - 1;
-    _entries.Insert(index, new LeaderboardEntry(initials.ToUpperInvariant(), score, recordedAt));
-    if (_entries.Count > Capacity)
-      _entries.RemoveAt(Capacity);
-
-    return true;
-  }
-
   public static Leaderboard Load(string path)
   {
     var board = new Leaderboard();
@@ -54,7 +36,6 @@ internal sealed class Leaderboard
         slots[slot] = new LeaderboardEntry(fields[0].ToUpperInvariant(), score, date);
       }
     }
-
     catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
     {
       return board;
@@ -64,8 +45,10 @@ internal sealed class Leaderboard
     return board;
   }
 
-  private static bool ValidInitials(string initials) =>
-    initials.Length == 3 && initials.All(character => char.IsAsciiLetterOrDigit(character) || character == ' ');
+  public bool Qualifies(int score) => score > 0 &&
+      (_entries.Count < Capacity || score > _entries[^1].Score);
+
+  public int RankFor(int score) => _entries.Count(entry => entry.Score >= score) + 1;
 
   public IEnumerable<string> ToLines()
   {
@@ -76,4 +59,21 @@ internal sealed class Leaderboard
         index + 1, entry.Initials, entry.Score, entry.RecordedAt);
     }
   }
+
+  public bool TryAdd(string initials, int score, DateTimeOffset recordedAt)
+  {
+    if (!ValidInitials(initials) || !Qualifies(score))
+      return false;
+
+    int index = RankFor(score) - 1;
+    _entries.Insert(index, new LeaderboardEntry(initials.ToUpperInvariant(), score, recordedAt));
+
+    if (_entries.Count > Capacity)
+      _entries.RemoveAt(Capacity);
+
+    return true;
+  }
+
+  private static bool ValidInitials(string initials) =>
+    initials.Length == 3 && initials.All(character => char.IsAsciiLetterOrDigit(character) || character == ' ');
 }
