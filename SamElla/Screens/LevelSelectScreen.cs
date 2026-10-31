@@ -1,6 +1,9 @@
 namespace SamElla.Screens;
 
-internal sealed record LevelSelectEntry(int Number, string Name, BackgroundTheme Theme);
+internal sealed record LevelSelectEntry(int Number, string Name, BackgroundTheme Theme)
+{
+  public string DisplayNumber { get; init; } = Number.ToString();
+}
 
 internal sealed class LevelSelectScreen
 {
@@ -14,7 +17,11 @@ internal sealed class LevelSelectScreen
     Levels = files.Select((file, index) =>
     {
       var level = Level.Load(file);
-      return new LevelSelectEntry(index + 1, level.DisplayName, level.Background);
+      return new LevelSelectEntry(index + 1, level.DisplayName, level.Background)
+      {
+        DisplayNumber = level.SectionLevelNumber ?? (index + 1).ToString(),
+      };
+
     }).ToArray();
   }
 

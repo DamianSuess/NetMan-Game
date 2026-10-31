@@ -139,6 +139,7 @@ public sealed class Game
   public Level Level { get; private set; } = null!;
   public int LevelCount => _files.Length;
   public int LevelNumber => _levelIndex + 1;
+  public string LevelLabel => Level.SectionLevelNumber ?? LevelNumber.ToString();
   public int LevelTicksRemaining { get; private set; }
   public int LevelSecondsRemaining => (LevelTicksRemaining + 59) / 60;
   internal int ThemeLevelNumber { get; private set; }

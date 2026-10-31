@@ -84,7 +84,7 @@ public sealed class EnemyLedgeTests : GameTestBase
     Assert.IsFalse(old.EnemiesAvoidLedges);
     string[] files = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     for (int index = 0; index < files.Length; index++)
-      Assert.AreEqual(index >= 7, Level.Load(files[index]).EnemiesAvoidLedges);
+      Assert.AreEqual(index >= 8, Level.Load(files[index]).EnemiesAvoidLedges);
   }
 
   [TestMethod]

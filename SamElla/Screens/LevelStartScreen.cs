@@ -22,6 +22,7 @@ internal sealed class LevelStartScreen
   public bool IsActive { get; private set; }
   public double RemainingSeconds { get; private set; }
   public int LevelNumber { get; private set; }
+  public string LevelLabel { get; private set; } = string.Empty;
   public string LevelName { get; private set; } = string.Empty;
   public int Lives { get; private set; }
   public PlayerCharacter Character { get; private set; }
@@ -31,6 +32,7 @@ internal sealed class LevelStartScreen
   public void Show(Game game)
   {
     LevelNumber = game.LevelNumber;
+    LevelLabel = game.LevelLabel;
     LevelName = game.Level.DisplayName;
     Lives = game.Lives;
     Character = game.Character;

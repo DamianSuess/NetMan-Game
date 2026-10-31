@@ -232,7 +232,7 @@ internal sealed class PixelRenderer
     Frame.Clear(Ink);
     DrawTitleText("LEVEL SELECT", 12, Gold, 3);
     PixelFont.Draw(Frame, "NO.", 24, 44, Gold);
-    PixelFont.Draw(Frame, "NAME", 48, 44, Gold);
+    PixelFont.Draw(Frame, "NAME", 64, 44, Gold);
     PixelFont.Draw(Frame, "THEME", 300, 44, Gold);
     Frame.Fill(10, 54, Width - 20, 1, Gold);
     int first = screen.Page * LevelSelectScreen.PageSize;
@@ -251,9 +251,8 @@ internal sealed class PixelRenderer
       }
 
       uint color = selected ? Gold : White;
-      string name = level.Name.Length > 56 ? level.Name[..53] + "..." : level.Name;
-      PixelFont.Draw(Frame, level.Number.ToString(), 24, y, color);
-      PixelFont.Draw(Frame, name, 48, y, color);
+      PixelFont.Draw(Frame, level.DisplayNumber, 24, y, color);
+      PixelFont.Draw(Frame, level.Name, 64, y, color);
       PixelFont.Draw(Frame, level.Theme == BackgroundTheme.Night ? "NIGHTTIME" : "DAYTIME", 300, y, color);
     }
 
@@ -266,7 +265,7 @@ internal sealed class PixelRenderer
   {
     Frame.Clear(Ink);
     Frame.Fill(12, 18, Width - 24, 1, Gold);
-    DrawTitleText($"LEVEL {screen.LevelNumber}", 32, Gold, 4);
+    DrawTitleText($"LEVEL {screen.LevelLabel}", 32, Gold, 4);
     DrawWrappedCentered(screen.LevelName, 66, White, maxLines: 2);
     string pose = screen.IsLarge ? "player-large-idle" : "player-idle";
     var player = _sprites[PlayerSprite(screen.Character, pose)];
@@ -362,7 +361,7 @@ internal sealed class PixelRenderer
 
     DrawTitleText("YOU DIED", 151, White, 2);
     DrawWrappedCentered(game.GameOverQuote, 171, White, maxLines: 2);
-    DrawTitleText($"LEVEL {game.LevelNumber}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 202, White, 1);
+    DrawTitleText($"LEVEL {game.LevelLabel}  SCORE {game.Score:000000}  DEATHS {game.TotalDeaths}", 202, White, 1);
 
     Frame.Fill(12, 215, Width - 24, 1, 0xFFFF6B6B);
     DrawTitleText("PRESS ENTER TO START OVER", 226, Gold, 1);
@@ -884,7 +883,7 @@ internal sealed class PixelRenderer
     Frame.Fill(0, 0, Width, HeaderHeight, Ink);
     Frame.Fill(0, HeaderHeight - 2, Width, 2, 0xFF355575);
     PixelFont.Draw(Frame, "Sam n' Ella", 8, 8, Gold);
-    PixelFont.Draw(Frame, $"SCORE {game.Score:000000}   COINS {game.Coins:00}   LIVES {game.Lives}   {game.LevelNumber}/{game.LevelCount}", 76, 8, White);
+    PixelFont.Draw(Frame, $"SCORE {game.Score:000000}   COINS {game.Coins:00}   LIVES {game.Lives}   {game.LevelLabel}", 76, 8, White);
     string seconds = game.LevelSecondsRemaining.ToString("000");
     int timeX = Width - (((seconds.Length * 4) - 1) * 2) - 8;
     uint timeColor = game.LevelSecondsRemaining <= 10 ? 0xFFFF6B6B : Gold;
