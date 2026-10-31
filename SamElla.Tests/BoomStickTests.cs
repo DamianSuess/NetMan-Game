@@ -67,14 +67,14 @@ public sealed class BoomStickTests : GameTestBase
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     for (int index = 0; index < paths.Length; index++)
     {
-      Assert.AreEqual(index is >= 3 and <= 6, File.ReadAllText(paths[index]).Contains('Q'), paths[index]);
+      Assert.AreEqual(index is 3 or 4 or 6 or 7, File.ReadAllLines(paths[index]).SkipWhile(line => line.Contains('=') || string.IsNullOrWhiteSpace(line)).Any(line => line.Contains('Q')), paths[index]);
       Level.Load(paths[index]);
     }
   }
 
   [TestMethod]
-  [DataRow("06-ruins-crossing.txt")]
-  [DataRow("07-brick-summit.txt")]
+  [DataRow("02-01-ruins-crossing.txt")]
+  [DataRow("02-02-brick-summit.txt")]
   public void LaterLevelShotgunBlocksCanBeHitFromUnderneath(string filename)
   {
     string source = Path.Combine(AppContext.BaseDirectory, "Levels", filename);

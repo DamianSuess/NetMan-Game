@@ -11,8 +11,8 @@ namespace SamElla.Tests;
 public sealed class BrickIslandTests
 {
   [TestMethod]
-  [DataRow("08-moonlit-stepping-stones.txt")]
-  [DataRow("09-midnight-brickfall.txt")]
+  [DataRow("02-03-moonlit-stepping-stones.txt")]
+  [DataRow("02-04-midnight-brickfall.txt")]
   public void MissingTheFirstJumpFallsIntoTheVoid(string name)
   {
     var game = new Game([Path.Combine(AppContext.BaseDirectory, "Levels", name)]);
@@ -26,10 +26,10 @@ public sealed class BrickIslandTests
   }
 
   [TestMethod]
-  [DataRow("08-moonlit-stepping-stones.txt", false)]
-  [DataRow("08-moonlit-stepping-stones.txt", true)]
-  [DataRow("09-midnight-brickfall.txt", false)]
-  [DataRow("09-midnight-brickfall.txt", true)]
+  [DataRow("02-03-moonlit-stepping-stones.txt", false)]
+  [DataRow("02-03-moonlit-stepping-stones.txt", true)]
+  [DataRow("02-04-midnight-brickfall.txt", false)]
+  [DataRow("02-04-midnight-brickfall.txt", true)]
   public void GuardedBrickIslandsCanBeCompletedWithJumpsAndStomps(string name, bool large)
   {
     var game = new Game([Path.Combine(AppContext.BaseDirectory, "Levels", name)], konamiCheat: large);

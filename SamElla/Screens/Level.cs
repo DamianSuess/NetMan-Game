@@ -3,19 +3,16 @@ namespace SamElla;
 public sealed class Level
 {
   public const int DefaultTimeLimitSeconds = 100;
+  public const int MaxNameLength = 32;
 
   private readonly char[,] _tiles;
 
   public string Name { get; }
-  public string DisplayName
-  {
-    get
-    {
-      int separator = Name.IndexOf('-');
-      string name = separator > 0 && Name[..separator].All(char.IsDigit) ? Name[(separator + 1)..] : Name;
-      return name.Replace('-', ' ').Replace('_', ' ');
-    }
-  }
+  public string DisplayName { get; }
+  public int? Section { get; }
+  public int? SectionLevel { get; }
+  public string? SectionLevelNumber => Section.HasValue ? $"{Section:00}-{SectionLevel:00}" : null;
+
   public BackgroundTheme Background { get; }
   public bool EnemiesAvoidLedges { get; }
   public int TimeLimitSeconds { get; }
@@ -32,9 +29,20 @@ public sealed class Level
   public List<(int X, int Y)> DogSpawns { get; } = [];
   public List<(int X, int Y)> CreepyCrawlerSpawns { get; } = [];
 
-  private Level(string name, char[,] tiles, BackgroundTheme background, bool enemiesAvoidLedges, int timeLimitSeconds)
+  private Level(string name, char[,] tiles, BackgroundTheme background, bool enemiesAvoidLedges, int timeLimitSeconds, string displayName)
   {
     Name = name;
+    DisplayName = displayName;
+    string[] parts = name.Split('-', 3);
+    if (parts.Length == 3 && parts[0].Length == 2 && parts[1].Length == 2
+      && parts[0].All(char.IsAsciiDigit) && parts[1].All(char.IsAsciiDigit)
+      && int.TryParse(parts[0], out int section) && section > 0
+      && int.TryParse(parts[1], out int sectionLevel) && sectionLevel > 0)
+    {
+      Section = section;
+      SectionLevel = sectionLevel;
+    }
+
     Background = background;
     EnemiesAvoidLedges = enemiesAvoidLedges;
     TimeLimitSeconds = timeLimitSeconds;
@@ -45,6 +53,20 @@ public sealed class Level
 
   public static Level Parse(string name, string[] lines)
   {
+    string fallbackName = name;
+    for (int prefix = 0; prefix < 2; prefix++)
+    {
+      int separator = fallbackName.IndexOf('-');
+      if (separator <= 0 || !fallbackName[..separator].All(char.IsAsciiDigit))
+        break;
+
+      fallbackName = fallbackName[(separator + 1)..];
+    }
+
+    string displayName = fallbackName.Replace('-', ' ').Replace('_', ' ');
+    if (displayName.Length > MaxNameLength)
+      displayName = displayName[..MaxNameLength];
+
     var background = BackgroundTheme.Day;
     bool enemiesAvoidLedges = false;
     int timeLimitSeconds = DefaultTimeLimitSeconds;
@@ -52,7 +74,14 @@ public sealed class Level
     while (mapStart < lines.Length && lines[mapStart].Contains('='))
     {
       string[] setting = lines[mapStart].Split('=', 2, StringSplitOptions.TrimEntries);
-      if (setting[0].Equals("Background", StringComparison.OrdinalIgnoreCase)
+      if (setting[0].Equals("Name", StringComparison.OrdinalIgnoreCase))
+      {
+        if (setting[1].Length is < 1 or > MaxNameLength || setting[1].Any(char.IsControl))
+          throw new InvalidDataException($"{name}: line {mapStart + 1}: Name must contain 1..{MaxNameLength} display characters.");
+
+        displayName = setting[1];
+      }
+      else if (setting[0].Equals("Background", StringComparison.OrdinalIgnoreCase)
         && (setting[1].Equals("Day", StringComparison.OrdinalIgnoreCase) || setting[1].Equals("Night", StringComparison.OrdinalIgnoreCase)))
         background = setting[1].Equals("Night", StringComparison.OrdinalIgnoreCase) ? BackgroundTheme.Night : BackgroundTheme.Day;
       else if (setting[0].Equals("EnemyLedges", StringComparison.OrdinalIgnoreCase)
@@ -62,7 +91,7 @@ public sealed class Level
         && int.TryParse(setting[1], out int seconds) && seconds is >= 1 and <= 9999)
         timeLimitSeconds = seconds;
       else
-        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Background=Day or Background=Night, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
+        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
 
       mapStart++;
       while (mapStart < lines.Length && string.IsNullOrWhiteSpace(lines[mapStart]))
@@ -73,7 +102,7 @@ public sealed class Level
     if (lines.Length < 3 || lines.Length > 100 || lines.Max(line => line.Length) is < 10 or > 10000)
       throw new InvalidDataException($"{name}: maps must be 10–10000 columns wide and 3–100 rows tall.");
 
-    var map = new Level(name, new char[lines.Max(line => line.Length), lines.Length], background, enemiesAvoidLedges, timeLimitSeconds);
+    var map = new Level(name, new char[lines.Max(line => line.Length), lines.Length], background, enemiesAvoidLedges, timeLimitSeconds, displayName);
     int starts = 0, goals = 0;
 
     for (int y = 0; y < map.Height; y++)

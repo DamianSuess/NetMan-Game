@@ -10,11 +10,11 @@ namespace SamElla.Tests;
 public sealed class NewLevelTests
 {
   [TestMethod]
-  [DataRow("03-pipe-gardens.txt", 0)]
-  [DataRow("04-zombie-ate-my.txt", 0)]
-  [DataRow("05-pipe-terraces.txt", 2)]
-  [DataRow("06-ruins-crossing.txt", 0)]
-  [DataRow("07-brick-summit.txt", 0)]
+  [DataRow("01-03-pipe-gardens.txt", 0)]
+  [DataRow("01-04-zombie-ate-my.txt", 0)]
+  [DataRow("01-05-pipe-terraces.txt", 2)]
+  [DataRow("02-01-ruins-crossing.txt", 0)]
+  [DataRow("02-02-brick-summit.txt", 0)]
   public void RebalancedLevelsCanBeCompletedWithoutLosingALife(string name, int groundedWait)
   {
     var path = Path.Combine(AppContext.BaseDirectory, "Levels", name);

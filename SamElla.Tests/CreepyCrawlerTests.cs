@@ -20,7 +20,7 @@ public sealed class CreepyCrawlerTests : GameTestBase
     for (int index = 0; index < files.Length; index++)
     {
       var map = Level.Load(files[index]);
-      Assert.AreEqual(index >= 4 && map.Background == BackgroundTheme.Night, map.CreepyCrawlerSpawns.Count > 0);
+      Assert.AreEqual(index >= 4 && index != 5 && map.Background == BackgroundTheme.Night, map.CreepyCrawlerSpawns.Count > 0);
       foreach (var spawn in map.CreepyCrawlerSpawns)
       {
         Assert.AreEqual(BackgroundTheme.Night, map.Background);

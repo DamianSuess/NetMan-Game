@@ -14,7 +14,7 @@ public sealed class ToasterCatTests : GameTestBase
   {
     string[] paths = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Levels"), "*.txt").Order().ToArray();
     Assert.IsEmpty(Level.Load(paths[0]).ToasterCatSpawns);
-    foreach (string path in paths.Skip(1))
+    foreach (string path in paths.Skip(1).Where(path => Path.GetFileName(path) != "01-06-boss-fight.txt"))
     {
       var level = Level.Load(path);
       Assert.IsNotEmpty(level.ToasterCatSpawns, Path.GetFileName(path));
