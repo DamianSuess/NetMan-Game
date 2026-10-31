@@ -18,7 +18,7 @@ internal sealed class Leaderboard
 
   public bool TryAdd(string initials, int score, DateTimeOffset recordedAt)
   {
-    if (initials.Length != 3 || !initials.All(char.IsAsciiLetterOrDigit) || !Qualifies(score))
+    if (!ValidInitials(initials) || !Qualifies(score))
       return false;
 
     int index = RankFor(score) - 1;
@@ -37,15 +37,16 @@ internal sealed class Leaderboard
     {
       foreach (string line in File.ReadAllLines(path))
       {
-        string[] parts = line.Split('=', 2, StringSplitOptions.TrimEntries);
+        string[] parts = line.Split('=', 2);
+        string key = parts[0].Trim();
         const string Prefix = "Leaderboard.";
-        if (parts.Length != 2 || !parts[0].StartsWith(Prefix, StringComparison.Ordinal) ||
-          !int.TryParse(parts[0][Prefix.Length..], NumberStyles.Integer, CultureInfo.InvariantCulture, out int slot) ||
+        if (parts.Length != 2 || !key.StartsWith(Prefix, StringComparison.Ordinal) ||
+          !int.TryParse(key[Prefix.Length..], NumberStyles.Integer, CultureInfo.InvariantCulture, out int slot) ||
           slot < 1 || slot > Capacity)
           continue;
 
-        string[] fields = parts[1].Split('|');
-        if (fields.Length != 3 || fields[0].Length != 3 || !fields[0].All(char.IsAsciiLetterOrDigit) ||
+        string[] fields = parts[1].TrimEnd().Split('|');
+        if (fields.Length != 3 || !ValidInitials(fields[0]) ||
           !int.TryParse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int score) || score <= 0 ||
           !DateTimeOffset.TryParseExact(fields[2], "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
           continue;
@@ -62,6 +63,9 @@ internal sealed class Leaderboard
     board._entries.AddRange(slots.Values.OrderByDescending(entry => entry.Score).Take(Capacity));
     return board;
   }
+
+  private static bool ValidInitials(string initials) =>
+    initials.Length == 3 && initials.All(character => char.IsAsciiLetterOrDigit(character) || character == ' ');
 
   public IEnumerable<string> ToLines()
   {

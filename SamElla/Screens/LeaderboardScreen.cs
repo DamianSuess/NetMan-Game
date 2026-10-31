@@ -9,6 +9,8 @@ internal enum LeaderboardContext
 
 internal sealed class LeaderboardScreen(Leaderboard board)
 {
+  private const string InitialCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
+  private int _typingIndex;
   private Game? _observedGame;
   private bool _outcomeHandled;
 
@@ -19,6 +21,8 @@ internal sealed class LeaderboardScreen(Leaderboard board)
   public bool IsEnteringInitials { get; private set; }
 
   public string Initials { get; private set; } = string.Empty;
+
+  public int SelectedInitialIndex => Math.Min(_typingIndex, 2);
 
   public int Score { get; private set; }
 
@@ -52,7 +56,8 @@ internal sealed class LeaderboardScreen(Leaderboard board)
 
     Context = game.Won ? LeaderboardContext.Victory : LeaderboardContext.GameOver;
     Score = game.Score;
-    Initials = string.Empty;
+    Initials = "AAA";
+    _typingIndex = 0;
     SubmittedRank = 0;
     IsEnteringInitials = IsActive = true;
 
@@ -86,12 +91,24 @@ internal sealed class LeaderboardScreen(Leaderboard board)
         continue;
       }
 
-      if (code == 0x08 && Initials.Length > 0)
+      if (code is 0x25 or 0x27)
       {
-        // Backspace
-        Initials = Initials[..^1];
+        _typingIndex = Math.Clamp(SelectedInitialIndex + (code == 0x25 ? -1 : 1), 0, 2);
       }
-      else if (code == 0x0D && Initials.Length == 3)
+      else if (code is 0x26 or 0x28)
+      {
+        _typingIndex = SelectedInitialIndex;
+        int index = InitialCharacters.IndexOf(Initials[_typingIndex]);
+        int direction = code == 0x26 ? 1 : -1;
+        SetInitial(InitialCharacters[(index + direction + InitialCharacters.Length) % InitialCharacters.Length]);
+      }
+      else if (code == 0x08)
+      {
+        // Backspace edits the previous typed slot; all three slots remain selectable.
+        _typingIndex = Math.Max(0, _typingIndex - 1);
+        SetInitial(' ');
+      }
+      else if (code == 0x0D)
       {
         int rank = Board.RankFor(Score);
         if (Board.TryAdd(Initials, Score, recordedAt))
@@ -101,15 +118,31 @@ internal sealed class LeaderboardScreen(Leaderboard board)
           return true; // The saving Enter must not also close the board.
         }
       }
-      else if (Initials.Length < 3)
+      else if (_typingIndex < 3)
       {
-        if (code is >= 0x41 and <= 0x5A or >= 0x30 and <= 0x39)
-          Initials += (char)code;
-        else if (code is >= 0x60 and <= 0x69) // Numeric keypad
-          Initials += (char)('0' + code - 0x60);
+        char? character = code switch
+        {
+          >= 0x41 and <= 0x5A or >= 0x30 and <= 0x39 => (char)code,
+          >= 0x60 and <= 0x69 => (char)('0' + code - 0x60),
+          0x20 => ' ',
+          _ => null,
+        };
+
+        if (character.HasValue)
+        {
+          SetInitial(character.Value);
+          _typingIndex++;
+        }
       }
     }
 
     return false;
+  }
+
+  private void SetInitial(char character)
+  {
+    char[] initials = Initials.ToCharArray();
+    initials[SelectedInitialIndex] = character;
+    Initials = new string(initials);
   }
 }

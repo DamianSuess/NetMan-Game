@@ -327,16 +327,19 @@ internal sealed class PixelRenderer
       for (int index = 0; index < 3; index++)
       {
         int left = 130 + (index * 44);
-        bool selected = index == screen.Initials.Length;
+        bool selected = index == screen.SelectedInitialIndex;
         Frame.Fill(left, 101, 36, 42, selected ? Gold : 0xFF527787);
         Frame.Fill(left + 2, 103, 32, 38, Ink);
         string letter = index < screen.Initials.Length ? screen.Initials[index].ToString() : "-";
         PixelFont.Draw(Frame, letter, left + 12, 112, selected ? Gold : White, 4);
+        if (selected && letter == " ")
+          PixelFont.Draw(Frame, "SPACE", left + 8, 147, Gold);
       }
 
-      DrawTitleText("ENTER THREE INITIALS", 160, Gold, 2);
-      DrawTitleText("A-Z / 0-9   BACKSPACE TO EDIT", 185, White, 1);
-      DrawTitleText(screen.Initials.Length == 3 ? "PRESS ENTER TO SAVE" : "TYPE 3 LETTERS OR DIGITS", 211, Gold, 1);
+      DrawTitleText("A-Z / 0-9 / SPACE", 163, Gold, 2);
+      DrawTitleText("UP/DOWN: CHARACTER", 184, White, 1);
+      DrawTitleText("LEFT/RIGHT: POSITION", 195, White, 1);
+      DrawTitleText("ENTER: ACCEPT", 211, Gold, 1);
       return;
     }
 
