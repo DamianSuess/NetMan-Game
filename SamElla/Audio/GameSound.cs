@@ -15,6 +15,7 @@ internal enum GameSound
   TeenGroan,
   Flamethrower,
   Shotgun,
+  ChainWhip,
   BlockBreak,
   Coin,
 }

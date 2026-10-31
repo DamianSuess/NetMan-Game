@@ -101,6 +101,10 @@ internal sealed class PixelRenderer
       "heart-2",
       "flamethrower",
       "flamethrower-pickup",
+      "chain-whip",
+      "chain-whip-pickup",
+      "chain-link-1",
+      "chain-link-2",
       "boom-stick",
       "boom-stick-pickup",
       "shotgun-blast-1",
@@ -463,7 +467,7 @@ internal sealed class PixelRenderer
           '#' => underworld ? "sewer-brick" : game.Level.Tile(x, y - 1) == '#' ? "dirt" : "grass",
           '~' => "sludge",
           'B' => underworld ? "sewer-brick" : "brick",
-          '?' or 'M' or 'F' or 'Q' => "bonus",
+          '?' or 'M' or 'F' or 'Q' or 'W' => "bonus",
           'X' => "used",
           'P' => PipeSprite(game.Level, x, y),
           'p' => SkinnyPipeSprite(game.Level, x, y),
@@ -530,7 +534,7 @@ internal sealed class PixelRenderer
     }
 
     foreach (var heart in game.GrowthHearts)
-      DrawActor(_sprites[heart.IsBoomStick ? "boom-stick-pickup" : heart.IsFlamethrower ? "flamethrower-pickup" : $"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
+      DrawActor(_sprites[heart.IsChainWhip ? "chain-whip-pickup" : heart.IsBoomStick ? "boom-stick-pickup" : heart.IsFlamethrower ? "flamethrower-pickup" : $"heart-{heart.FrameIndex + 1}"], heart.X, heart.Y, cameraX, cameraY, heart.Direction < 0);
 
     if (game.Boss is { } boss && game.X >= boss.PatrolOriginX - 14)
     {
@@ -631,11 +635,11 @@ internal sealed class PixelRenderer
     else if ((game.DamageTicksRemaining / 5) % 2 == 0)
       DrawActor(_sprites[PlayerSprite(game.Character, playerFrame)], game.X, game.Y, cameraX, cameraY, _facingLeft, bodyHeight: game.PlayerHeight);
 
-    if ((game.HasFlamethrower || game.HasBoomStick) && !game.IsDying && (game.DamageTicksRemaining / 5) % 2 == 0)
+    if ((game.HasFlamethrower || game.HasBoomStick || game.HasChainWhip) && !game.IsDying && (game.DamageTicksRemaining / 5) % 2 == 0)
     {
       int weaponX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - 8 - cameraX;
       int weaponY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight - 0.65) * TileSize) - 8 - cameraY;
-      Frame.Draw(_sprites[game.HasBoomStick ? "boom-stick" : "flamethrower"], weaponX, weaponY, game.FacingDirection < 0);
+      Frame.Draw(_sprites[game.HasChainWhip ? "chain-whip" : game.HasBoomStick ? "boom-stick" : "flamethrower"], weaponX, weaponY, game.FacingDirection < 0);
     }
 
     if (game.IsBurning && !game.IsDying)
@@ -644,6 +648,27 @@ internal sealed class PixelRenderer
       int burnX = (int)Math.Round((game.X + (Game.BodyWidth / 2)) * TileSize) - (burning.Width / 2) - cameraX;
       int burnY = HeaderHeight + (int)Math.Round((game.Y + game.PlayerHeight) * TileSize) - burning.Height - cameraY;
       Frame.DrawTranslucent(burning, burnX, burnY, 200);
+    }
+
+    if (game.WhipSwing is { Length: > 0 } whip)
+    {
+      var sprite = _sprites[$"chain-link-{whip.FrameIndex % 2 + 1}"];
+      int originX = (int)Math.Round(whip.X * TileSize) - cameraX;
+      int originY = HeaderHeight + (int)Math.Round(whip.Y * TileSize) - 8 - cameraY;
+      int reach = (int)(whip.Length * TileSize);
+
+      for (int distance = 0; distance < reach; distance++)
+      {
+        int curve = (int)Math.Round(Math.Sin(Math.PI * distance / Math.Max(1, reach)) * (whip.FrameIndex == 1 ? -3 : 3));
+
+        for (int y = 0; y < sprite.Height; y++)
+        {
+          uint color = sprite.Pixel(distance % sprite.Width, y);
+
+          if (color != 0)
+            Frame.Fill(originX + (whip.Direction > 0 ? distance : -distance - 1), originY + y + curve, 1, 1, color);
+        }
+      }
     }
 
     if (game.Flame is { } flame)

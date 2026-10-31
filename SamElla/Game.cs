@@ -8,18 +8,17 @@ namespace SamElla;
 
 public sealed class Game
 {
-  public const int PipeTravelDurationTicks = 48;
-  public const string TeenDeathQuote = "it's everyone else's fault not mine";
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
   public const string BoomStickPickupQuote = "This here is my BOOM STICK!";
   public const int BoomStickQuoteDurationTicks = 180;
   public const int BurnDurationTicks = 180;
+  public const int ChainWhipCooldownTicks = 30;
   public const int DamageProtectionTicks = 90;
   public const int DeathDurationTicks = 120;
   public const int ExplosionDurationTicks = ExplosionFrameTicks * ExplosionFrameCount;
   public const int ExplosionFrameCount = 4;
 
-  // 100 ms is exactly six simulation ticks at 60 Hz.
+  /// <remarks>100 ms is exactly six simulation ticks at 60 Hz.</remarks>
   public const int ExplosionFrameTicks = 6;
 
   public const int FlameDamageIntervalTicks = 18;
@@ -28,32 +27,35 @@ public sealed class Game
   public const int FlamethrowerQuoteDurationTicks = 180;
   public const double LargeBodyHeight = 1.8;
   public const double OverloadedBodyHeight = 2.7;
+  public const int PipeTravelDurationTicks = 48;
   public const int PoopSlowDurationTicks = 300;
   public const double PoopSpeedMultiplier = 0.5;
   public const int PoopSplatterDurationTicks = 120;
   public const double ShotgunRange = 3;
   public const int ShotgunReloadTicks = 30;
   public const double Step = 1.0 / 60;
+  public const string TeenDeathQuote = "it's everyone else's fault not mine";
 
-  // The spike artwork's tip begins three pixels below the top of its 16-pixel tile.
+  /// <remarks>The spike artwork's tip begins three pixels below the top of its 16-pixel tile.</remarks>
   private const double SpikeTipOffset = 3.0 / 16;
 
   private readonly List<BlockBreakEffect> _blockBreakEffects = [];
   private readonly HashSet<(int Level, int X, int Y)> _collectedItems = [];
   private readonly string _creditsAssetsPath;
   private readonly string[] _deathQuotes;
+  private readonly string[] _emoQuotes;
   private readonly EnemyConfiguration _enemyConfiguration;
+  private readonly List<EnemyProjectile> _enemyProjectiles = [];
   private readonly string[] _files;
   private readonly string[] _flamethrowerQuotes;
   private readonly string[] _gameOverQuotes;
   private readonly List<GrowthHeart> _growthHearts = [];
   private readonly HashSet<(int X, int Y)> _levelItems = [];
   private readonly List<PoopPile> _poopPiles = [];
-  private readonly List<ThrownPoop> _thrownPoop = [];
-  private readonly List<EnemyProjectile> _enemyProjectiles = [];
-  private readonly string[] _emoQuotes;
-  private PipePassage? _travelPipe;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
+  private readonly List<ThrownPoop> _thrownPoop = [];
+  private readonly HashSet<Enemy> _whipHits = [];
+
   private int _facingDirection = 1;
   private bool _fireWasHeld;
   private int _flameAnimationTicks;
@@ -62,6 +64,10 @@ public sealed class Game
   private double _jumpBuffer, _coyoteTime, _transition;
   private int _levelIndex;
   private int _shotgunReloadTicks;
+  private PipePassage? _travelPipe;
+  private int _whipAgeTicks = -1;
+  private int _whipCooldownTicks;
+  private int _whipDirection = 1;
 
   public Game(string[] files, string? deathQuotesPath = null, string? creditsAssetsPath = null, string? enemySettingsPath = null,
     string? flamethrowerQuotesPath = null, bool konamiCheat = false, string? gameOverQuotesPath = null,
@@ -86,18 +92,22 @@ public sealed class Game
       _deathQuotes = ["Gravity wins again."];
 
     flamethrowerQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "flamethrower-quotes.txt");
+
     _flamethrowerQuotes = File.Exists(flamethrowerQuotesPath)
       ? File.ReadAllLines(flamethrowerQuotesPath).Select(line => line.Trim())
         .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
       : [];
+
     if (_flamethrowerQuotes.Length == 0)
       _flamethrowerQuotes = ["Light Em' If you Got Em!"];
 
     gameOverQuotesPath ??= Path.Combine(AppContext.BaseDirectory, "Assets", "game-over-quotes.txt");
+
     _gameOverQuotes = File.Exists(gameOverQuotesPath)
       ? File.ReadAllLines(gameOverQuotesPath).Select(line => line.Trim())
         .Where(line => line.Length > 0 && !line.StartsWith(';')).ToArray()
       : [];
+
     if (_gameOverQuotes.Length == 0)
       _gameOverQuotes = ["Bet you wish you could rewind? Nope."];
 
@@ -114,32 +124,32 @@ public sealed class Game
 
   internal event Action<GameSound>? SoundRequested;
 
-  public bool HasEnteredUnderworld { get; private set; }
-  public bool ReturnedToDaylight { get; private set; }
-  public BackgroundTheme CurrentBackground => Level.Background == BackgroundTheme.Underworld
-    && (!HasEnteredUnderworld || ReturnedToDaylight) ? BackgroundTheme.Day : Level.Background;
   public PipePassage? AvailablePipe => !HasEnteredUnderworld ? Level.EntryPipe
     : !ReturnedToDaylight ? Level.ExitPipe : null;
-  public int PipeTravelTicksRemaining { get; private set; }
-  public string EnemyQuote { get; private set; } = string.Empty;
-  public int EnemyQuoteTicksRemaining { get; private set; }
-  public IReadOnlyList<EnemyProjectile> EnemyProjectiles => _enemyProjectiles;
-  public bool IsInSludge => Grounded && Level.Tile((int)Math.Floor(X + BodyWidth / 2), (int)Math.Round(Y + PlayerHeight)) == '~';
 
   public bool AwaitingRestart { get; private set; }
   public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
   public string BoomStickQuote => BoomStickQuoteTicksRemaining > 0 ? BoomStickPickupQuote : string.Empty;
   public int BoomStickQuoteTicksRemaining { get; private set; }
+  public Enemy? Boss => Enemies.FirstOrDefault(enemy => enemy.IsBoss && enemy.Alive);
   public int BurnFrameIndex => (BurnDurationTicks - BurnTicksRemaining) / 6 % 4;
   public int BurnTicksRemaining { get; private set; }
+  public int ChainWhipDamage => PlayerPowerLevel + 1;
   public PlayerCharacter Character { get; init; } = PlayerCharacter.Sam;
   public int Coins { get; private set; }
   public TimeSpan CompletionTime => TimeSpan.FromTicks(RunTicks * TimeSpan.TicksPerSecond / 60);
   public long CreditsTicks { get; private set; }
+
+  public BackgroundTheme CurrentBackground => Level.Background == BackgroundTheme.Underworld
+    && (!HasEnteredUnderworld || ReturnedToDaylight) ? BackgroundTheme.Day : Level.Background;
+
   public int DamageTicksRemaining { get; private set; }
   public string DeathQuote { get; private set; } = string.Empty;
   public int DeathTicksRemaining { get; private set; }
   public List<Enemy> Enemies { get; private set; } = [];
+  public IReadOnlyList<EnemyProjectile> EnemyProjectiles => _enemyProjectiles;
+  public string EnemyQuote { get; private set; } = string.Empty;
+  public int EnemyQuoteTicksRemaining { get; private set; }
 
   public int ExplosionFrameIndex => IsExploding
     ? Math.Min(ExplosionFrameCount - 1, (DeathDurationTicks - DeathTicksRemaining) / ExplosionFrameTicks) : 0;
@@ -153,45 +163,50 @@ public sealed class Game
   public bool Grounded { get; private set; }
   public IReadOnlyList<GrowthHeart> GrowthHearts => _growthHearts;
   public bool HasBoomStick { get; private set; }
+  public bool HasChainWhip { get; private set; }
+  public bool HasEnteredUnderworld { get; private set; }
   public bool HasFlamethrower { get; private set; }
   public bool IsBurning => BurnTicksRemaining > 0;
   public bool IsDying => DeathTicksRemaining > 0 || AwaitingRestart;
   public bool IsExploding { get; private set; }
   public bool IsExplosionVisible => IsExploding && DeathDurationTicks - DeathTicksRemaining < ExplosionDurationTicks;
+  public bool IsInSludge => Grounded && Level.Tile((int)Math.Floor(X + BodyWidth / 2), (int)Math.Round(Y + PlayerHeight)) == '~';
   public bool IsLarge { get; private set; }
   public int ItemsMissed { get; private set; }
   public bool KonamiCheatEnabled { get; }
   public Level Level { get; private set; } = null!;
   public int LevelCount => _files.Length;
-  public int LevelNumber => _levelIndex + 1;
   public string LevelLabel => Level.SectionLevelNumber ?? LevelNumber.ToString();
-  public int LevelTicksRemaining { get; private set; }
+  public int LevelNumber => _levelIndex + 1;
   public int LevelSecondsRemaining => (LevelTicksRemaining + 59) / 60;
-  internal int ThemeLevelNumber { get; private set; }
+  public int LevelTicksRemaining { get; private set; }
   public int Lives { get; private set; } = 3;
   public string Message { get; private set; } = "Let's effn' go!";
   public bool Paused { get; set; }
+  public int PipeTravelTicksRemaining { get; private set; }
   public double PlayerHeight => IsExploding ? OverloadedBodyHeight : IsLarge ? LargeBodyHeight : BodyHeight;
   public int PlayerPowerLevel => PlayerSettings.PowerLevel;
   public PlayerSettings PlayerSettings => IsLarge ? _enemyConfiguration.PlayerPowerLevel2 : _enemyConfiguration.PlayerPowerLevel1;
   public double PlayerSpeed => PlayerSettings.Speed * (SlowTicksRemaining > 0 ? PoopSpeedMultiplier : 1) * (IsInSludge ? 0.7 : 1);
   public IReadOnlyList<PoopPile> PoopPiles => _poopPiles;
-  public IReadOnlyList<ThrownPoop> ThrownPoop => _thrownPoop;
-  public Enemy? Boss => Enemies.FirstOrDefault(enemy => enemy.IsBoss && enemy.Alive);
   public int PoopSplatterTicksRemaining { get; private set; }
-  public int PowerUpLevel => HasBoomStick ? 3 : HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
+  public int PowerUpLevel => HasChainWhip ? 4 : HasBoomStick ? 3 : HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
+  public bool ReturnedToDaylight { get; private set; }
   public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
   public long RunTicks { get; private set; }
   public int Score { get; private set; }
   public ShotgunBlast? ShotgunBlast { get; private set; }
   public int ShotgunDamage => FlameDamage + 1;
   public int SlowTicksRemaining { get; private set; }
+  public IReadOnlyList<ThrownPoop> ThrownPoop => _thrownPoop;
   public int TotalDeaths { get; private set; }
   public double VelocityY { get; private set; }
+  public ChainWhipSwing? WhipSwing { get; private set; }
   public bool Won { get; private set; }
   public double X { get; private set; }
   public double Y { get; private set; }
   internal EndCreditsScreen? Credits { get; private set; }
+  internal int ThemeLevelNumber { get; private set; }
 
   public bool ContinueAfterDeath()
   {
@@ -389,7 +404,9 @@ public sealed class Game
       return;
 
     TryGrow();
-    if (HasBoomStick)
+    if (HasChainWhip)
+      UpdateChainWhip(fireHeld);
+    else if (HasBoomStick)
     {
       if (IsLarge && fireHeld && !_fireWasHeld && _shotgunReloadTicks == 0)
         FireShotgun();
@@ -588,129 +605,21 @@ public sealed class Game
     StepInPoop();
   }
 
-  private bool TryEnterPipe()
-  {
-    if (!Grounded || AvailablePipe is not { } pipe
-      || X + BodyWidth / 2 < pipe.X || X + BodyWidth / 2 >= pipe.X + 2
-      || Math.Abs(Y + PlayerHeight - pipe.Y) > 0.05)
-      return false;
+  // The level-start page replaces the short in-game transition delay.
+  internal void CompleteLevelStart() => _transition = 0;
 
-    if (HasEnteredUnderworld && Boss is not null)
+  private static IEnumerable<(int X, int Y)> Cells(double x, double y, double height = BodyHeight)
+  {
+    for (int ty = (int)Math.Floor(y + 0.00001);
+      ty <= (int)Math.Floor(y + height - 0.00001); ty++)
     {
-      Message = $"Defeat {Boss.Name} to use the exit pipe!";
-      return false;
-    }
-
-    _travelPipe = pipe;
-    PipeTravelTicksRemaining = PipeTravelDurationTicks;
-    Flame = null;
-    ShotgunBlast = null;
-    VelocityY = 0;
-    Message = HasEnteredUnderworld ? "Back to daylight!" : "Descending to the Underworld...";
-    return true;
-  }
-
-  private void AdvancePipeTravel()
-  {
-    PipeTravelTicksRemaining--;
-    if (PipeTravelTicksRemaining != PipeTravelDurationTicks / 2 || _travelPipe is not { } pipe)
-      return;
-
-    X = pipe.TargetX;
-    Y = pipe.TargetY + BodyHeight - PlayerHeight;
-    Grounded = false;
-    VelocityY = 0;
-    _jumpBuffer = _coyoteTime = 0;
-    _enemyProjectiles.Clear();
-    if (!HasEnteredUnderworld)
-      HasEnteredUnderworld = true;
-    else
-      ReturnedToDaylight = true;
-  }
-
-  private void AdvanceTeenAttack(Enemy enemy)
-  {
-    if (Math.Abs(enemy.X - X) > 12)
-      return;
-
-    if (enemy.Kind == EnemyKind.EmoBoss && --enemy.SpeechTicks <= 0)
-    {
-      enemy.SpeechTicks = 210;
-      if (EnemyQuoteTicksRemaining == 0)
-      {
-        EnemyQuote = _emoQuotes[enemy.SpeechIndex++ % _emoQuotes.Length];
-        EnemyQuoteTicksRemaining = 150;
-      }
-    }
-
-    if (--enemy.ProjectileAttackTicks > 0)
-      return;
-
-    enemy.ProjectileAttackTicks = enemy.IsBoss ? 85 : 150;
-    enemy.ThrowPoseTicksRemaining = 20;
-    int aim = X < enemy.X ? -1 : 1;
-    enemy.Direction = aim;
-    bool needle = enemy.IsBoss && enemy.ProjectileCount++ % 2 == 1;
-    double x = enemy.X + (aim > 0 ? BodyWidth : -EnemyProjectile.Width);
-    double y = enemy.Y + enemy.BodyHeight * 0.45;
-    double velocityY = needle ? Math.Clamp((Y + PlayerHeight / 2 - y) * 1.5, -3, 3) : -6;
-    _enemyProjectiles.Add(new EnemyProjectile(enemy, needle ? EnemyProjectileKind.Needle : EnemyProjectileKind.BeerBottle,
-      x, y, aim * (needle ? 8 : 6), velocityY));
-  }
-
-  private void AdvanceEnemyProjectiles()
-  {
-    for (int index = _enemyProjectiles.Count - 1; index >= 0; index--)
-    {
-      var projectile = _enemyProjectiles[index];
-      if (!projectile.Owner.Alive || ++projectile.AgeTicks > 240)
-      {
-        _enemyProjectiles.RemoveAt(index);
-        continue;
-      }
-
-      if (projectile.Kind == EnemyProjectileKind.BeerBottle)
-        projectile.VelocityY += 18 * Step;
-
-      double dx = projectile.VelocityX * Step, dy = projectile.VelocityY * Step;
-      int steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(dx), Math.Abs(dy)) / 0.1));
-      for (int step = 0; step < steps; step++)
-      {
-        projectile.X += dx / steps;
-        projectile.Y += dy / steps;
-        bool blocked = projectile.Y > Level.Height || projectile.X < 0 || projectile.X >= Level.Width
-          || Level.Solid((int)Math.Floor(projectile.X), (int)Math.Floor(projectile.Y))
-          || Level.Solid((int)Math.Floor(projectile.X + EnemyProjectile.Width), (int)Math.Floor(projectile.Y))
-          || Level.Solid((int)Math.Floor(projectile.X), (int)Math.Floor(projectile.Y + EnemyProjectile.Height))
-          || Level.Solid((int)Math.Floor(projectile.X + EnemyProjectile.Width), (int)Math.Floor(projectile.Y + EnemyProjectile.Height));
-        bool hit = !blocked && X < projectile.X + EnemyProjectile.Width && X + BodyWidth > projectile.X
-          && Y < projectile.Y + EnemyProjectile.Height && Y + PlayerHeight > projectile.Y;
-        if (!blocked && !hit)
-          continue;
-
-        _enemyProjectiles.RemoveAt(index);
-        if (hit)
-        {
-          TakeDamage();
-          if (IsDying)
-            return;
-        }
-
-        break;
-      }
+      for (int tx = (int)Math.Floor(x + 0.00001); tx <= (int)Math.Floor(x + BodyWidth - 0.00001); tx++)
+        yield return (tx, ty);
     }
   }
 
-  private void EnemyDefeated(Enemy enemy)
-  {
-    Score += 200 * enemy.Settings.PowerLevel;
-    SoundRequested?.Invoke(enemy.IsTeen ? GameSound.TeenGroan : GameSound.EnemyDied);
-    if (enemy.IsTeen)
-    {
-      EnemyQuote = TeenDeathQuote;
-      EnemyQuoteTicksRemaining = 180;
-    }
-  }
+  private static bool Overlaps(double ax, double ay, double height, double bx, double by, double otherHeight = BodyHeight) =>
+    ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + otherHeight && ay + height > by;
 
   private void AdvanceCaneAttack(Enemy enemy, bool stunned)
   {
@@ -764,29 +673,48 @@ public sealed class Game
       TakeDamage();
   }
 
-  // The level-start page replaces the short in-game transition delay.
-  internal void CompleteLevelStart() => _transition = 0;
-
-  private bool HasPatrolSupport(double x, int floorRow)
+  private void AdvanceEnemyProjectiles()
   {
-    int left = (int)Math.Floor(x + 0.00001);
-    int right = (int)Math.Floor(x + BodyWidth - 0.00001);
-    return left >= 0 && right < Level.Width && floorRow >= 0 && floorRow < Level.Height
-      && Level.Solid(left, floorRow) && Level.Solid(right, floorRow);
-  }
-
-  private static IEnumerable<(int X, int Y)> Cells(double x, double y, double height = BodyHeight)
-  {
-    for (int ty = (int)Math.Floor(y + 0.00001);
-      ty <= (int)Math.Floor(y + height - 0.00001); ty++)
+    for (int index = _enemyProjectiles.Count - 1; index >= 0; index--)
     {
-      for (int tx = (int)Math.Floor(x + 0.00001); tx <= (int)Math.Floor(x + BodyWidth - 0.00001); tx++)
-        yield return (tx, ty);
+      var projectile = _enemyProjectiles[index];
+      if (!projectile.Owner.Alive || ++projectile.AgeTicks > 240)
+      {
+        _enemyProjectiles.RemoveAt(index);
+        continue;
+      }
+
+      if (projectile.Kind == EnemyProjectileKind.BeerBottle)
+        projectile.VelocityY += 18 * Step;
+
+      double dx = projectile.VelocityX * Step, dy = projectile.VelocityY * Step;
+      int steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(dx), Math.Abs(dy)) / 0.1));
+      for (int step = 0; step < steps; step++)
+      {
+        projectile.X += dx / steps;
+        projectile.Y += dy / steps;
+        bool blocked = projectile.Y > Level.Height || projectile.X < 0 || projectile.X >= Level.Width
+          || Level.Solid((int)Math.Floor(projectile.X), (int)Math.Floor(projectile.Y))
+          || Level.Solid((int)Math.Floor(projectile.X + EnemyProjectile.Width), (int)Math.Floor(projectile.Y))
+          || Level.Solid((int)Math.Floor(projectile.X), (int)Math.Floor(projectile.Y + EnemyProjectile.Height))
+          || Level.Solid((int)Math.Floor(projectile.X + EnemyProjectile.Width), (int)Math.Floor(projectile.Y + EnemyProjectile.Height));
+        bool hit = !blocked && X < projectile.X + EnemyProjectile.Width && X + BodyWidth > projectile.X
+          && Y < projectile.Y + EnemyProjectile.Height && Y + PlayerHeight > projectile.Y;
+        if (!blocked && !hit)
+          continue;
+
+        _enemyProjectiles.RemoveAt(index);
+        if (hit)
+        {
+          TakeDamage();
+          if (IsDying)
+            return;
+        }
+
+        break;
+      }
     }
   }
-
-  private static bool Overlaps(double ax, double ay, double height, double bx, double by, double otherHeight = BodyHeight) =>
-    ax < bx + BodyWidth && ax + BodyWidth > bx && ay < by + otherHeight && ay + height > by;
 
   private void AdvanceGrowthHearts()
   {
@@ -811,6 +739,87 @@ public sealed class Game
     }
   }
 
+  private void AdvancePipeTravel()
+  {
+    PipeTravelTicksRemaining--;
+    if (PipeTravelTicksRemaining != PipeTravelDurationTicks / 2 || _travelPipe is not { } pipe)
+      return;
+
+    X = pipe.TargetX;
+    Y = pipe.TargetY + BodyHeight - PlayerHeight;
+    Grounded = false;
+    VelocityY = 0;
+    _jumpBuffer = _coyoteTime = 0;
+    _enemyProjectiles.Clear();
+    if (!HasEnteredUnderworld)
+      HasEnteredUnderworld = true;
+    else
+      ReturnedToDaylight = true;
+  }
+
+  private void AdvanceTeenAttack(Enemy enemy)
+  {
+    if (Math.Abs(enemy.X - X) > 12)
+      return;
+
+    if (enemy.Kind == EnemyKind.EmoBoss && --enemy.SpeechTicks <= 0)
+    {
+      enemy.SpeechTicks = 210;
+      if (EnemyQuoteTicksRemaining == 0)
+      {
+        EnemyQuote = _emoQuotes[enemy.SpeechIndex++ % _emoQuotes.Length];
+        EnemyQuoteTicksRemaining = 150;
+      }
+    }
+
+    if (--enemy.ProjectileAttackTicks > 0)
+      return;
+
+    enemy.ProjectileAttackTicks = enemy.IsBoss ? 85 : 150;
+    enemy.ThrowPoseTicksRemaining = 20;
+    int aim = X < enemy.X ? -1 : 1;
+    enemy.Direction = aim;
+    bool needle = enemy.IsBoss && enemy.ProjectileCount++ % 2 == 1;
+    double x = enemy.X + (aim > 0 ? BodyWidth : -EnemyProjectile.Width);
+    double y = enemy.Y + enemy.BodyHeight * 0.45;
+    double velocityY = needle ? Math.Clamp((Y + PlayerHeight / 2 - y) * 1.5, -3, 3) : -6;
+    _enemyProjectiles.Add(new EnemyProjectile(enemy, needle ? EnemyProjectileKind.Needle : EnemyProjectileKind.BeerBottle,
+      x, y, aim * (needle ? 8 : 6), velocityY));
+  }
+
+  private void AdvanceThrownPoop()
+  {
+    for (int index = _thrownPoop.Count - 1; index >= 0; index--)
+    {
+      var poop = _thrownPoop[index];
+      double x = poop.X, y = poop.Y;
+      Move(ref x, ref y, poop.VelocityX * Step, true, false, out bool wall, Effects.ThrownPoop.Height);
+      poop.VelocityY = Math.Min(28, poop.VelocityY + 18 * Step);
+      Move(ref x, ref y, poop.VelocityY * Step, false, false, out bool floor, Effects.ThrownPoop.Height);
+      poop.X = x;
+      poop.Y = y;
+      poop.AgeTicks++;
+      if (Overlaps(X, Y, PlayerHeight, x, y, Effects.ThrownPoop.Height))
+      {
+        ApplyPoopSlowdown();
+        _thrownPoop.RemoveAt(index);
+        continue;
+      }
+
+      if (floor && poop.VelocityY > 0)
+      {
+        int tileX = (int)Math.Floor(x + BodyWidth / 2);
+        int tileY = (int)Math.Round(y + Effects.ThrownPoop.Height);
+        var pile = new PoopPile(tileX, tileY);
+        if (Level.Solid(tileX, tileY) && !_poopPiles.Contains(pile))
+          _poopPiles.Add(pile);
+      }
+
+      if (floor || wall || poop.AgeTicks > 300 || x < 0 || x >= Level.Width || y > Level.Height + 2)
+        _thrownPoop.RemoveAt(index);
+    }
+  }
+
   private void ApplyCheatStart()
   {
     if (!KonamiCheatEnabled)
@@ -821,6 +830,13 @@ public sealed class Game
     _growthPending = true;
     TryGrow();
     Message = "Konami code! 30 lives and fire!";
+  }
+
+  private void ApplyPoopSlowdown()
+  {
+    SlowTicksRemaining = PoopSlowDurationTicks;
+    PoopSplatterTicksRemaining = PoopSplatterDurationTicks;
+    Message = "Oh crap! Slowed for 5 seconds";
   }
 
   private void BreakBrick(int x, int y)
@@ -839,6 +855,14 @@ public sealed class Game
     FlamethrowerQuoteTicksRemaining = 0;
   }
 
+  private void ClearWhipSwing()
+  {
+    WhipSwing = null;
+    _whipAgeTicks = -1;
+    _whipCooldownTicks = 0;
+    _whipHits.Clear();
+  }
+
   private bool CollectGrowthHearts()
   {
     for (int i = _growthHearts.Count - 1; i >= 0; i--)
@@ -847,7 +871,10 @@ public sealed class Game
       if (!Overlaps(X, Y, PlayerHeight, heart.X, heart.Y))
         continue;
 
-      if ((heart.IsFlamethrower || heart.IsBoomStick) && (!IsLarge || IsBurning || HasBoomStick))
+      if (heart.IsChainWhip && (!IsLarge || IsBurning || HasChainWhip))
+        continue;
+
+      if ((heart.IsFlamethrower || heart.IsBoomStick) && (!IsLarge || IsBurning || HasBoomStick || HasChainWhip))
         continue;
 
       _growthHearts.RemoveAt(i);
@@ -855,6 +882,20 @@ public sealed class Game
         _collectedItems.Add((_levelIndex, heart.SourceX, heart.SourceY));
 
       Score += 100;
+      if (heart.IsChainWhip)
+      {
+        HasChainWhip = true;
+        HasBoomStick = HasFlamethrower = false;
+        BoomStickQuoteTicksRemaining = 0;
+        ShotgunBlast = null;
+        Flame = null;
+        ClearFlamethrowerQuote();
+        ClearWhipSwing();
+        Message = "Chain whip! X or CTRL to lash!";
+        SoundRequested?.Invoke(GameSound.PowerUp);
+        continue;
+      }
+
       if (heart.IsBoomStick)
       {
         HasBoomStick = true;
@@ -912,6 +953,8 @@ public sealed class Game
       GameOverQuote = _gameOverQuotes[Random.Shared.Next(_gameOverQuotes.Length)];
     HasFlamethrower = false;
     HasBoomStick = false;
+    HasChainWhip = false;
+    ClearWhipSwing();
     BoomStickQuoteTicksRemaining = 0;
     ShotgunBlast = null;
     Flame = null;
@@ -932,6 +975,17 @@ public sealed class Game
 
     Message = Lives == 0 ? "Ouch! Restarting game..." : "Ouch!";
     SoundRequested?.Invoke(GameSound.Died);
+  }
+
+  private void EnemyDefeated(Enemy enemy)
+  {
+    Score += 200 * enemy.Settings.PowerLevel;
+    SoundRequested?.Invoke(enemy.IsTeen ? GameSound.TeenGroan : GameSound.EnemyDied);
+    if (enemy.IsTeen)
+    {
+      EnemyQuote = TeenDeathQuote;
+      EnemyQuoteTicksRemaining = 180;
+    }
   }
 
   private void Explode()
@@ -986,6 +1040,14 @@ public sealed class Game
     SoundRequested?.Invoke(GameSound.Shotgun);
   }
 
+  private bool HasPatrolSupport(double x, int floorRow)
+  {
+    int left = (int)Math.Floor(x + 0.00001);
+    int right = (int)Math.Floor(x + BodyWidth - 0.00001);
+    return left >= 0 && right < Level.Width && floorRow >= 0 && floorRow < Level.Height
+      && Level.Solid(left, floorRow) && Level.Solid(right, floorRow);
+  }
+
   private void LeavePoop(Enemy dog)
   {
     if (--dog.PoopTicksRemaining > 0)
@@ -1007,6 +1069,8 @@ public sealed class Game
     bool keepGrowth = preserveGrowth && (IsLarge || _growthPending);
     HasFlamethrower = preserveGrowth && HasFlamethrower;
     HasBoomStick = preserveGrowth && HasBoomStick;
+    HasChainWhip = preserveGrowth && HasChainWhip;
+    ClearWhipSwing();
     BoomStickQuoteTicksRemaining = 0;
     ShotgunBlast = null;
     _shotgunReloadTicks = 0;
@@ -1034,6 +1098,7 @@ public sealed class Game
     {
       _growthPending = true;
       HasBoomStick = true;
+      HasChainWhip = false;
       HasFlamethrower = false;
     }
 
@@ -1053,7 +1118,7 @@ public sealed class Game
     {
       for (int x = 0; x < Level.Width; x++)
       {
-        if (Level.Tile(x, y) is 'o' or '?' or 'M' or 'F' or 'Q')
+        if (Level.Tile(x, y) is 'o' or '?' or 'M' or 'F' or 'Q' or 'W')
           _levelItems.Add((x, y));
       }
     }
@@ -1132,13 +1197,14 @@ public sealed class Game
       {
         if (bump && distance < 0)
         {
-          if (Level.Tile(cell.X, cell.Y) is 'M' or 'F' or 'Q')
+          if (Level.Tile(cell.X, cell.Y) is 'M' or 'F' or 'Q' or 'W')
           {
             bool flamethrower = Level.Tile(cell.X, cell.Y) == 'F';
             bool shotgun = Level.Tile(cell.X, cell.Y) == 'Q';
+            bool whip = Level.Tile(cell.X, cell.Y) == 'W';
             Level.UseBlock(cell.X, cell.Y);
-            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection, cell.X, cell.Y, flamethrower, shotgun));
-            Message = shotgun ? "Catch the Boom-Stick!" : flamethrower ? "Catch the flamethrower!" : "Catch the heart!";
+            _growthHearts.Add(new GrowthHeart(cell.X + 0.125, cell.Y - BodyHeight, _facingDirection, cell.X, cell.Y, flamethrower, shotgun, whip));
+            Message = whip ? "Catch the chain whip!" : shotgun ? "Catch the Boom-Stick!" : flamethrower ? "Catch the flamethrower!" : "Catch the heart!";
           }
           else if (Level.Tile(cell.X, cell.Y) == '?')
           {
@@ -1174,46 +1240,6 @@ public sealed class Game
     }
   }
 
-  private void AdvanceThrownPoop()
-  {
-    for (int index = _thrownPoop.Count - 1; index >= 0; index--)
-    {
-      var poop = _thrownPoop[index];
-      double x = poop.X, y = poop.Y;
-      Move(ref x, ref y, poop.VelocityX * Step, true, false, out bool wall, Effects.ThrownPoop.Height);
-      poop.VelocityY = Math.Min(28, poop.VelocityY + 18 * Step);
-      Move(ref x, ref y, poop.VelocityY * Step, false, false, out bool floor, Effects.ThrownPoop.Height);
-      poop.X = x;
-      poop.Y = y;
-      poop.AgeTicks++;
-      if (Overlaps(X, Y, PlayerHeight, x, y, Effects.ThrownPoop.Height))
-      {
-        ApplyPoopSlowdown();
-        _thrownPoop.RemoveAt(index);
-        continue;
-      }
-
-      if (floor && poop.VelocityY > 0)
-      {
-        int tileX = (int)Math.Floor(x + BodyWidth / 2);
-        int tileY = (int)Math.Round(y + Effects.ThrownPoop.Height);
-        var pile = new PoopPile(tileX, tileY);
-        if (Level.Solid(tileX, tileY) && !_poopPiles.Contains(pile))
-          _poopPiles.Add(pile);
-      }
-
-      if (floor || wall || poop.AgeTicks > 300 || x < 0 || x >= Level.Width || y > Level.Height + 2)
-        _thrownPoop.RemoveAt(index);
-    }
-  }
-
-  private void ApplyPoopSlowdown()
-  {
-    SlowTicksRemaining = PoopSlowDurationTicks;
-    PoopSplatterTicksRemaining = PoopSplatterDurationTicks;
-    Message = "Oh crap! Slowed for 5 seconds";
-  }
-
   private void StepInPoop()
   {
     for (int i = _poopPiles.Count - 1; i >= 0; i--)
@@ -1238,6 +1264,16 @@ public sealed class Game
   {
     if (DamageTicksRemaining > 0)
       return;
+
+    if (HasChainWhip)
+    {
+      HasChainWhip = false;
+      ClearWhipSwing();
+      DamageTicksRemaining = DamageProtectionTicks;
+      Message = "Lost chain whip! Keep moving!";
+      SoundRequested?.Invoke(GameSound.PowerDown);
+      return;
+    }
 
     if (HasBoomStick)
     {
@@ -1274,6 +1310,29 @@ public sealed class Game
     DamageTicksRemaining = DamageProtectionTicks;
     Message = "Shrunk! Keep moving!";
     SoundRequested?.Invoke(GameSound.PowerDown);
+  }
+
+  private bool TryEnterPipe()
+  {
+    if (!Grounded || AvailablePipe is not { } pipe
+      || X + BodyWidth / 2 < pipe.X || X + BodyWidth / 2 >= pipe.X + 2
+      || Math.Abs(Y + PlayerHeight - pipe.Y) > 0.05)
+      return false;
+
+    if (HasEnteredUnderworld && Boss is not null)
+    {
+      Message = $"Defeat {Boss.Name} to use the exit pipe!";
+      return false;
+    }
+
+    _travelPipe = pipe;
+    PipeTravelTicksRemaining = PipeTravelDurationTicks;
+    Flame = null;
+    ShotgunBlast = null;
+    ClearWhipSwing();
+    VelocityY = 0;
+    Message = HasEnteredUnderworld ? "Back to daylight!" : "Descending to the Underworld...";
+    return true;
   }
 
   private bool TryFindSpikeLanding(double previousFeet, out double spikeTop)
@@ -1325,6 +1384,71 @@ public sealed class Game
     _growthPending = false;
 
     Message = HasFlamethrower ? "Flamethrower! Hold X or CTRL" : "Powered up!";
+  }
+
+  private void UpdateChainWhip(bool fireHeld)
+  {
+    if (_whipCooldownTicks > 0)
+      _whipCooldownTicks--;
+
+    if (_whipAgeTicks < 0)
+    {
+      if (!fireHeld || _fireWasHeld || _whipCooldownTicks > 0 || !IsLarge)
+        return;
+
+      _whipAgeTicks = 0;
+      _whipDirection = _facingDirection;
+      _whipCooldownTicks = ChainWhipCooldownTicks;
+      _whipHits.Clear();
+      SoundRequested?.Invoke(GameSound.ChainWhip);
+    }
+
+    if (_whipAgeTicks >= ChainWhipSwing.DurationTicks)
+    {
+      WhipSwing = null;
+      _whipAgeTicks = -1;
+      return;
+    }
+
+    int age = _whipAgeTicks++;
+    double extension = age < 6 ? 0 : age < 12 ? (age - 5) / 6.0 : age < 15 ? 1 : (24 - age) / 9.0;
+    double requestedLength = ChainWhipSwing.Range * extension;
+    double originX = _whipDirection > 0 ? X + BodyWidth : X;
+    double originY = Y + PlayerHeight - 0.65;
+    double length = 0;
+
+    for (int pixel = 0; pixel < (int)(requestedLength * 16); pixel++)
+    {
+      int tileX = (int)Math.Floor(originX + _whipDirection * (pixel + 0.5) / 16);
+      if (Level.Solid(tileX, (int)Math.Floor(originY - 0.4))
+        || Level.Solid(tileX, (int)Math.Floor(originY + 0.4)))
+      {
+        double boundary = _whipDirection > 0 ? tileX - originX : originX - (tileX + 1);
+        length = Math.Clamp(boundary, 0, length);
+        break;
+      }
+
+      length = (pixel + 1) / 16.0;
+    }
+
+    WhipSwing = new ChainWhipSwing(originX, originY, _whipDirection, length, age);
+    if (length <= 0)
+      return;
+
+    double left = _whipDirection > 0 ? originX : originX - length;
+    double right = left + length;
+
+    foreach (var enemy in Enemies.Where(enemy => enemy.CanInteract))
+    {
+      if (enemy.X >= right || enemy.X + BodyWidth <= left || enemy.Y >= originY + 0.4
+        || enemy.Y + enemy.BodyHeight <= originY - 0.4 || !_whipHits.Add(enemy))
+        continue;
+
+      if (enemy.Hit(ChainWhipDamage))
+        EnemyDefeated(enemy);
+      else
+        SoundRequested?.Invoke(GameSound.EnemySmash);
+    }
   }
 
   private void UpdateFlame(bool fireHeld)

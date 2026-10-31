@@ -377,3 +377,20 @@ headers connect a two-tile-wide `PP` pipe top to a supported destination.
 Destinations need three tiles of headroom so every player size fits.
 `StartingPower=Shotgun` grants growth and the shotgun whenever that level loads;
 the default, `StartingPower=None`, uses the normal power-up progression.
+
+### Chain whip
+
+03-03, Rusted Mains, introduces the chain whip at the start: collect the growth
+heart from the first `M` block, then hit the nearby `W` block and catch the whip.
+If you arrive already grown, skip the extra growth heart and collect the whip.
+Small players cannot collect it. The whip replaces a shotgun or flamethrower.
+
+Press X or Ctrl for a 0.4-second wind-up, extension, and retraction animation,
+reaching up to three blocks in the direction the swing started. Each enemy
+can be hit once per swing for current stomp damage plus one. Release and press
+again for another lash; swings have a half-second cooldown. Walls and pipes
+stop the chain, and it does not break bricks. Taking damage removes the whip
+first while keeping the grown form. It carries between levels and is cleared
+on death or restart; 03-02's mandatory starting shotgun takes precedence.
+Pausing freezes the swing, and pipe travel cancels it. `W` is an editable whip
+pickup block in custom level maps. The whip has its own synthesized crack sound.
