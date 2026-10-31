@@ -62,7 +62,7 @@ pickup sounds finish before music resumes. Music stays paused while gameplay is
 paused or unfocused, and stays muted when disabled in Settings. Muted or skipped
 sound effects do not interrupt music.
 
-The flamethrower plays a looping fire roar while its stream is active, stopping on release, pause, loss of focus, weapon loss, death, or the two-second firing limit. Each shotgun shot plays a short blast; holding fire or pressing during reload does not repeat the sound.
+The flamethrower plays a looping fire roar while its stream is active, stopping on release, pause, loss of focus, weapon loss, death, or the one-second firing limit. Each shotgun shot plays a short blast; holding fire or pressing during reload does not repeat the sound.
 
 Original chiptune music plays on three screens: a bright looping title theme, a five-second minor-key funeral-style march on the Game Over page that plays once, and a looping victory theme during successful ending credits. Music stops when leaving its screen and pauses with window focus or the game. Music and sound effects use separate voices.
 
@@ -122,7 +122,7 @@ TimeSpan ticks and dates as ISO 8601 timestamps with a timezone offset.
 
 ### Title screen
 
-For level debugging, type `deadbeef` at any time to open Level Select: on the title, during gameplay or a pause, on a level intro or death screen, at Game Over, or during credits. The menu freezes the underlying screen and pauses music; Esc returns to that screen with the current game and pause state preserved. The menu discovers the current level directory (`Levels` or `--levels`) each time it opens and lists levels in game order with their number, name, and Daytime/Nighttime theme. Eight entries appear per page. Use Up/Down or W/S to select, Left/Right or Page Up/Page Down to change pages, and Enter to start a fresh run at the selected level, keeping your character and Konami setting. New `.txt` levels appear automatically when the menu is reopened. Selection preserves the full level numbering and normal progression; retries stay on the chosen level, while R restarts from level one. The Konami code itself remains a title-screen cheat.
+For level debugging, type `deadbeef` at any time to open Level Select: on the title, during gameplay or a pause, on a level intro or death screen, at Game Over, or during credits. The menu freezes the underlying screen and pauses music; Esc returns to that screen with the current game and pause state preserved. The menu discovers the current level directory (`Levels` or `--levels`) each time it opens and lists levels in game order with their number, name, and Daytime/Nighttime/Sewage theme. Eight entries appear per page. Use Up/Down or W/S to select, Left/Right or Page Up/Page Down to change pages, and Enter to start a fresh run at the selected level, keeping your character and Konami setting. New `.txt` levels appear automatically when the menu is reopened. Selection preserves the full level numbering and normal progression; retries stay on the chosen level, while R restarts from level one. The Konami code itself remains a title-screen cheat.
 
 The animated title screen opens before Level 01-01. Choose Sam or Ella with A/D or the Left/Right arrow keys. Both previews show the powered-up size; Ella wears purple and has a ponytail. Use Up/Down to select Start Game, Settings, or Top 10, then Enter to confirm, or Esc to quit. Gameplay begins at normal size; the selection preview does not grant a power-up. The selected character remains active through growth, shrinking, deaths, level changes, and restarts. Both characters use the same movement and power settings. Characters move along the bottom beneath the selection, and the copyright appears in the bottom-right corner. Losing window focus freezes the title animation.
 
@@ -323,3 +323,48 @@ the player. The wave grows out to exactly two blocks, stops at solid terrain,
 and can be jumped over. Stomping interrupts his attack; weapons deal normal
 damage. His health bar appears near the arena, and the exit opens after he
 is defeated. Pausing freezes the attack and restarting resets it.
+
+### Section 3: the Underworld
+
+Section 3 has five sewage levels followed by the Emo Kid boss:
+
+| Level | Name |
+| --- | --- |
+| 03-01 | Drainpipe Descent |
+| 03-02 | Sludge Run |
+| 03-03 | Rusted Mains |
+| 03-04 | Bottle Alley |
+| 03-05 | Toxic Reservoir |
+| 03-06 | Boss Fight - Emo Kid |
+
+Drainpipe Descent begins in daylight. Jump onto the marked pipe and press
+**Down or S** to descend. Pipe travel fades between chambers, preserves your
+power-ups, and pauses with the game. The entrance wall prevents skipping the
+pipe. Retrying resets the level and its entrance. After beating the boss, jump
+onto the marked exit pipe and press Down or S to return to the daylight
+courtyard, then reach the goal to complete the campaign.
+
+The Underworld has brick walls, corroded sewage mains, drains, leaks, and
+bubbling brown sludge. Sludge is solid ground that slows walking to 70%;
+jumping clears the slowdown. Pits remain dangerous. Flies circle overhead and
+worms crawl along the ground; both have one health. Blue- and purple-mohawk
+Punk-tards have four health and throw beer bottles in arcs. The larger,
+purple-haired Emo Kid has ten health and alternates bottles with aimed syringe
+needles. Projectiles stop at terrain and use the normal player damage and
+invulnerability rules. Boss attacks sleep until approached; a stomp interrupts
+attacks. Stomps and weapons use normal damage, with small-player boss stomps
+always dealing one point.
+
+The boss cycles the six lines in `Assets/emo-quotes.txt`. Defeating a punk or
+the boss plays a synthesized voiced "uhhhh" and displays
+"it's everyone else's fault not mine" for three seconds. Pausing freezes
+quotes, projectiles, and pipe travel; retrying clears them. Underworld music
+uses the existing dark Something Follows track, changing back to daytime
+music after the exit pipe.
+
+Custom maps can use `Background=Underworld`, `~` for sludge, `f` for flies,
+`w` for worms, `b`/`c` for blue/purple punks, and `H` for the Emo Kid.
+Punks need one clear tile above their spawn and the boss needs two.
+Optional `EntryPipe=x,y,targetX,targetY` and `ExitPipe=x,y,targetX,targetY`
+headers connect a two-tile-wide `PP` pipe top to a supported destination.
+Destinations need three tiles of headroom so every player size fits.

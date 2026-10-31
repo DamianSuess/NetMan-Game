@@ -244,6 +244,27 @@ public sealed class UnderworldTests : GameTestBase
   }
 
   [TestMethod]
+  public void SmallPlayerCanJumpOntoTallBossForTheFinalHit()
+  {
+    var game = Arena();
+    var boss = new Enemy(4.6, 5.5, EnemyKind.EmoBoss) { Direction = 0, ProjectileAttackTicks = 10000 };
+    boss.Hit(9);
+    game.Enemies.Add(boss);
+    Tick(game, 6);
+    game.QueueJump();
+    for (int tick = 0; tick < 30 && game.Y + game.PlayerHeight > boss.Y - 0.03; tick++)
+      game.Update(0, true);
+
+    Assert.IsTrue(game.Y + game.PlayerHeight < boss.Y);
+    for (int tick = 0; tick < 20 && boss.Alive && !game.IsDying; tick++)
+      game.Update(1, true);
+
+    Assert.IsFalse(game.IsDying);
+    Assert.IsFalse(boss.Alive);
+    Assert.AreEqual(Game.TeenDeathQuote, game.EnemyQuote);
+  }
+
+  [TestMethod]
   public void SewageSceneryAndEveryNewActorRender()
   {
     var game = new Game([Path.Combine(AppContext.BaseDirectory, "Levels", Names[1])]);

@@ -2,6 +2,7 @@ namespace SamElla.Actors;
 
 public sealed class Enemy
 {
+  public const double EmoBossBodyHeight = 2.5;
   public const int CaneAttackIntervalTicks = 120;
   public const int CaneSwingDurationTicks = 36;
   public const int CaneWaveDurationTicks = 18;
@@ -70,7 +71,7 @@ public sealed class Enemy
 
   public double BodyHeight => Kind switch
   {
-    EnemyKind.EmoBoss => Game.OverloadedBodyHeight,
+    EnemyKind.EmoBoss => EmoBossBodyHeight,
     EnemyKind.PunkBlue or EnemyKind.PunkPurple or EnemyKind.Zombie or EnemyKind.DungBag or EnemyKind.OldMan => Game.LargeBodyHeight,
     EnemyKind.Worm => 0.45,
     EnemyKind.Fly => 0.6,

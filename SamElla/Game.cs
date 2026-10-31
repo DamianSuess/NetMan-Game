@@ -477,7 +477,7 @@ public sealed class Game
           enemy.FlightTicks++;
           double angle = enemy.FlightTicks / 24.0;
           double desiredX = enemy.PatrolOriginX + Math.Sin(angle) * 1.25;
-          double desiredY = enemy.PatrolOriginY + (Math.Cos(angle) - 1) * 0.8;
+          double desiredY = enemy.PatrolOriginY + (Math.Cos(angle) - 1) * 1.25;
           enemy.Direction = desiredX < ex ? -1 : 1;
           Move(ref ex, ref ey, desiredX - ex, true, false, out _, enemy.BodyHeight);
           Move(ref ex, ref ey, desiredY - ey, false, false, out _, enemy.BodyHeight);
@@ -1075,7 +1075,7 @@ public sealed class Game
       .Concat(Level.WormSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - 0.45, EnemyKind.Worm)))
       .Concat(Level.BluePunkSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.PunkBlue)))
       .Concat(Level.PurplePunkSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.PunkPurple)))
-      .Concat(Level.EmoBossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - OverloadedBodyHeight, EnemyKind.EmoBoss)))
+      .Concat(Level.EmoBossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - Enemy.EmoBossBodyHeight, EnemyKind.EmoBoss)))
       .Concat(Level.OldManSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.OldMan)))
       .Concat(Level.BossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.DungBag)))
       .ToList();
