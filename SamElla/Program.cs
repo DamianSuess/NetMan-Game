@@ -35,6 +35,7 @@ try
       Directory.CreateDirectory(logs);
       File.AppendAllText(Path.Combine(logs, "updates.log"), $"{DateTimeOffset.UtcNow:u} {exception}\n");
     }
+
     catch (Exception logError) when (logError is IOException or UnauthorizedAccessException)
     {
       // An unavailable log folder must not prevent offline play.
@@ -340,7 +341,8 @@ try
 
     while (accumulator >= Game.Step)
     {
-      game.Update(direction, !wasDying && window.Down(GameKey.Jump), !wasDying && window.Down(GameKey.Fire));
+      game.Update(direction, !wasDying && window.Down(GameKey.Jump), !wasDying && window.Down(GameKey.Fire),
+        !wasDying && window.Down(GameKey.Down));
       if (savedSettings.RecordProgress(game, DateTimeOffset.Now))
         savedSettings.Save(settingsPath);
 
@@ -373,6 +375,7 @@ try
   savedSettings.Save(settingsPath);
   updates.TryScheduleApply(restart: false, args);
 }
+
 catch (Exception exception) when (exception is IOException or ArgumentException or InvalidOperationException
   or PlatformNotSupportedException or System.ComponentModel.Win32Exception)
 {

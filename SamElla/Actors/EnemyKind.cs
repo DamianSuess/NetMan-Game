@@ -9,4 +9,9 @@ public enum EnemyKind
   CreepyCrawler,
   DungBag,
   OldMan,
+  Fly,
+  Worm,
+  PunkBlue,
+  PunkPurple,
+  EmoBoss,
 }

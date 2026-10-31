@@ -31,7 +31,7 @@ internal static class GameMusicTracks
     if (game.IsDying || game.Lives == 0)
       return GameMusic.None;
 
-    return ForLevel(game.Level.Background, game.ThemeLevelNumber);
+    return ForLevel(game.CurrentBackground, game.CurrentBackground == game.Level.Background ? game.ThemeLevelNumber : 1);
   }
 
   public static GameMusic ForLevel(BackgroundTheme theme, int themeLevelNumber)
@@ -43,6 +43,7 @@ internal static class GameMusicTracks
 
     return (theme, song) switch
     {
+      (BackgroundTheme.Underworld, _) => GameMusic.Night2,
       (BackgroundTheme.Night, 0) => GameMusic.Night1,
       (BackgroundTheme.Night, 1) => GameMusic.Night2,
       (BackgroundTheme.Night, _) => GameMusic.Night3,

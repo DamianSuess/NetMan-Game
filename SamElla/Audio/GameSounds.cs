@@ -8,6 +8,9 @@ internal static class GameSounds
 
   public static short[] Create(GameSound sound)
   {
+    if (sound == GameSound.TeenGroan)
+      return CreateGroan();
+
     if (sound is GameSound.Flamethrower or GameSound.Shotgun)
       return CreateWeapon(sound);
 
@@ -90,6 +93,33 @@ internal static class GameSounds
     return samples;
   }
 
+  private static short[] CreateGroan()
+  {
+    // A falling voiced "uhhhh": harmonics emphasize the uh vowel's low formants.
+    const double Duration = 0.75;
+    var samples = new short[(int)(SampleRate * Duration)];
+    double phase = 0;
+    for (int i = 0; i < samples.Length; i++)
+    {
+      double time = (double)i / SampleRate;
+      double pitch = 125 - 45 * time / Duration + 2 * Math.Sin(time * 36);
+      phase += pitch / SampleRate;
+      double voice = 0;
+      for (int harmonic = 1; harmonic <= 18; harmonic++)
+      {
+        double frequency = pitch * harmonic;
+        double formant = Math.Exp(-Math.Pow((frequency - 550) / 160, 2))
+          + 0.55 * Math.Exp(-Math.Pow((frequency - 1100) / 240, 2));
+        voice += Math.Sin(2 * Math.PI * phase * harmonic) * (0.08 + formant) / harmonic;
+      }
+
+      double envelope = Math.Min(1, time / 0.035) * Math.Min(1, (Duration - time) / 0.15);
+      samples[i] = (short)(Math.Clamp(voice * envelope * 0.85, -0.9, 0.9) * short.MaxValue);
+    }
+
+    return samples;
+  }
+
   private static short[] CreateWeapon(GameSound sound)
   {
     bool flame = sound == GameSound.Flamethrower;
@@ -126,5 +156,4 @@ internal static class GameSounds
 
     return samples;
   }
-
 }

@@ -60,6 +60,28 @@ internal sealed class PixelRenderer
       "dog-walk-2",
       "dog-squashed",
       "poop",
+      "sewer-brick",
+      "sludge",
+      "fly-1",
+      "fly-2",
+      "fly-squashed",
+      "worm-1",
+      "worm-2",
+      "worm-squashed",
+      "punk-blue-1",
+      "punk-blue-2",
+      "punk-blue-throw",
+      "punk-blue-squashed",
+      "punk-purple-1",
+      "punk-purple-2",
+      "punk-purple-throw",
+      "punk-purple-squashed",
+      "emo-boss-1",
+      "emo-boss-2",
+      "emo-boss-throw",
+      "emo-boss-squashed",
+      "beer-bottle",
+      "needle",
       "old-man-walk-1",
       "old-man-walk-2",
       "old-man-windup",
@@ -262,7 +284,7 @@ internal sealed class PixelRenderer
       uint color = selected ? Gold : White;
       PixelFont.Draw(Frame, level.DisplayNumber, 24, y, color);
       PixelFont.Draw(Frame, level.Name, 64, y, color);
-      PixelFont.Draw(Frame, level.Theme == BackgroundTheme.Night ? "NIGHTTIME" : "DAYTIME", 300, y, color);
+      PixelFont.Draw(Frame, level.Theme == BackgroundTheme.Underworld ? "SEWAGE" : level.Theme == BackgroundTheme.Night ? "NIGHTTIME" : "DAYTIME", 300, y, color);
     }
 
     DrawTitleText($"PAGE {screen.Page + 1}/{screen.PageCount}  LEVELS {screen.Levels.Count}", 196, Gold, 1);
@@ -422,8 +444,12 @@ internal sealed class PixelRenderer
     int cameraX = Math.Clamp((int)(game.X * TileSize) - (Width / 3), 0, Math.Max(0, (game.Level.Width * TileSize) - Width));
     int cameraY = Math.Clamp((int)(game.Y * TileSize) - ((viewHeight * 2) / 3), 0, Math.Max(0, (game.Level.Height * TileSize) - viewHeight));
 
-    bool night = game.Level.Background == BackgroundTheme.Night;
-    DrawBackground(cameraX, night);
+    bool night = game.CurrentBackground == BackgroundTheme.Night;
+    bool underworld = game.CurrentBackground == BackgroundTheme.Underworld;
+    if (underworld)
+      DrawUnderworld(cameraX);
+    else
+      DrawBackground(cameraX, night);
 
     if (night)
       DrawGraveyard(cameraX, cameraY, game.Level.Height);
@@ -434,8 +460,9 @@ internal sealed class PixelRenderer
       {
         string? name = game.Level.Tile(x, y) switch
         {
-          '#' => game.Level.Tile(x, y - 1) == '#' ? "dirt" : "grass",
-          'B' => "brick",
+          '#' => underworld ? "sewer-brick" : game.Level.Tile(x, y - 1) == '#' ? "dirt" : "grass",
+          '~' => "sludge",
+          'B' => underworld ? "sewer-brick" : "brick",
           '?' or 'M' or 'F' or 'Q' => "bonus",
           'X' => "used",
           'P' => PipeSprite(game.Level, x, y),
@@ -449,6 +476,44 @@ internal sealed class PixelRenderer
         if (name is not null)
           Frame.Draw(_sprites[name], (x * TileSize) - cameraX, HeaderHeight + (y * TileSize) - cameraY);
       }
+    }
+
+    if (underworld)
+    {
+      // Bubbles rise from the brown sludge; the terrain itself remains solid.
+      for (int x = cameraX / TileSize; x <= (cameraX + Width) / TileSize; x++)
+      {
+        for (int y = cameraY / TileSize; y <= (cameraY + viewHeight) / TileSize; y++)
+        {
+          if (game.Level.Tile(x, y) != '~' || game.Level.Tile(x, y - 1) == '~')
+            continue;
+
+          int phase = ((int)(_animationTime * 12) + x * 7) % 24;
+          if (phase < 12)
+          {
+            int bubbleX = x * TileSize - cameraX + 3 + x % 9;
+            int bubbleY = HeaderHeight + y * TileSize - cameraY - phase / 3;
+            Frame.Fill(bubbleX, bubbleY, 2, 2, 0xFFC97F60);
+          }
+        }
+      }
+    }
+
+    if (game.AvailablePipe is { } pipe && (!game.HasEnteredUnderworld || game.Boss is null))
+    {
+      int signX = pipe.X * TileSize - cameraX - 13;
+      int signY = HeaderHeight + pipe.Y * TileSize - cameraY - 31;
+      Frame.Fill(signX - 3, signY - 3, 66, 21, Ink);
+      PixelFont.Draw(Frame, game.HasEnteredUnderworld ? "TO DAYLIGHT" : "UNDERWORLD", signX, signY, Gold);
+      PixelFont.Draw(Frame, "DOWN / S", signX + 6, signY + 10, White);
+    }
+
+    foreach (var projectile in game.EnemyProjectiles)
+    {
+      string name = projectile.Kind == Effects.EnemyProjectileKind.BeerBottle ? "beer-bottle" : "needle";
+      int px = (int)Math.Round(projectile.X * TileSize) - cameraX - 3;
+      int py = HeaderHeight + (int)Math.Round(projectile.Y * TileSize) - cameraY - 6;
+      Frame.Draw(_sprites[name], px, py, projectile.VelocityX > 0);
     }
 
     foreach (var pile in game.PoopPiles)
@@ -470,9 +535,9 @@ internal sealed class PixelRenderer
     if (game.Boss is { } boss && game.X >= boss.PatrolOriginX - 14)
     {
       int labelX = Width / 2 - 42;
-      PixelFont.Draw(Frame, $"{boss.Name.ToUpperInvariant()} {boss.Health}/10", labelX, HeaderHeight + 4, Gold);
+      PixelFont.Draw(Frame, $"{boss.Name.ToUpperInvariant()} {boss.Health}/{boss.Settings.PowerLevel}", labelX, HeaderHeight + 4, Gold);
       Frame.Fill(labelX, HeaderHeight + 12, 84, 4, Ink);
-      Frame.Fill(labelX + 1, HeaderHeight + 13, 82 * boss.Health / 10, 2, 0xFFE83B3B);
+      Frame.Fill(labelX + 1, HeaderHeight + 13, 82 * boss.Health / boss.Settings.PowerLevel, 2, 0xFFE83B3B);
     }
 
     int animationFrame = (int)(_animationTime * 9) % 2;
@@ -495,6 +560,11 @@ internal sealed class PixelRenderer
 
       string name = enemy.Kind switch
       {
+        EnemyKind.Fly => $"fly-{animationFrame + 1}",
+        EnemyKind.Worm => $"worm-{animationFrame + 1}",
+        EnemyKind.PunkBlue => enemy.ThrowPoseTicksRemaining > 0 ? "punk-blue-throw" : $"punk-blue-{animationFrame + 1}",
+        EnemyKind.PunkPurple => enemy.ThrowPoseTicksRemaining > 0 ? "punk-purple-throw" : $"punk-purple-{animationFrame + 1}",
+        EnemyKind.EmoBoss => enemy.ThrowPoseTicksRemaining > 0 ? "emo-boss-throw" : $"emo-boss-{animationFrame + 1}",
         EnemyKind.OldMan => enemy.CaneSwingTicksRemaining > Enemy.CaneWaveDurationTicks ? "old-man-windup"
           : enemy.CaneSwingTicksRemaining > 0 ? "old-man-swing" : $"old-man-walk-{animationFrame + 1}",
         EnemyKind.DungBag => $"dung-bag-walk-{animationFrame + 1}",
@@ -527,6 +597,11 @@ internal sealed class PixelRenderer
     {
       string name = enemy.Kind switch
       {
+        EnemyKind.Fly => "fly-squashed",
+        EnemyKind.Worm => "worm-squashed",
+        EnemyKind.PunkBlue => "punk-blue-squashed",
+        EnemyKind.PunkPurple => "punk-purple-squashed",
+        EnemyKind.EmoBoss => "emo-boss-squashed",
         EnemyKind.OldMan => "old-man-squashed",
         EnemyKind.DungBag => "dung-bag-squashed",
         EnemyKind.CreepyCrawler => "creepy-crawler-squashed",
@@ -634,6 +709,17 @@ internal sealed class PixelRenderer
       DrawWeaponQuote(game.FlamethrowerQuote, "FLAMETHROWER!");
     if (!game.IsDying && game.BoomStickQuoteTicksRemaining > 0)
       DrawWeaponQuote(game.BoomStickQuote, "BOOM-STICK!");
+
+    if (!game.IsDying && game.EnemyQuoteTicksRemaining > 0)
+      DrawWeaponQuote(game.EnemyQuote, "UNDERWORLD");
+
+    if (game.PipeTravelTicksRemaining > 0)
+    {
+      int half = Game.PipeTravelDurationTicks / 2;
+      int distance = Math.Abs(game.PipeTravelTicksRemaining - half);
+      Frame.OverlayBlack((byte)(255 * (half - distance) / half));
+      DrawTitleText(game.CurrentBackground == BackgroundTheme.Underworld ? "THE UNDERWORLD" : "DAYLIGHT", 105, Gold, 2);
+    }
 
     if (game.IsDying)
     {
@@ -875,6 +961,50 @@ internal sealed class PixelRenderer
     }
   }
 
+  private void DrawUnderworld(int cameraX)
+  {
+    Frame.Clear(0xFF142522);
+    int drift = cameraX / 3;
+    for (int row = 0; row < 13; row++)
+    {
+      int y = HeaderHeight + row * 18;
+      Frame.Fill(0, y, Width, 1, 0xFF0C1919);
+      for (int x = -64; x < Width + 64; x += 48)
+      {
+        int seam = x - drift % 48 + (row % 2) * 24;
+        Frame.Fill(seam, y, 1, 18, 0xFF0C1919);
+        Frame.Fill(seam + 4, y + 3, 35, 1, 0xFF203730);
+      }
+    }
+
+    // Corroded mains with flanges, bolts, downpipes, valves, and leaking drains.
+    Frame.Fill(0, 63, Width, 19, 0xFF0A1716);
+    Frame.Fill(0, 65, Width, 14, 0xFF31584B);
+    Frame.Fill(0, 67, Width, 3, 0xFF53765B);
+    Frame.Fill(0, 77, Width, 2, 0xFF203D36);
+    for (int x = -120; x < Width + 120; x += 112)
+    {
+      int px = x - drift % 112;
+      Frame.Fill(px, 60, 7, 24, 0xFF263D35);
+      Frame.Fill(px + 1, 62, 2, 2, 0xFF94A079);
+      Frame.Fill(px + 1, 79, 2, 2, 0xFF94A079);
+      Frame.Fill(px + 40, 78, 17, 50, 0xFF0A1716);
+      Frame.Fill(px + 42, 78, 13, 48, 0xFF31584B);
+      Frame.Fill(px + 43, 80, 3, 44, 0xFF53765B);
+      Frame.Fill(px + 38, 123, 21, 6, 0xFF754A44);
+      int drip = (int)(_animationTime * 22 + x) % 46;
+      if (drip < 0)
+        drip += 46;
+
+      Frame.Fill(px + 47, 131 + drip, 2, 4, 0xFF82BD58);
+      for (int bar = 0; bar < 5; bar++)
+        Frame.Fill(px + 72 + bar * 4, 178, 2, 19, 0xFF070F13);
+
+      Frame.Fill(px + 68, 174, 25, 3, 0xFF263D35);
+      Frame.Fill(px + 68, 197, 25, 3, 0xFF263D35);
+    }
+  }
+
   private void DrawBackground(int cameraX, bool night = false)
   {
     for (int y = 0; y < Height; y++)
@@ -936,6 +1066,6 @@ internal sealed class PixelRenderer
     PixelFont.Draw(Frame, game.Message, 8, 19, 0xFFA7CBDC);
 
     Frame.Fill(0, Height - FooterHeight, Width, FooterHeight, Ink);
-    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  X/CTRL FIRE  ENTER PAUSE  R RESTART  ESC QUIT", 8, Height - 9, White);
+    PixelFont.Draw(Frame, "A/D MOVE  SPACE JUMP  DOWN/S PIPE  X FIRE  ENTER PAUSE  R RETRY", 8, Height - 9, White);
   }
 }

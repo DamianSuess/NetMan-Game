@@ -142,6 +142,12 @@ public sealed class RenderingTests
           => asset.Width == 20 && asset.Height == 32,
         string name when name.StartsWith("old-man-", StringComparison.Ordinal)
           => asset.Width == 32 && asset.Height == 32,
+        string name when name.StartsWith("emo-boss-", StringComparison.Ordinal)
+          => asset.Width == 32 && asset.Height == 48,
+        string name when name.StartsWith("punk-", StringComparison.Ordinal)
+          => asset.Width == 24 && asset.Height == 32,
+        string name when name.StartsWith("worm-", StringComparison.Ordinal)
+          => asset.Width == 24 && asset.Height == 16,
         "moon.sprite" => asset.Width == 32 && asset.Height == 32,
         "tombstone.sprite" or "tombstone-cross.sprite" => asset.Width == 16 && asset.Height == 24,
         "player-burning-1.sprite" or "player-burning-2.sprite" or "player-burning-3.sprite" or "player-burning-4.sprite"
