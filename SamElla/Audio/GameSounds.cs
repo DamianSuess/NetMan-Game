@@ -8,6 +8,9 @@ internal static class GameSounds
 
   public static short[] Create(GameSound sound)
   {
+    if (sound == GameSound.ChainWhip)
+      return CreateWhipCrack();
+
     if (sound == GameSound.TeenGroan)
       return CreateGroan();
 
@@ -88,6 +91,34 @@ internal static class GameSounds
       }
 
       samples[i] = (short)(value * short.MaxValue * 0.45);
+    }
+
+    return samples;
+  }
+
+  private static short[] CreateWhipCrack()
+  {
+    const double Duration = 0.22;
+    var samples = new short[(int)(SampleRate * Duration)];
+    uint noise = 0xC4A17;
+    double filtered = 0;
+
+    for (int i = 0; i < samples.Length; i++)
+    {
+      double time = (double)i / SampleRate;
+      noise ^= noise << 13;
+      noise ^= noise >> 17;
+      noise ^= noise << 5;
+
+      double value = (noise & 0xFFFF) / 32767.5 - 1;
+
+      filtered += (value - filtered) * 0.12;
+
+      double whoosh = filtered * Math.Sin(Math.PI * Math.Min(1, time / 0.1)) * 0.5;
+      double crack = time < 0.085 ? 0 : (value - filtered) * Math.Exp(-(time - 0.085) * 65);
+      double envelope = Math.Min(1, time / 0.005) * Math.Min(1, (Duration - time) / 0.025);
+
+      samples[i] = (short)(Math.Clamp((whoosh + crack) * envelope, -0.9, 0.9) * short.MaxValue);
     }
 
     return samples;

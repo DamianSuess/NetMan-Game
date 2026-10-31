@@ -137,3 +137,9 @@ colored mohawks; `emo-boss-*` is a larger 32 x 48 set with a long purple fringe.
 `beer-bottle.sprite` and `needle.sprite` are 16 x 16 projectiles. Actors face left
 and flip right. Boss taunts come from `emo-quotes.txt`; the death groan is
 synthesized in `GameSounds` and requires no downloaded sound file.
+
+Chain whip assets: `chain-whip.sprite` is the 16 x 16 handheld coiled weapon;
+`chain-whip-pickup.sprite` is the collectible released by a `W` block.
+`chain-link-1.sprite` and `chain-link-2.sprite` are 16 x 16 metal link textures
+used along the extending/retracting chain. All use the existing shared palette.
+The crack sound is synthesized by `GameSounds`.
