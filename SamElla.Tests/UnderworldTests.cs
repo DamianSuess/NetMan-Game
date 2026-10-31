@@ -337,7 +337,7 @@ public sealed class UnderworldTests : GameTestBase
       if (game.Grounded && groundedTicks >= 2 && direction != 0 && (obstacle || pit))
         game.QueueJump();
 
-      game.Update(direction, true, downHeld: true);
+      game.Update(direction, true, fireHeld: index == 1 && tick % 32 == 0, downHeld: true);
       if (!saved && game.CurrentBackground == BackgroundTheme.Underworld && game.X > (index == 0 ? 35 : 10))
       {
         string? directory = Environment.GetEnvironmentVariable("SAMELLA_UNDERWORLD_PREVIEW");

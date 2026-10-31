@@ -1030,6 +1030,13 @@ public sealed class Game
     _facingDirection = 1;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
+    if (Level.StartsWithShotgun)
+    {
+      _growthPending = true;
+      HasBoomStick = true;
+      HasFlamethrower = false;
+    }
+
     HasEnteredUnderworld = Level.EntryPipe is null;
     ReturnedToDaylight = false;
     LevelTicksRemaining = Level.TimeLimitSeconds * 60;
@@ -1080,6 +1087,8 @@ public sealed class Game
       .Concat(Level.BossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.DungBag)))
       .ToList();
     TryGrow();
+    if (Level.StartsWithShotgun)
+      Message = "Shotgun ready! Blast the exit wall.";
   }
 
   private void Move(ref double x, ref double y, double distance, bool horizontal, bool bump, out bool hit, double height = BodyHeight)

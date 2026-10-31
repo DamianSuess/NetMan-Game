@@ -337,6 +337,13 @@ Section 3 has five sewage levels followed by the Emo Kid boss:
 | 03-05 | Toxic Reservoir |
 | 03-06 | Boss Fight - Emo Kid |
 
+Sludge Run (03-02) starts the player grown and holding a shotgun, including
+after a death or retry. Its exit is blocked by a brick wall spanning the full
+map height, with a two-tile death pit immediately before it. Shoot a passage
+tall enough for the player from the ledge, then jump across. The wall cannot
+be jumped over; losing the shotgun leaves the pit as the way to die and retry.
+The early duplicate growth and weapon blocks have been removed.
+
 Drainpipe Descent begins in daylight. Jump onto the marked pipe and press
 **Down or S** to descend. Pipe travel fades between chambers, preserves your
 power-ups, and pauses with the game. The entrance wall prevents skipping the
@@ -368,3 +375,5 @@ Punks need one clear tile above their spawn and the boss needs two.
 Optional `EntryPipe=x,y,targetX,targetY` and `ExitPipe=x,y,targetX,targetY`
 headers connect a two-tile-wide `PP` pipe top to a supported destination.
 Destinations need three tiles of headroom so every player size fits.
+`StartingPower=Shotgun` grants growth and the shotgun whenever that level loads;
+the default, `StartingPower=None`, uses the normal power-up progression.

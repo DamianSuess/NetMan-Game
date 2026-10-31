@@ -15,6 +15,7 @@ public sealed class Level
 
   public PipePassage? EntryPipe { get; private set; }
   public PipePassage? ExitPipe { get; private set; }
+  public bool StartsWithShotgun { get; private set; }
   public BackgroundTheme Background { get; }
   public bool EnemiesAvoidLedges { get; }
   public int TimeLimitSeconds { get; }
@@ -80,6 +81,7 @@ public sealed class Level
       displayName = displayName[..MaxNameLength];
 
     PipePassage? entryPipe = null, exitPipe = null;
+    bool startsWithShotgun = false;
     var background = BackgroundTheme.Day;
     bool enemiesAvoidLedges = false;
     int timeLimitSeconds = DefaultTimeLimitSeconds;
@@ -94,6 +96,9 @@ public sealed class Level
 
         displayName = setting[1];
       }
+      else if (setting[0].Equals("StartingPower", StringComparison.OrdinalIgnoreCase)
+        && (setting[1].Equals("Shotgun", StringComparison.OrdinalIgnoreCase) || setting[1].Equals("None", StringComparison.OrdinalIgnoreCase)))
+        startsWithShotgun = setting[1].Equals("Shotgun", StringComparison.OrdinalIgnoreCase);
       else if (setting[0].Equals("Background", StringComparison.OrdinalIgnoreCase)
         && Enum.TryParse(setting[1], true, out BackgroundTheme parsedBackground) && Enum.IsDefined(parsedBackground)
         && !setting[1].All(char.IsAsciiDigit))
@@ -118,7 +123,7 @@ public sealed class Level
         && int.TryParse(setting[1], out int seconds) && seconds is >= 1 and <= 9999)
         timeLimitSeconds = seconds;
       else
-        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
+        throw new InvalidDataException($"{name}: line {mapStart + 1}: expected Name=1..32 display characters, Background=Day or Background=Night or Background=Underworld, EntryPipe/ExitPipe=x,y,targetX,targetY, StartingPower=None/Shotgun, EnemyLedges=Turn/Fall, or TimeLimit=1..9999 seconds.");
 
       mapStart++;
       while (mapStart < lines.Length && string.IsNullOrWhiteSpace(lines[mapStart]))
@@ -132,6 +137,7 @@ public sealed class Level
     var map = new Level(name, new char[lines.Max(line => line.Length), lines.Length], background, enemiesAvoidLedges, timeLimitSeconds, displayName);
     map.EntryPipe = entryPipe;
     map.ExitPipe = exitPipe;
+    map.StartsWithShotgun = startsWithShotgun;
     int starts = 0, goals = 0;
 
     for (int y = 0; y < map.Height; y++)
