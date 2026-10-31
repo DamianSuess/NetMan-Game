@@ -47,6 +47,7 @@ public sealed class Game
   private readonly List<GrowthHeart> _growthHearts = [];
   private readonly HashSet<(int X, int Y)> _levelItems = [];
   private readonly List<PoopPile> _poopPiles = [];
+  private readonly List<ThrownPoop> _thrownPoop = [];
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private int _facingDirection = 1;
   private bool _fireWasHeld;
@@ -151,6 +152,8 @@ public sealed class Game
   public PlayerSettings PlayerSettings => IsLarge ? _enemyConfiguration.PlayerPowerLevel2 : _enemyConfiguration.PlayerPowerLevel1;
   public double PlayerSpeed => PlayerSettings.Speed * (SlowTicksRemaining > 0 ? PoopSpeedMultiplier : 1);
   public IReadOnlyList<PoopPile> PoopPiles => _poopPiles;
+  public IReadOnlyList<ThrownPoop> ThrownPoop => _thrownPoop;
+  public Enemy? Boss => Enemies.FirstOrDefault(enemy => enemy.Kind == EnemyKind.DungBag && enemy.Alive);
   public int PoopSplatterTicksRemaining { get; private set; }
   public int PowerUpLevel => HasBoomStick ? 3 : HasFlamethrower ? 2 : IsLarge || _growthPending ? 1 : 0;
   public IReadOnlyList<CoinRewardPopup> RewardPopups => _rewardPopups;
@@ -372,6 +375,12 @@ public sealed class Game
           break;
 
         case 'G':
+          if (Boss is not null)
+          {
+            Message = "Defeat Dung-Bag to open the exit!";
+            break;
+          }
+
           Score += 1000;
           ItemsMissed += _levelItems.Count(item => !_collectedItems.Contains((_levelIndex, item.X, item.Y)));
           if (_levelIndex + 1 == _files.Length)
@@ -401,6 +410,9 @@ public sealed class Game
 
     foreach (var enemy in Enemies.Where(enemy => enemy.Alive))
     {
+      if (enemy.Kind == EnemyKind.DungBag && X < enemy.PatrolOriginX - 14)
+        continue;
+
       bool supported = enemy.Kind != EnemyKind.CreepyCrawler || enemy.CanInteract
         || Level.Solid((int)Math.Floor(enemy.X + (BodyWidth / 2)), (int)Math.Round(enemy.Y + enemy.BodyHeight));
       if (enemy.AdvanceEmergence(X, Y, supported))
@@ -411,7 +423,14 @@ public sealed class Game
       if (stunned)
         enemy.StunTicksRemaining--;
       double patrolDistance = stunned ? 0 : enemy.Direction * enemy.Settings.Speed * Step;
-      if (Level.EnemiesAvoidLedges && patrolDistance != 0 && HasPatrolSupport(ex, enemy.PatrolFloorRow)
+      if (enemy.Kind == EnemyKind.DungBag && patrolDistance != 0
+        && (ex + patrolDistance < enemy.PatrolOriginX - 5 || ex + patrolDistance > enemy.PatrolOriginX + 4))
+      {
+        enemy.Direction *= -1;
+        patrolDistance = enemy.Direction * enemy.Settings.Speed * Step;
+      }
+
+      if ((Level.EnemiesAvoidLedges || enemy.Kind == EnemyKind.DungBag) && patrolDistance != 0 && HasPatrolSupport(ex, enemy.PatrolFloorRow)
         && !HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
       {
         enemy.Direction *= -1;
@@ -449,6 +468,13 @@ public sealed class Game
       if (enemy.Kind == EnemyKind.Dog && floor && enemyVertical > 0 && !stunned)
         LeavePoop(enemy);
 
+      if (enemy.Kind == EnemyKind.DungBag && !stunned && --enemy.ThrowTicksRemaining <= 0)
+      {
+        enemy.ThrowTicksRemaining = Enemy.BossThrowIntervalTicks;
+        int aim = X < enemy.X ? -1 : 1;
+        _thrownPoop.Add(new ThrownPoop(enemy.X + aim * 0.85, enemy.Y + 0.2, aim * 6));
+      }
+
       if (ey > Level.Height + 2)
       {
         enemy.Y = Level.Height - enemy.BodyHeight;
@@ -460,7 +486,7 @@ public sealed class Game
 
       if (vertical > 0 && Y + PlayerHeight - vertical <= ey + 0.25)
       {
-        bool defeated = enemy.Stomp(PlayerPowerLevel);
+        bool defeated = enemy.Stomp(enemy.Kind == EnemyKind.DungBag && !IsLarge ? 1 : PlayerPowerLevel);
         Y = ey - PlayerHeight;
         VelocityY = -10;
 
@@ -470,7 +496,9 @@ public sealed class Game
         }
 
         SoundRequested?.Invoke(defeated ? GameSound.EnemyDied : GameSound.EnemySmash);
-        Message = defeated ? "Stomp!" : $"Still kicking! {enemy.Health} hits left";
+        Message = enemy.Kind == EnemyKind.DungBag
+          ? defeated ? "Dung-Bag defeated! Exit open!" : $"Dung-Bag: {enemy.Health}/10"
+          : defeated ? "Stomp!" : $"Still kicking! {enemy.Health} hits left";
       }
       else
       {
@@ -480,6 +508,7 @@ public sealed class Game
       }
     }
 
+    AdvanceThrownPoop();
     StepInPoop();
   }
 
@@ -741,6 +770,7 @@ public sealed class Game
     _growthPending = keepGrowth;
     _growthHearts.Clear();
     _poopPiles.Clear();
+    _thrownPoop.Clear();
     SlowTicksRemaining = PoopSplatterTicksRemaining = 0;
     _facingDirection = 1;
     DamageTicksRemaining = 0;
@@ -784,6 +814,7 @@ public sealed class Game
       .Concat(Level.DogSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Dog, _enemyConfiguration.Dog)))
       .Concat(Level.CreepyCrawlerSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + 1 - Enemy.CrawlerBodyHeight,
         EnemyKind.CreepyCrawler, _enemyConfiguration.CreepyCrawler)))
+      .Concat(Level.BossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.DungBag)))
       .ToList();
     TryGrow();
   }
@@ -871,6 +902,46 @@ public sealed class Game
     }
   }
 
+  private void AdvanceThrownPoop()
+  {
+    for (int index = _thrownPoop.Count - 1; index >= 0; index--)
+    {
+      var poop = _thrownPoop[index];
+      double x = poop.X, y = poop.Y;
+      Move(ref x, ref y, poop.VelocityX * Step, true, false, out bool wall, Effects.ThrownPoop.Height);
+      poop.VelocityY = Math.Min(28, poop.VelocityY + 18 * Step);
+      Move(ref x, ref y, poop.VelocityY * Step, false, false, out bool floor, Effects.ThrownPoop.Height);
+      poop.X = x;
+      poop.Y = y;
+      poop.AgeTicks++;
+      if (Overlaps(X, Y, PlayerHeight, x, y, Effects.ThrownPoop.Height))
+      {
+        ApplyPoopSlowdown();
+        _thrownPoop.RemoveAt(index);
+        continue;
+      }
+
+      if (floor && poop.VelocityY > 0)
+      {
+        int tileX = (int)Math.Floor(x + BodyWidth / 2);
+        int tileY = (int)Math.Round(y + Effects.ThrownPoop.Height);
+        var pile = new PoopPile(tileX, tileY);
+        if (Level.Solid(tileX, tileY) && !_poopPiles.Contains(pile))
+          _poopPiles.Add(pile);
+      }
+
+      if (floor || wall || poop.AgeTicks > 300 || x < 0 || x >= Level.Width || y > Level.Height + 2)
+        _thrownPoop.RemoveAt(index);
+    }
+  }
+
+  private void ApplyPoopSlowdown()
+  {
+    SlowTicksRemaining = PoopSlowDurationTicks;
+    PoopSplatterTicksRemaining = PoopSplatterDurationTicks;
+    Message = "Oh crap! Slowed for 5 seconds";
+  }
+
   private void StepInPoop()
   {
     for (int i = _poopPiles.Count - 1; i >= 0; i--)
@@ -887,9 +958,7 @@ public sealed class Game
         continue;
 
       _poopPiles.RemoveAt(i);
-      SlowTicksRemaining = PoopSlowDurationTicks;
-      PoopSplatterTicksRemaining = PoopSplatterDurationTicks;
-      Message = "Oh crap! Slowed for 5 seconds";
+      ApplyPoopSlowdown();
     }
   }
 

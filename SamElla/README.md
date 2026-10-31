@@ -137,7 +137,7 @@ platforms. Levels 02-03 and 02-04 enable it. Omit it or use `EnemyLedges=Fall` f
 original patrol behavior used by earlier levels. Headers do not change map
 coordinates.
 
-Edit `Levels/*.txt` in any text editor, then restart the game. `dotnet run` copies them into the output directory. Files play in alphabetical order. Use `##-##-{Level-Name}.txt`: two digits for the section, two for the level, then a hyphenated name, such as `01-01-meadow.txt` or `02-01-ruins-crossing.txt`. Section 1 has five regular levels followed by `01-06-boss-fight.txt`, a playable boss arena placeholder with an exit and no boss yet. The remaining levels begin Section 2 at `02-01`. The game discovers additional `.txt` files automatically on startup.
+Edit `Levels/*.txt` in any text editor, then restart the game. `dotnet run` copies them into the output directory. Files play in alphabetical order. Use `##-##-{Level-Name}.txt`: two digits for the section, two for the level, then a hyphenated name, such as `01-01-meadow.txt` or `02-01-ruins-crossing.txt`. Section 1 has five regular levels followed by `01-06-Boss-Fight.txt`, a 92-tile boss level ending in Dung-Bag's arena. The remaining levels begin Section 2 at `02-01`. The game discovers additional `.txt` files automatically on startup.
 
 Add `Name=Your Level Name` to the header for the user-facing name (1–32 characters after trimming). Blank names and longer names are rejected. Headers can appear in any order. Choose the scenery with an optional header, `Background=Day` or `Background=Night`. A blank separator before the map is optional. Files without a header use Day. The header is case-insensitive; invalid values report an error. Night includes the moon, stars, and scrolling tombstones.
 
@@ -170,6 +170,7 @@ Within the map, each character is one tile. Rows run from top to bottom; columns
 | `C` | Toaster Cat; runs faster and hops |
 | `Z` | Tall, slow-walking zombie; place in its bottom tile with clear space above |
 | `D` | Dog; patrols and leaves poop piles on solid ground |
+| `U` | Dung-Bag boss; place like a zombie, with a clear tile above |
 | `R` | Creepy-Crawler; nighttime half-body zombie that emerges from supported terrain |
 | `^` | Spike; blocks sideways movement and is deadly only when landing on its tip from above |
 | `G` | Green goal flag; at least one per map |
@@ -263,3 +264,15 @@ The tests live in `../SamElla.Tests`, use MSTest with Microsoft.Testing.Platform
 This version includes animated walking, a jumping pose, growth power-ups, shaded tiles, a pixel HUD, parallax scenery, and pause/win/game-over overlays. It does not include sound, bosses, or a graphical level editor.
 
 Native backend references: [CreateWindowExW](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw), [StretchDIBits](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-stretchdibits).
+
+### Dung-Bag boss fight
+
+Level `01-06-Boss-Fight.txt` is half the width of Pipe Terraces (92 tiles).
+A growth-heart block sits just before the arena. Dung-Bag patrols back and forth
+and has 10 health: small-player stomps always deal one point, so ten are needed;
+large-player stomps and weapons deal their usual damage. A name and health bar
+appear when approaching the arena. The goal remains locked while the boss lives.
+Dung-Bag throws poop in gravity-driven arcs toward the player. Airborne contact
+slows the player; landed poop leaves a pile that can be jumped over or stepped
+on for the usual five-second slowdown and splatter. Pausing freezes attacks,
+and retrying resets the boss, projectiles, and piles.
