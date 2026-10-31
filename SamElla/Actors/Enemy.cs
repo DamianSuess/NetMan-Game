@@ -2,6 +2,7 @@ namespace SamElla.Actors;
 
 public sealed class Enemy
 {
+  public const double EmoBossBodyHeight = 2.5;
   public const int CaneAttackIntervalTicks = 120;
   public const int CaneSwingDurationTicks = 36;
   public const int CaneWaveDurationTicks = 18;
@@ -18,11 +19,16 @@ public sealed class Enemy
   public Enemy(double x, double y, EnemyKind kind = EnemyKind.Walker, EnemySettings? settings = null)
   {
     PatrolOriginX = x;
+    PatrolOriginY = y;
     X = x;
     Y = y;
     Kind = kind;
     Settings = settings ?? (kind switch
     {
+      EnemyKind.Fly => new EnemySettings(2, 1, 0),
+      EnemyKind.Worm => new EnemySettings(1, 1, 0),
+      EnemyKind.PunkBlue or EnemyKind.PunkPurple => new EnemySettings(2, 4, 0),
+      EnemyKind.EmoBoss => new EnemySettings(2, 10, 0),
       EnemyKind.OldMan => new EnemySettings(1.5, 10, 0),
       EnemyKind.DungBag => new EnemySettings(2.5, 10, 0),
       EnemyKind.ToasterCat => EnemyConfiguration.DefaultToasterCat,
@@ -42,14 +48,22 @@ public sealed class Enemy
   public double X, Y, VelocityY;
 
   public EnemyKind Kind { get; }
-  public bool IsBoss => Kind is EnemyKind.DungBag or EnemyKind.OldMan;
-  public string Name => Kind == EnemyKind.OldMan ? "Old Man" : Kind == EnemyKind.DungBag ? "Dung-Bag" : Kind.ToString();
+  public bool IsBoss => Kind is EnemyKind.DungBag or EnemyKind.OldMan or EnemyKind.EmoBoss;
+  public bool IsTeen => Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple or EnemyKind.EmoBoss;
+  public string Name => Kind == EnemyKind.EmoBoss ? "Emo Kid" : Kind is EnemyKind.PunkBlue or EnemyKind.PunkPurple ? "Punk-tard" : Kind == EnemyKind.OldMan ? "Old Man" : Kind == EnemyKind.DungBag ? "Dung-Bag" : Kind.ToString();
   public int CaneSwingTicksRemaining { get; internal set; }
   public int AttackDirection { get; internal set; } = -1;
   public double AirWaveX { get; internal set; }
   public double AirWaveY { get; internal set; }
   public double AirWaveLength { get; internal set; }
   internal int CaneAttackTicksRemaining { get; set; } = CaneAttackIntervalTicks;
+  internal double PatrolOriginY { get; }
+  internal int FlightTicks { get; set; }
+  internal int ProjectileAttackTicks { get; set; } = 120;
+  internal int ProjectileCount { get; set; }
+  public int ThrowPoseTicksRemaining { get; internal set; }
+  internal int SpeechTicks { get; set; } = 90;
+  internal int SpeechIndex { get; set; }
   internal double PatrolOriginX { get; }
   internal int ThrowTicksRemaining { get; set; } = BossThrowIntervalTicks;
 
@@ -57,7 +71,10 @@ public sealed class Enemy
 
   public double BodyHeight => Kind switch
   {
-    EnemyKind.Zombie or EnemyKind.DungBag or EnemyKind.OldMan => Game.LargeBodyHeight,
+    EnemyKind.EmoBoss => EmoBossBodyHeight,
+    EnemyKind.PunkBlue or EnemyKind.PunkPurple or EnemyKind.Zombie or EnemyKind.DungBag or EnemyKind.OldMan => Game.LargeBodyHeight,
+    EnemyKind.Worm => 0.45,
+    EnemyKind.Fly => 0.6,
     EnemyKind.CreepyCrawler => CrawlerBodyHeight,
     _ => Game.BodyHeight,
   };

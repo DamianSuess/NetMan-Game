@@ -12,6 +12,7 @@ internal enum GameSound
   Died,
   EnemySmash,
   EnemyDied,
+  TeenGroan,
   Flamethrower,
   Shotgun,
   BlockBreak,

@@ -8,6 +8,8 @@ namespace SamElla;
 
 public sealed class Game
 {
+  public const int PipeTravelDurationTicks = 48;
+  public const string TeenDeathQuote = "it's everyone else's fault not mine";
   public const double BodyWidth = 0.75, BodyHeight = 0.9;
   public const string BoomStickPickupQuote = "This here is my BOOM STICK!";
   public const int BoomStickQuoteDurationTicks = 180;
@@ -48,6 +50,9 @@ public sealed class Game
   private readonly HashSet<(int X, int Y)> _levelItems = [];
   private readonly List<PoopPile> _poopPiles = [];
   private readonly List<ThrownPoop> _thrownPoop = [];
+  private readonly List<EnemyProjectile> _enemyProjectiles = [];
+  private readonly string[] _emoQuotes;
+  private PipePassage? _travelPipe;
   private readonly List<CoinRewardPopup> _rewardPopups = [];
   private int _facingDirection = 1;
   private bool _fireWasHeld;
@@ -96,11 +101,30 @@ public sealed class Game
     if (_gameOverQuotes.Length == 0)
       _gameOverQuotes = ["Bet you wish you could rewind? Nope."];
 
+    string quotesPath = Path.Combine(_creditsAssetsPath, "emo-quotes.txt");
+    _emoQuotes = File.Exists(quotesPath)
+      ? File.ReadAllLines(quotesPath).Where(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith(';')).ToArray()
+      : [];
+    if (_emoQuotes.Length == 0)
+      _emoQuotes = ["use toxic straws", "i'm confused", "i want free stuff", "i hate working", "responsibility is dumb", "Ok boomer"];
+
     LoadLevel();
     ApplyCheatStart();
   }
 
   internal event Action<GameSound>? SoundRequested;
+
+  public bool HasEnteredUnderworld { get; private set; }
+  public bool ReturnedToDaylight { get; private set; }
+  public BackgroundTheme CurrentBackground => Level.Background == BackgroundTheme.Underworld
+    && (!HasEnteredUnderworld || ReturnedToDaylight) ? BackgroundTheme.Day : Level.Background;
+  public PipePassage? AvailablePipe => !HasEnteredUnderworld ? Level.EntryPipe
+    : !ReturnedToDaylight ? Level.ExitPipe : null;
+  public int PipeTravelTicksRemaining { get; private set; }
+  public string EnemyQuote { get; private set; } = string.Empty;
+  public int EnemyQuoteTicksRemaining { get; private set; }
+  public IReadOnlyList<EnemyProjectile> EnemyProjectiles => _enemyProjectiles;
+  public bool IsInSludge => Grounded && Level.Tile((int)Math.Floor(X + BodyWidth / 2), (int)Math.Round(Y + PlayerHeight)) == '~';
 
   public bool AwaitingRestart { get; private set; }
   public IReadOnlyList<BlockBreakEffect> BlockBreakEffects => _blockBreakEffects;
@@ -150,7 +174,7 @@ public sealed class Game
   public double PlayerHeight => IsExploding ? OverloadedBodyHeight : IsLarge ? LargeBodyHeight : BodyHeight;
   public int PlayerPowerLevel => PlayerSettings.PowerLevel;
   public PlayerSettings PlayerSettings => IsLarge ? _enemyConfiguration.PlayerPowerLevel2 : _enemyConfiguration.PlayerPowerLevel1;
-  public double PlayerSpeed => PlayerSettings.Speed * (SlowTicksRemaining > 0 ? PoopSpeedMultiplier : 1);
+  public double PlayerSpeed => PlayerSettings.Speed * (SlowTicksRemaining > 0 ? PoopSpeedMultiplier : 1) * (IsInSludge ? 0.7 : 1);
   public IReadOnlyList<PoopPile> PoopPiles => _poopPiles;
   public IReadOnlyList<ThrownPoop> ThrownPoop => _thrownPoop;
   public Enemy? Boss => Enemies.FirstOrDefault(enemy => enemy.IsBoss && enemy.Alive);
@@ -209,7 +233,7 @@ public sealed class Game
     ApplyCheatStart();
   }
 
-  public void Update(int direction, bool jumpHeld, bool fireHeld = false)
+  public void Update(int direction, bool jumpHeld, bool fireHeld = false, bool downHeld = false)
   {
     if (Paused)
       return;
@@ -271,6 +295,18 @@ public sealed class Game
       _transition -= Step;
       return;
     }
+
+    if (PipeTravelTicksRemaining > 0)
+    {
+      AdvancePipeTravel();
+      return;
+    }
+
+    if (EnemyQuoteTicksRemaining > 0 && --EnemyQuoteTicksRemaining == 0)
+      EnemyQuote = string.Empty;
+
+    if (downHeld && TryEnterPipe())
+      return;
 
     if (--LevelTicksRemaining <= 0)
     {
@@ -375,6 +411,12 @@ public sealed class Game
           break;
 
         case 'G':
+          if (!HasEnteredUnderworld || (Level.ExitPipe is not null && !ReturnedToDaylight))
+          {
+            Message = "Use the pipe to continue!";
+            break;
+          }
+
           if (Boss is not null)
           {
             Message = $"Defeat {Boss.Name} to open the exit!";
@@ -410,7 +452,8 @@ public sealed class Game
 
     foreach (var enemy in Enemies.Where(enemy => enemy.Alive))
     {
-      if (enemy.IsBoss && X < enemy.PatrolOriginX - 14)
+      if (enemy.IsBoss && X < enemy.PatrolOriginX - 14
+        || Level.Background == BackgroundTheme.Underworld && CurrentBackground != BackgroundTheme.Underworld)
         continue;
 
       bool supported = enemy.Kind != EnemyKind.CreepyCrawler || enemy.CanInteract
@@ -422,44 +465,65 @@ public sealed class Game
       bool stunned = enemy.StunTicksRemaining > 0;
       if (stunned)
         enemy.StunTicksRemaining--;
-      double patrolDistance = stunned || enemy.CaneSwingTicksRemaining > 0 ? 0 : enemy.Direction * enemy.Settings.Speed * Step;
-      if (enemy.IsBoss && patrolDistance != 0
-        && (ex + patrolDistance < enemy.PatrolOriginX - 5 || ex + patrolDistance > enemy.PatrolOriginX + 4))
+      if (enemy.ThrowPoseTicksRemaining > 0)
+        enemy.ThrowPoseTicksRemaining--;
+
+      bool floor = false;
+      double enemyVertical = 0;
+      if (enemy.Kind == EnemyKind.Fly)
       {
-        enemy.Direction *= -1;
-        patrolDistance = enemy.Direction * enemy.Settings.Speed * Step;
-      }
-
-      if ((Level.EnemiesAvoidLedges || enemy.IsBoss) && patrolDistance != 0 && HasPatrolSupport(ex, enemy.PatrolFloorRow)
-        && !HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
-      {
-        enemy.Direction *= -1;
-        patrolDistance = enemy.Direction * enemy.Settings.Speed * Step;
-        if (!HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
-          patrolDistance = 0;
-      }
-
-      Move(ref ex, ref ey, patrolDistance, true, false, out bool wall, enemy.BodyHeight);
-
-      if (wall)
-        enemy.Direction *= -1;
-
-      enemy.VelocityY = Math.Min(enemy.VelocityY + 40 * Step, 28);
-      double enemyVertical = enemy.VelocityY * Step;
-      Move(ref ex, ref ey, enemyVertical, false, false, out bool floor, enemy.BodyHeight);
-
-      if (floor)
-      {
-        enemy.PatrolFloorRow = (int)Math.Round(ey + enemy.BodyHeight);
-        enemy.VelocityY = 0;
-        if (!stunned && enemy.Kind != EnemyKind.CreepyCrawler && enemy.Settings.HopVelocity > 0 && enemyVertical > 0)
+        if (!stunned)
         {
-          if (enemy.HopTicksRemaining > 0)
-            enemy.HopTicksRemaining--;
-          else
+          enemy.FlightTicks++;
+          double angle = enemy.FlightTicks / 24.0;
+          double desiredX = enemy.PatrolOriginX + Math.Sin(angle) * 1.25;
+          double desiredY = enemy.PatrolOriginY + (Math.Cos(angle) - 1) * 1.25;
+          enemy.Direction = desiredX < ex ? -1 : 1;
+          Move(ref ex, ref ey, desiredX - ex, true, false, out _, enemy.BodyHeight);
+          Move(ref ex, ref ey, desiredY - ey, false, false, out _, enemy.BodyHeight);
+        }
+      }
+      else
+      {
+        double patrolDistance = stunned || enemy.CaneSwingTicksRemaining > 0 ? 0 : enemy.Direction * enemy.Settings.Speed * Step;
+        if (enemy.IsBoss && patrolDistance != 0
+          && (ex + patrolDistance < enemy.PatrolOriginX - 5 || ex + patrolDistance > enemy.PatrolOriginX + 4))
+        {
+          enemy.Direction *= -1;
+          patrolDistance = enemy.Direction * enemy.Settings.Speed * Step;
+        }
+
+        if ((Level.EnemiesAvoidLedges || enemy.IsBoss) && patrolDistance != 0 && HasPatrolSupport(ex, enemy.PatrolFloorRow)
+          && !HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
+        {
+          enemy.Direction *= -1;
+          patrolDistance = enemy.Direction * enemy.Settings.Speed * Step;
+          if (!HasPatrolSupport(ex + patrolDistance, enemy.PatrolFloorRow))
+            patrolDistance = 0;
+        }
+
+        Move(ref ex, ref ey, patrolDistance, true, false, out bool wall, enemy.BodyHeight);
+
+        if (wall)
+          enemy.Direction *= -1;
+
+        enemy.VelocityY = Math.Min(enemy.VelocityY + 40 * Step, 28);
+        enemyVertical = enemy.VelocityY * Step;
+        Move(ref ex, ref ey, enemyVertical, false, false, out floor, enemy.BodyHeight);
+
+        if (floor)
+        {
+          enemy.PatrolFloorRow = (int)Math.Round(ey + enemy.BodyHeight);
+          enemy.VelocityY = 0;
+          if (!stunned && enemy.Kind != EnemyKind.CreepyCrawler && enemy.Settings.HopVelocity > 0 && enemyVertical > 0)
           {
-            enemy.VelocityY = -enemy.Settings.HopVelocity;
-            enemy.HopTicksRemaining = Enemy.HopIntervalTicks;
+            if (enemy.HopTicksRemaining > 0)
+              enemy.HopTicksRemaining--;
+            else
+            {
+              enemy.VelocityY = -enemy.Settings.HopVelocity;
+              enemy.HopTicksRemaining = Enemy.HopIntervalTicks;
+            }
           }
         }
       }
@@ -474,6 +538,9 @@ public sealed class Game
         int aim = X < enemy.X ? -1 : 1;
         _thrownPoop.Add(new ThrownPoop(enemy.X + aim * 0.85, enemy.Y + 0.2, aim * 6));
       }
+
+      if (enemy.IsTeen && !stunned)
+        AdvanceTeenAttack(enemy);
 
       if (enemy.Kind == EnemyKind.OldMan)
       {
@@ -498,13 +565,11 @@ public sealed class Game
         VelocityY = -10;
 
         if (defeated)
-        {
-          Score += 200 * enemy.Settings.PowerLevel;
-        }
-
-        SoundRequested?.Invoke(defeated ? GameSound.EnemyDied : GameSound.EnemySmash);
+          EnemyDefeated(enemy);
+        else
+          SoundRequested?.Invoke(GameSound.EnemySmash);
         Message = enemy.IsBoss
-          ? defeated ? $"{enemy.Name} defeated! Exit open!" : $"{enemy.Name}: {enemy.Health}/10"
+          ? defeated ? $"{enemy.Name} defeated! Exit open!" : $"{enemy.Name}: {enemy.Health}/{enemy.Settings.PowerLevel}"
           : defeated ? "Stomp!" : $"Still kicking! {enemy.Health} hits left";
       }
       else
@@ -515,8 +580,136 @@ public sealed class Game
       }
     }
 
+    AdvanceEnemyProjectiles();
+    if (IsDying)
+      return;
+
     AdvanceThrownPoop();
     StepInPoop();
+  }
+
+  private bool TryEnterPipe()
+  {
+    if (!Grounded || AvailablePipe is not { } pipe
+      || X + BodyWidth / 2 < pipe.X || X + BodyWidth / 2 >= pipe.X + 2
+      || Math.Abs(Y + PlayerHeight - pipe.Y) > 0.05)
+      return false;
+
+    if (HasEnteredUnderworld && Boss is not null)
+    {
+      Message = $"Defeat {Boss.Name} to use the exit pipe!";
+      return false;
+    }
+
+    _travelPipe = pipe;
+    PipeTravelTicksRemaining = PipeTravelDurationTicks;
+    Flame = null;
+    ShotgunBlast = null;
+    VelocityY = 0;
+    Message = HasEnteredUnderworld ? "Back to daylight!" : "Descending to the Underworld...";
+    return true;
+  }
+
+  private void AdvancePipeTravel()
+  {
+    PipeTravelTicksRemaining--;
+    if (PipeTravelTicksRemaining != PipeTravelDurationTicks / 2 || _travelPipe is not { } pipe)
+      return;
+
+    X = pipe.TargetX;
+    Y = pipe.TargetY + BodyHeight - PlayerHeight;
+    Grounded = false;
+    VelocityY = 0;
+    _jumpBuffer = _coyoteTime = 0;
+    _enemyProjectiles.Clear();
+    if (!HasEnteredUnderworld)
+      HasEnteredUnderworld = true;
+    else
+      ReturnedToDaylight = true;
+  }
+
+  private void AdvanceTeenAttack(Enemy enemy)
+  {
+    if (Math.Abs(enemy.X - X) > 12)
+      return;
+
+    if (enemy.Kind == EnemyKind.EmoBoss && --enemy.SpeechTicks <= 0)
+    {
+      enemy.SpeechTicks = 210;
+      if (EnemyQuoteTicksRemaining == 0)
+      {
+        EnemyQuote = _emoQuotes[enemy.SpeechIndex++ % _emoQuotes.Length];
+        EnemyQuoteTicksRemaining = 150;
+      }
+    }
+
+    if (--enemy.ProjectileAttackTicks > 0)
+      return;
+
+    enemy.ProjectileAttackTicks = enemy.IsBoss ? 85 : 150;
+    enemy.ThrowPoseTicksRemaining = 20;
+    int aim = X < enemy.X ? -1 : 1;
+    enemy.Direction = aim;
+    bool needle = enemy.IsBoss && enemy.ProjectileCount++ % 2 == 1;
+    double x = enemy.X + (aim > 0 ? BodyWidth : -EnemyProjectile.Width);
+    double y = enemy.Y + enemy.BodyHeight * 0.45;
+    double velocityY = needle ? Math.Clamp((Y + PlayerHeight / 2 - y) * 1.5, -3, 3) : -6;
+    _enemyProjectiles.Add(new EnemyProjectile(enemy, needle ? EnemyProjectileKind.Needle : EnemyProjectileKind.BeerBottle,
+      x, y, aim * (needle ? 8 : 6), velocityY));
+  }
+
+  private void AdvanceEnemyProjectiles()
+  {
+    for (int index = _enemyProjectiles.Count - 1; index >= 0; index--)
+    {
+      var projectile = _enemyProjectiles[index];
+      if (!projectile.Owner.Alive || ++projectile.AgeTicks > 240)
+      {
+        _enemyProjectiles.RemoveAt(index);
+        continue;
+      }
+
+      if (projectile.Kind == EnemyProjectileKind.BeerBottle)
+        projectile.VelocityY += 18 * Step;
+
+      double dx = projectile.VelocityX * Step, dy = projectile.VelocityY * Step;
+      int steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(dx), Math.Abs(dy)) / 0.1));
+      for (int step = 0; step < steps; step++)
+      {
+        projectile.X += dx / steps;
+        projectile.Y += dy / steps;
+        bool blocked = projectile.Y > Level.Height || projectile.X < 0 || projectile.X >= Level.Width
+          || Level.Solid((int)Math.Floor(projectile.X), (int)Math.Floor(projectile.Y))
+          || Level.Solid((int)Math.Floor(projectile.X + EnemyProjectile.Width), (int)Math.Floor(projectile.Y))
+          || Level.Solid((int)Math.Floor(projectile.X), (int)Math.Floor(projectile.Y + EnemyProjectile.Height))
+          || Level.Solid((int)Math.Floor(projectile.X + EnemyProjectile.Width), (int)Math.Floor(projectile.Y + EnemyProjectile.Height));
+        bool hit = !blocked && X < projectile.X + EnemyProjectile.Width && X + BodyWidth > projectile.X
+          && Y < projectile.Y + EnemyProjectile.Height && Y + PlayerHeight > projectile.Y;
+        if (!blocked && !hit)
+          continue;
+
+        _enemyProjectiles.RemoveAt(index);
+        if (hit)
+        {
+          TakeDamage();
+          if (IsDying)
+            return;
+        }
+
+        break;
+      }
+    }
+  }
+
+  private void EnemyDefeated(Enemy enemy)
+  {
+    Score += 200 * enemy.Settings.PowerLevel;
+    SoundRequested?.Invoke(enemy.IsTeen ? GameSound.TeenGroan : GameSound.EnemyDied);
+    if (enemy.IsTeen)
+    {
+      EnemyQuote = TeenDeathQuote;
+      EnemyQuoteTicksRemaining = 180;
+    }
   }
 
   private void AdvanceCaneAttack(Enemy enemy, bool stunned)
@@ -785,8 +978,7 @@ public sealed class Game
 
       if (enemy.Hit(ShotgunDamage))
       {
-        Score += 200 * enemy.Settings.PowerLevel;
-        SoundRequested?.Invoke(GameSound.EnemyDied);
+        EnemyDefeated(enemy);
       }
     }
 
@@ -829,10 +1021,17 @@ public sealed class Game
     _growthHearts.Clear();
     _poopPiles.Clear();
     _thrownPoop.Clear();
+    _enemyProjectiles.Clear();
+    _travelPipe = null;
+    PipeTravelTicksRemaining = 0;
+    EnemyQuote = string.Empty;
+    EnemyQuoteTicksRemaining = 0;
     SlowTicksRemaining = PoopSplatterTicksRemaining = 0;
     _facingDirection = 1;
     DamageTicksRemaining = 0;
     Level = Level.Load(_files[_levelIndex]);
+    HasEnteredUnderworld = Level.EntryPipe is null;
+    ReturnedToDaylight = false;
     LevelTicksRemaining = Level.TimeLimitSeconds * 60;
     ThemeLevelNumber = 1;
 
@@ -872,6 +1071,11 @@ public sealed class Game
       .Concat(Level.DogSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Dog, _enemyConfiguration.Dog)))
       .Concat(Level.CreepyCrawlerSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + 1 - Enemy.CrawlerBodyHeight,
         EnemyKind.CreepyCrawler, _enemyConfiguration.CreepyCrawler)))
+      .Concat(Level.FlySpawns.Select(spawn => new Enemy(spawn.X, spawn.Y, EnemyKind.Fly)))
+      .Concat(Level.WormSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - 0.45, EnemyKind.Worm)))
+      .Concat(Level.BluePunkSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.PunkBlue)))
+      .Concat(Level.PurplePunkSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.PunkPurple)))
+      .Concat(Level.EmoBossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - Enemy.EmoBossBodyHeight, EnemyKind.EmoBoss)))
       .Concat(Level.OldManSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.OldMan)))
       .Concat(Level.BossSpawns.Select(spawn => new Enemy(spawn.X, spawn.Y + BodyHeight - LargeBodyHeight, EnemyKind.DungBag)))
       .ToList();
@@ -1167,8 +1371,7 @@ public sealed class Game
 
       if (enemy.Hit(FlameDamage))
       {
-        Score += 200 * enemy.Settings.PowerLevel;
-        SoundRequested?.Invoke(GameSound.EnemyDied);
+        EnemyDefeated(enemy);
       }
     }
   }

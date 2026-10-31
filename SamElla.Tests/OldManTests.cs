@@ -15,9 +15,10 @@ public sealed class OldManTests : GameTestBase
   {
     string directory = Path.Combine(AppContext.BaseDirectory, "Levels");
     string[] files = LevelSelectScreen.Discover(directory);
-    var game = new Game(files, startingLevelIndex: files.Length - 2);
+    int index = Array.FindIndex(files, file => Level.Load(file).SectionLevelNumber == "02-05");
+    var game = new Game(files, startingLevelIndex: index);
     Assert.AreEqual("02-05", game.LevelLabel);
-    game = new Game(files, startingLevelIndex: files.Length - 1);
+    game = new Game(files, startingLevelIndex: index + 1);
     Assert.AreEqual("02-06", game.LevelLabel);
     Assert.AreEqual(EnemyKind.OldMan, game.Boss!.Kind);
     Assert.AreEqual(10, game.Boss.Health);

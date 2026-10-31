@@ -127,3 +127,13 @@ Old Man boss: `old-man-walk-1.sprite`, `old-man-walk-2.sprite`,
 are editable 32 x 32 frames showing white hair, spectacles, a blue jacket,
 and a wooden cane. They face left and flip to face right. The air wave is
 drawn in white and cyan and reaches two tiles from the cane side of his body.
+
+Underworld art: `sewer-brick.sprite` and `sludge.sprite` are 16 x 16 terrain.
+Sewage mains, drains, leaks, and sludge bubbles are drawn by the renderer.
+`fly-1/2.sprite` are 16 x 16 wing frames; `worm-1/2.sprite` are 24 x 16 crawling
+frames. Each has a matching `-squashed.sprite`. The `punk-blue-*` and
+`punk-purple-*` sets are 24 x 32 walking, throwing, and flattened frames with
+colored mohawks; `emo-boss-*` is a larger 32 x 48 set with a long purple fringe.
+`beer-bottle.sprite` and `needle.sprite` are 16 x 16 projectiles. Actors face left
+and flip right. Boss taunts come from `emo-quotes.txt`; the death groan is
+synthesized in `GameSounds` and requires no downloaded sound file.
